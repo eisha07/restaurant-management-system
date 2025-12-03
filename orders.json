@@ -1,0 +1,82 @@
+[
+  {
+    "id": "84410.41899678341",
+    "items": [
+      {
+        "id": "m7",
+        "name": "Steak Frites",
+        "subcategoryId": "s2",
+        "price": "17.99",
+        "description": "Succulent steak cooked to your preference, served with crispy golden fries and herb butter.",
+        "image": "images/steak-frites.jpg",
+        "quantity": 3
+      }
+    ],
+    "paymentMethod": "cash",
+    "date": "2025-11-30T06:42:57.006Z"
+  },
+  {
+    "id": "83880.67918115742",
+    "items": [
+      {
+        "id": "m7",
+        "name": "Steak Frites",
+        "subcategoryId": "s2",
+        "price": "17.99",
+        "description": "Succulent steak cooked to your preference, served with crispy golden fries and herb butter.",
+        "image": "images/steak-frites.jpg",
+        "quantity": 8
+      }
+    ],
+    "paymentMethod": "cash",
+    "date": "2025-11-30T06:43:17.507Z"
+  },
+  {
+    "id": "28054.06299192654",
+    "items": [
+      {
+        "id": "m7",
+        "name": "Steak Frites",
+        "subcategoryId": "s2",
+        "price": "17.99",
+        "description": "Succulent steak cooked to your preference, served with crispy golden fries and herb butter.",
+        "image": "images/steak-frites.jpg",
+        "quantity": 7
+      }
+    ],
+    "paymentMethod": "cash",
+    "date": "2025-11-30T06:47:08.765Z"
+  },
+  {
+    "id": "14053.728064315284",
+    "items": [
+      {
+        "id": "m7",
+        "name": "Steak Frites",
+        "subcategoryId": "s2",
+        "price": "17.99",
+        "description": "Succulent steak cooked to your preference, served with crispy golden fries and herb butter.",
+        "image": "images/steak-frites.jpg",
+        "quantity": 5
+      }
+    ],
+    "paymentMethod": "cash",
+    "date": "2025-12-02T14:12:03.144Z"
+  },
+  {
+    "id": "58525.47060789122",
+    "items": [
+      {
+        "id": "m7",
+        "name": "Steak Frites",
+        "subcategoryId": "s2",
+        "price": "17.99",
+        "description": "Succulent steak cooked to your preference, served with crispy golden fries and herb butter.",
+        "image": "images/steak-frites.jpg",
+        "quantity": 3
+      }
+    ],
+    "paymentMethod": "cash",
+    "date": "2025-12-02T14:12:28.587Z"
+  }
+]

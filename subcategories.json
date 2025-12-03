@@ -1,0 +1,82 @@
+[
+  {
+    "id": "s1",
+    "categoryId": "c1",
+    "name": "Pasta"
+  },
+  {
+    "id": "s2",
+    "categoryId": "c1",
+    "name": "BBQ"
+  },
+  {
+    "id": "s3",
+    "categoryId": "c1",
+    "name": "Curry"
+  },
+  {
+    "id": "s4",
+    "categoryId": "c1",
+    "name": "Breakfast"
+  },
+  {
+    "id": "s6",
+    "categoryId": "c1",
+    "name": "Casserole"
+  },
+  {
+    "id": "s8",
+    "categoryId": "c2",
+    "name": "Sandwich"
+  },
+  {
+    "id": "s9",
+    "categoryId": "c2",
+    "name": "Sushi"
+  },
+  {
+    "id": "s10",
+    "categoryId": "c2",
+    "name": "Seafood"
+  },
+  {
+    "id": "s11",
+    "categoryId": "c2",
+    "name": "Soup"
+  },
+  {
+    "id": "s12",
+    "categoryId": "c2",
+    "name": "Noodles"
+  },
+  {
+    "id": "s13",
+    "categoryId": "c2",
+    "name": "Dessert"
+  },
+  {
+    "id": "s14",
+    "categoryId": "c3",
+    "name": "Salad"
+  },
+  {
+    "id": "s15",
+    "categoryId": "c3",
+    "name": "Burger"
+  },
+  {
+    "id": "s16",
+    "categoryId": "c3",
+    "name": "Tacos"
+  },
+  {
+    "id": "s17",
+    "categoryId": "c3",
+    "name": "Rice"
+  },
+  {
+    "id": "s18",
+    "categoryId": "c3",
+    "name": "Wrap"
+  }
+]
