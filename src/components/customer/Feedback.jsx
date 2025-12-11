@@ -1,12 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, useLocation, useNavigate } from 'react-router-dom';
+import PropTypes from 'prop-types';
 import { feedbackApi } from '../../services/api';
 import '../../styles/Feedback.css';
 
-const Feedback = ({ onSubmitFeedback }) => {
-  const { orderId } = useParams();
-  const location = useLocation();
-  const navigate = useNavigate();
+const Feedback = ({ orderId, onBackToMenu, onFeedbackComplete }) => {
   
   const [ratings, setRatings] = useState({
     food_quality: 0,
@@ -124,9 +121,9 @@ const Feedback = ({ onSubmitFeedback }) => {
       
       // Optional: Clear form after successful submission
       setTimeout(() => {
-        // Navigate back or to thank you page
-        if (orderDetails) {
-          navigate('/', { state: { feedbackSubmitted: true } });
+        // Call parent callback with feedback data
+        if (onFeedbackComplete) {
+          onFeedbackComplete(feedbackData);
         }
       }, 3000);
 
@@ -209,7 +206,7 @@ const Feedback = ({ onSubmitFeedback }) => {
           <p>Please wait until your order is marked as "Ready" before providing feedback.</p>
           <button 
             className="back-button"
-            onClick={() => navigate('/order-status/' + (orderId || ''))}
+            onClick={() => onBackToMenu && onBackToMenu('order-status', { orderId })}
           >
             ← Back to Order Status
           </button>
@@ -241,13 +238,13 @@ const Feedback = ({ onSubmitFeedback }) => {
           <div className="thank-you-actions">
             <button 
               className="back-to-home-btn"
-              onClick={() => navigate('/')}
+              onClick={() => onBackToMenu && onBackToMenu('menu')}
             >
               Return to Menu
             </button>
             <button 
               className="view-order-btn"
-              onClick={() => navigate(`/order-status/${orderId}`)}
+              onClick={() => onBackToMenu && onBackToMenu('order-status', { orderId })}
             >
               View Order Details
             </button>
@@ -330,7 +327,7 @@ const Feedback = ({ onSubmitFeedback }) => {
           <button 
             type="button" 
             className="cancel-btn"
-            onClick={() => navigate(-1)}
+            onClick={() => onBackToMenu && onBackToMenu('order-status', { orderId })}
             disabled={isSubmitting}
           >
             Cancel

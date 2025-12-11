@@ -1,12 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { qrApi, orderApi } from '../../services/api';
 import '../../styles/Payment.css';
 
-const Payment = () => {
-  const location = useLocation();
-  const navigate = useNavigate();
-  const { orderId } = useParams();
+const Payment = ({ orderId, onPaymentComplete, onBackToMenu }) => {
   
   const [isProcessing, setIsProcessing] = useState(false);
   const [paymentStatus, setPaymentStatus] = useState('pending');

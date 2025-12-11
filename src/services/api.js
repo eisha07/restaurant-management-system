@@ -1,31 +1,68 @@
 import axios from 'axios';
 
-// Configure base URL based on environment
-// Default to the same origin as the served page (works for dev and production).
-// If not in a browser environment, fall back to localhost:5000 for development.
-const API_BASE_URL = process.env.REACT_APP_API_URL || (typeof window !== 'undefined' ? `${window.location.origin}/api` : 'http://localhost:5000/api');
+const API_BASE_URL = process.env.REACT_APP_API_URL || 
+  (typeof window !== 'undefined' ? `${window.location.origin}/api` : 'http://localhost:5000/api');
+
+console.log('API Base URL:', API_BASE_URL); // Add this to debug
 
 const api = axios.create({
   baseURL: API_BASE_URL,
   headers: {
     'Content-Type': 'application/json',
   },
+  timeout: 10000, // Add timeout
 });
 
-// Menu API calls
+// Add request interceptor for logging
+api.interceptors.request.use(
+  config => {
+    console.log('Making request to:', config.url);
+    return config;
+  },
+  error => {
+    console.error('Request error:', error);
+    return Promise.reject(error);
+  }
+);
+
+// Add response interceptor for logging
+api.interceptors.response.use(
+  response => {
+    console.log('Response from:', response.config.url, response.status);
+    return response;
+  },
+  error => {
+    console.error('Response error:', {
+      url: error.config?.url,
+      status: error.response?.status,
+      message: error.message
+    });
+    return Promise.reject(error);
+  }
+);
+
 export const menuApi = {
-  // Use the main endpoint
-  getAll: () => api.get('/menu'),
+  getAll: () => {
+    const timestamp = new Date().getTime();
+    return api.get(`/menu?t=${timestamp}`); // Add timestamp to prevent caching
+  },
   
-  // Use the filtered endpoint
-  getByCategory: (category) => api.get(`/menu/categories/${category}/items`),
+  getByCategory: (category) => {
+    const timestamp = new Date().getTime();
+    return api.get(`/menu/categories/${category}/items?t=${timestamp}`);
+  },
   
-  // Use simple endpoint if needed
-  getSimple: () => api.get('/menu/simple'),
+  getSimple: () => {
+    const timestamp = new Date().getTime();
+    return api.get(`/menu/simple?t=${timestamp}`);
+  },
   
-  // Single item
-  getItem: (id) => api.get(`/menu/items/${id}`)
+  getItem: (id) => {
+    const timestamp = new Date().getTime();
+    return api.get(`/menu/items/${id}?t=${timestamp}`);
+  }
 };
+
 // Order API calls
 export const orderApi = {
   create: (orderData) => api.post('/orders', orderData),

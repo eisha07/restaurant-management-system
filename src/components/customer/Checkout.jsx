@@ -1,7 +1,6 @@
 // src/components/customer/Checkout.jsx
 import React, { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
-import { useNavigate } from 'react-router-dom'; // Add navigation
 import { orderApi, qrApi } from '../../services/api'; // Import API services
 import '../../styles/Checkout.css';
 
@@ -12,7 +11,6 @@ const Checkout = ({
   onClose,
   onBackToMenu 
 }) => {
-  const navigate = useNavigate();
   
   const [paymentMethod, setPaymentMethod] = useState('');
   const [tableNumber, setTableNumber] = useState('');
@@ -191,14 +189,12 @@ const Checkout = ({
 
   // Navigate to order status
   const navigateToOrderStatus = () => {
-    if (orderId) {
-      navigate(`/order-status/${orderId}`, {
-        state: {
-          orderId,
-          orderNumber: orderDetails?.orderNumber,
-          paymentMethod,
-          amount: calculateTotal()
-        }
+    if (orderId && onBackToMenu) {
+      onBackToMenu('order-status', {
+        orderId,
+        orderNumber: orderDetails?.orderNumber,
+        paymentMethod,
+        amount: calculateTotal()
       });
     }
   };

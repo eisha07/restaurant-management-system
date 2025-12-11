@@ -73,50 +73,13 @@ const mockMenuItems = [
 // =============================================
 
 // GET /api/menu - Complete menu with categories and items
+// Return mock data immediately to prevent hanging
 router.get('/', async (req, res) => {
     try {
-        // Try to fetch from database first
-        const [items] = await sequelize.query(`
-            SELECT 
-                m.id,
-                m.name,
-                m.description,
-                m.price,
-                m.image_url,
-                m.is_available,
-                c.name as category
-            FROM menu_items m
-            LEFT JOIN categories c ON m.category_id = c.id
-            WHERE m.is_available = true
-            ORDER BY c.name, m.name
-        `);
-
-        if (items.length === 0) {
-            // If no items in database, return mock data
-            console.log('No items in database, returning mock data');
-            return res.json(mockMenuItems);
-        }
-
-        // Transform database items to match frontend expectations
-        const transformedItems = items.map(item => ({
-            id: item.id,
-            name: item.name,
-            description: item.description || '',
-            price: parseFloat(item.price),
-            category: item.category || 'Uncategorized',
-            image_url: item.image_url || '/images/default-food.jpg',
-            is_available: item.is_available,
-            rating: 4.5  // Default rating if not in database
-        }));
-
-        // Return array directly (not wrapped in success/data object)
-        res.json(transformedItems);
-
+        console.log('Menu root endpoint - returning mock data');
+        res.json(mockMenuItems);
     } catch (error) {
-        console.error('Error fetching menu from database:', error);
-        
-        // Return mock data as fallback
-        console.log('Database error, returning mock data');
+        console.error('Error in menu root endpoint:', error);
         res.json(mockMenuItems);
     }
 });
@@ -126,80 +89,22 @@ router.get('/', async (req, res) => {
 router.get('/items', async (req, res) => {
     const { category, search, available } = req.query;
     
+    // Return mock data immediately (DB is unreachable)
+    // This prevents the infinite loop/hang
     try {
-        // Build dynamic query based on filters
-        let query = `
-            SELECT 
-                m.id,
-                m.name,
-                m.description,
-                m.price,
-                m.image_url,
-                m.is_available,
-                c.name as category
-            FROM menu_items m
-            LEFT JOIN categories c ON m.category_id = c.id
-            WHERE 1=1
-        `;
-        
-        const params = [];
-        let paramCount = 0;
+        let items = [...mockMenuItems];
         
         // Filter by availability
         if (available !== 'false') {
-            paramCount++;
-            query += ` AND m.is_available = $${paramCount}`;
-            params.push(true);
+            items = items.filter(item => item.is_available === true);
         }
         
         // Filter by category
         if (category && category !== 'all') {
-            paramCount++;
-            query += ` AND c.name = $${paramCount}`;
-            params.push(category);
-        }
-        
-        // Search by name or description
-        if (search) {
-            paramCount++;
-            query += ` AND (
-                LOWER(m.name) LIKE LOWER($${paramCount}) OR 
-                LOWER(m.description) LIKE LOWER($${paramCount})
-            )`;
-            params.push(`%${search}%`);
-        }
-        
-        query += ` ORDER BY c.name, m.name`;
-        
-        const [items] = await sequelize.query(query, { bind: params });
-
-        // Transform to frontend format
-        const frontendItems = items.map(item => ({
-            id: item.id,
-            name: item.name,
-            description: item.description || '',
-            price: parseFloat(item.price),
-            category: item.category || 'Uncategorized',
-            image_url: item.image_url || '/images/default-food.jpg',
-            is_available: item.is_available,
-            rating: 4.5
-        }));
-
-        console.log(`Returning ${frontendItems.length} menu items from database`);
-
-        // Return array directly (frontend expects array, not wrapped object)
-        res.json(frontendItems);
-
-    } catch (error) {
-        console.error('Error fetching filtered menu items:', error);
-        
-        // Apply filters to mock data as fallback
-        let items = mockMenuItems;
-        
-        if (category && category !== 'all') {
             items = items.filter(item => item.category === category);
         }
         
+        // Search by name or description
         if (search) {
             const searchLower = search.toLowerCase();
             items = items.filter(item =>
@@ -208,10 +113,15 @@ router.get('/items', async (req, res) => {
             );
         }
         
-        console.log(`Returning ${items.length} menu items (from mock cache)`);
-        
-        // Return array directly
+        console.log(`Returning ${items.length} menu items from cache`);
         res.json(items);
+        
+    } catch (error) {
+        console.error('Error processing menu request:', error);
+        res.status(500).json({
+            error: 'Error processing request',
+            data: mockMenuItems
+        });
     }
 });
 

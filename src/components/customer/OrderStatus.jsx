@@ -1,11 +1,9 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
 import { orderApi } from '../../services/api';
 import '../../styles/OrderStatus.css';
 
-const OrderStatus = () => {
-  const { orderId } = useParams();
-  const navigate = useNavigate();
+const OrderStatus = ({ orderId, onBackToMenu, onFeedbackComplete }) => {
+  // Get orderId from props instead of route params
   const timerRef = useRef(null);
   const pollRef = useRef(null);
   
