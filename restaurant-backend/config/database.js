@@ -22,25 +22,23 @@ try {
       port: process.env.DB_PORT || 5432,
       dialect: 'postgres',
       dialectOptions: {
-        ssl: {
+        ssl: process.env.DB_HOST === 'localhost' ? false : {
           require: true,
           rejectUnauthorized: false
         },
         statement_timeout: 5000 // 5 second query timeout
       },
-      logging: false, // Disable verbose logging
+      logging: (msg) => console.log('[SQL]', msg), // Log queries for debugging
       pool: {
         max: 5,
         min: 0,
-        acquire: 5000, // Reduced from 30s to 5s
+        acquire: 5000,
         idle: 10000
-      },
-      connectionTimeoutMillis: 5000, // 5 second connection timeout
-      idleTimeoutMillis: 10000
+      }
     }
   );
   
-  console.log('✅ Sequelize instance created');
+  console.log('✅ Sequelize instance created successfully');
 } catch (error) {
   console.error('❌ Error creating Sequelize instance:', error.message);
   throw error;

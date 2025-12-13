@@ -12,27 +12,30 @@ router.get('/', async (req, res) => {
         const [orders] = await sequelize.query(`
             SELECT 
                 o.id,
-                o.customer_session_id as "customerSessionId",
+                o.order_number as "orderNumber",
+                o.customer_id as "customerId",
+                o.table_number as "tableNumber",
                 o.status,
                 o.payment_method as "paymentMethod",
                 o.payment_status as "paymentStatus",
-                o.total_amount as "totalAmount",
+                o.total as "totalAmount",
+                o.subtotal,
+                o.tax,
                 o.created_at as "createdAt",
                 o.approved_at as "approvedAt",
-                o.ready_at as "readyAt",
+                o.expected_completion as "expectedCompletion",
                 json_agg(
                     json_build_object(
                         'id', oi.id,
                         'menu_item_id', oi.menu_item_id,
-                        'name', m.name,
+                        'name', oi.name,
                         'quantity', oi.quantity,
-                        'unit_price', oi.unit_price,
+                        'price', oi.price,
                         'special_instructions', oi.special_instructions
                     )
-                ) as items
+                ) FILTER (WHERE oi.id IS NOT NULL) as items
             FROM orders o
             LEFT JOIN order_items oi ON o.id = oi.order_id
-            LEFT JOIN menu_items m ON oi.menu_item_id = m.id
             GROUP BY o.id
             ORDER BY o.created_at DESC
         `);
@@ -60,25 +63,29 @@ router.get('/:id', async (req, res) => {
         const [orders] = await sequelize.query(`
             SELECT 
                 o.id,
-                o.customer_session_id as "customerSessionId",
+                o.order_number as "orderNumber",
+                o.customer_id as "customerId",
+                o.table_number as "tableNumber",
                 o.status,
                 o.payment_method as "paymentMethod",
                 o.payment_status as "paymentStatus",
-                o.total_amount as "totalAmount",
+                o.total as "totalAmount",
+                o.subtotal,
+                o.tax,
                 o.created_at as "createdAt",
                 o.approved_at as "approvedAt",
-                o.ready_at as "readyAt",
+                o.expected_completion as "expectedCompletion",
                 json_agg(
                     json_build_object(
                         'id', oi.id,
                         'menu_item_id', oi.menu_item_id,
-                        'name', m.name,
+                        'name', oi.name,
                         'description', m.description,
                         'quantity', oi.quantity,
-                        'unit_price', oi.unit_price,
+                        'price', oi.price,
                         'special_instructions', oi.special_instructions
                     )
-                ) as items
+                ) FILTER (WHERE oi.id IS NOT NULL) as items
             FROM orders o
             LEFT JOIN order_items oi ON o.id = oi.order_id
             LEFT JOIN menu_items m ON oi.menu_item_id = m.id
@@ -108,7 +115,7 @@ router.get('/:id', async (req, res) => {
     }
 });
 
-// GET /api/orders/session/:sessionId - Get customer's orders by session
+// GET /api/orders/session/:sessionId - Get customer's orders by customer ID
 router.get('/session/:sessionId', async (req, res) => {
     try {
         const { sessionId } = req.params;
@@ -116,26 +123,28 @@ router.get('/session/:sessionId', async (req, res) => {
         const [orders] = await sequelize.query(`
             SELECT 
                 o.id,
+                o.order_number as "orderNumber",
                 o.status,
                 o.payment_method as "paymentMethod",
                 o.payment_status as "paymentStatus",
-                o.total_amount as "totalAmount",
+                o.total as "totalAmount",
+                o.subtotal,
+                o.tax,
                 o.created_at as "createdAt",
                 o.approved_at as "approvedAt",
-                o.ready_at as "readyAt",
+                o.expected_completion as "expectedCompletion",
                 json_agg(
                     json_build_object(
                         'id', oi.id,
                         'menu_item_id', oi.menu_item_id,
-                        'name', m.name,
+                        'name', oi.name,
                         'quantity', oi.quantity,
-                        'unit_price', oi.unit_price
+                        'price', oi.price
                     )
-                ) as items
+                ) FILTER (WHERE oi.id IS NOT NULL) as items
             FROM orders o
             LEFT JOIN order_items oi ON o.id = oi.order_id
-            LEFT JOIN menu_items m ON oi.menu_item_id = m.id
-            WHERE o.customer_session_id = $1
+            WHERE o.customer_id = $1 OR o.id = $1::integer
             GROUP BY o.id
             ORDER BY o.created_at DESC
         `, { bind: [sessionId] });
@@ -143,7 +152,7 @@ router.get('/session/:sessionId', async (req, res) => {
         res.json({
             success: true,
             data: orders,
-            message: `Orders for session ${sessionId} retrieved successfully`
+            message: `Orders for customer retrieved successfully`
         });
     } catch (error) {
         console.error('Error fetching session orders:', error);
@@ -161,20 +170,24 @@ router.get('/kitchen/active', async (req, res) => {
         const [orders] = await sequelize.query(`
             SELECT 
                 o.id,
-                o.customer_session_id as "customerSessionId",
+                o.order_number as "orderNumber",
+                o.customer_id as "customerId",
+                o.table_number as "tableNumber",
                 o.status,
-                o.total_amount as "totalAmount",
+                o.kitchen_status as "kitchenStatus",
+                o.total as "totalAmount",
+                o.special_instructions as "specialInstructions",
                 o.created_at as "createdAt",
                 o.approved_at as "approvedAt",
+                o.expected_completion as "expectedCompletion",
                 string_agg(
-                    m.name || ' x' || oi.quantity, 
-                    ', '
+                    oi.name || ' x' || oi.quantity, 
+                    ', ' ORDER BY oi.name
                 ) as items_summary,
                 COUNT(oi.id) as item_count
             FROM orders o
             LEFT JOIN order_items oi ON o.id = oi.order_id
-            LEFT JOIN menu_items m ON oi.menu_item_id = m.id
-            WHERE o.status IN ('approved', 'in_progress')
+            WHERE o.status IN ('approved', 'in_progress') AND o.kitchen_status IN ('pending', 'preparing')
             GROUP BY o.id
             ORDER BY 
                 CASE 
@@ -217,15 +230,15 @@ router.post('/', async (req, res) => {
         }
 
         // Validate payment method
-        const validPaymentMethods = ['cash', 'card', 'online_transfer'];
+        const validPaymentMethods = ['cash', 'card', 'online'];
         if (!validPaymentMethods.includes(paymentMethod)) {
             return res.status(400).json({
                 success: false,
-                message: 'Invalid payment method. Must be: cash, card, or online_transfer'
+                message: 'Invalid payment method. Must be: cash, card, or online'
             });
         }
 
-        let totalAmount = 0;
+        let subtotal = 0;
         const orderItemsData = [];
 
         // Calculate total and validate items
@@ -258,27 +271,40 @@ router.post('/', async (req, res) => {
             }
 
             const itemTotal = parseFloat(menuItem[0].price) * item.quantity;
-            totalAmount += itemTotal;
+            subtotal += itemTotal;
 
             orderItemsData.push({
                 menuItemId: item.menuItemId,
+                name: menuItem[0].name,
                 quantity: item.quantity,
-                unitPrice: menuItem[0].price,
+                price: menuItem[0].price,
                 specialInstructions: item.specialInstructions || null
             });
         }
 
+        // Calculate tax (10%) and total
+        const tax = parseFloat((subtotal * 0.1).toFixed(2));
+        const total = parseFloat((subtotal + tax).toFixed(2));
+
+        // Generate order number
+        const orderNumber = `ORD-${Date.now()}`;
+
         // Create order and order items in a transaction
         const [newOrder] = await sequelize.query(`
             INSERT INTO orders (
-                customer_session_id, 
-                payment_method, 
-                total_amount, 
-                status
+                order_number,
+                customer_id, 
+                payment_method,
+                subtotal,
+                tax,
+                total, 
+                status,
+                payment_status,
+                kitchen_status
             ) 
-            VALUES ($1, $2, $3, 'pending_approval') 
+            VALUES ($1, $2, $3, $4, $5, $6, 'pending_approval', 'pending', 'pending') 
             RETURNING *
-        `, { bind: [customerSessionId, paymentMethod, totalAmount] });
+        `, { bind: [orderNumber, customerSessionId, paymentMethod, subtotal, tax, total] });
 
         // Create order items
         for (const item of orderItemsData) {
@@ -286,17 +312,19 @@ router.post('/', async (req, res) => {
                 INSERT INTO order_items (
                     order_id, 
                     menu_item_id, 
+                    name,
                     quantity, 
-                    unit_price, 
+                    price, 
                     special_instructions
                 ) 
-                VALUES ($1, $2, $3, $4, $5)
+                VALUES ($1, $2, $3, $4, $5, $6)
             `, {
                 bind: [
                     newOrder[0].id,
                     item.menuItemId,
+                    item.name,
                     item.quantity,
-                    item.unitPrice,
+                    item.price,
                     item.specialInstructions
                 ]
             });
@@ -305,18 +333,26 @@ router.post('/', async (req, res) => {
         // Get the complete order with items
         const [completeOrder] = await sequelize.query(`
             SELECT 
-                o.*,
+                o.id,
+                o.order_number as "orderNumber",
+                o.customer_id as "customerId",
+                o.status,
+                o.payment_method as "paymentMethod",
+                o.payment_status as "paymentStatus",
+                o.subtotal,
+                o.tax,
+                o.total,
+                o.created_at as "createdAt",
                 json_agg(
                     json_build_object(
                         'menu_item_id', oi.menu_item_id,
-                        'name', m.name,
+                        'name', oi.name,
                         'quantity', oi.quantity,
-                        'unit_price', oi.unit_price
+                        'price', oi.price
                     )
-                ) as items
+                ) FILTER (WHERE oi.id IS NOT NULL) as items
             FROM orders o
             LEFT JOIN order_items oi ON o.id = oi.order_id
-            LEFT JOIN menu_items m ON oi.menu_item_id = m.id
             WHERE o.id = $1
             GROUP BY o.id
         `, { bind: [newOrder[0].id] });

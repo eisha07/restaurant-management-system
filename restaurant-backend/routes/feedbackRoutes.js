@@ -28,34 +28,35 @@ const authenticateManager = (req, res, next) => {
 // POST /api/feedback - Submit customer feedback
 router.post('/', async (req, res) => {
     try {
-        const { orderId, rating, comment } = req.body;
+        const { orderId, rating, foodQuality, serviceSpeed, overallExperience, accuracy, valueForMoney, comment } = req.body;
 
-        // Validation
-        if (!orderId || !rating) {
+        // Validation - accept either single rating or detailed ratings
+        const overallRating = rating || overallExperience;
+        if (!orderId || !overallRating) {
             return res.status(400).json({
                 success: false,
-                message: 'Missing required fields: orderId and rating'
+                message: 'Missing required fields: orderId and rating (or overallExperience)'
             });
         }
 
-        if (rating < 1 || rating > 5) {
+        if (overallRating < 1 || overallRating > 5) {
             return res.status(400).json({
                 success: false,
                 message: 'Rating must be between 1 and 5'
             });
         }
 
-        // Check if order exists and is completed
+        // Check if order exists
         const [order] = await sequelize.query(`
             SELECT id, status 
             FROM orders 
-            WHERE id = $1 AND status IN ('completed', 'delivered', 'ready')
+            WHERE id = $1
         `, { bind: [orderId] });
 
         if (order.length === 0) {
             return res.status(400).json({
                 success: false,
-                message: 'Order not found or not yet completed. Feedback can only be submitted for completed orders.'
+                message: 'Order not found'
             });
         }
 
@@ -71,12 +72,27 @@ router.post('/', async (req, res) => {
             });
         }
 
-        // Create feedback
+        // Calculate average rating if detailed ratings provided
+        const ratings = [foodQuality || overallRating, serviceSpeed || overallRating, overallExperience || overallRating, accuracy || overallRating, valueForMoney || overallRating];
+        const averageRating = (ratings.reduce((a, b) => a + b, 0) / ratings.length).toFixed(2);
+
+        // Create feedback with both simple and detailed ratings
         const [newFeedback] = await sequelize.query(`
-            INSERT INTO feedback (order_id, rating, comment)
-            VALUES ($1, $2, $3)
-            RETURNING id, order_id, rating, comment, created_at
-        `, { bind: [orderId, rating, comment || ''] }); // Handle null comment
+            INSERT INTO feedback (
+                order_id, 
+                food_quality, 
+                service_speed, 
+                overall_experience,
+                accuracy,
+                value_for_money,
+                average_rating,
+                comment
+            )
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+            RETURNING id, order_id, food_quality, service_speed, overall_experience, accuracy, value_for_money, average_rating, comment, submitted_at
+        `, { 
+            bind: [orderId, foodQuality || overallRating, serviceSpeed || overallRating, overallExperience || overallRating, accuracy || overallRating, valueForMoney || overallRating, averageRating, comment || null] 
+        });
 
         res.status(201).json({
             success: true,
@@ -108,27 +124,34 @@ router.get('/', authenticateManager, async (req, res) => {
         const params = [];
         let paramCount = 0;
 
-        // Filter by minimum rating
+        // Filter by minimum rating (using average_rating)
         if (minRating) {
             paramCount++;
-            whereClause += ` AND f.rating >= $${paramCount}`;
+            whereClause += ` AND f.average_rating >= $${paramCount}`;
             params.push(minRating);
         }
 
-        // FIX: Remove total_count from SELECT to avoid duplicates
+        // Get all feedback with order details
         const [feedback] = await sequelize.query(`
             SELECT 
                 f.id,
-                f.rating,
+                f.food_quality as "foodQuality",
+                f.service_speed as "serviceSpeed",
+                f.overall_experience as "overallExperience",
+                f.accuracy,
+                f.value_for_money as "valueForMoney",
+                f.average_rating as "averageRating",
                 f.comment,
-                f.created_at as "createdAt",
-                o.id as order_id,
-                o.total_amount as "orderTotal",
-                o.payment_method as "paymentMethod"
+                f.submitted_at as "submittedAt",
+                o.id as "orderId",
+                o.order_number as "orderNumber",
+                o.total as "orderTotal",
+                o.payment_method as "paymentMethod",
+                o.created_at as "orderCreatedAt"
             FROM feedback f
             JOIN orders o ON f.order_id = o.id
             ${whereClause}
-            ORDER BY f.created_at DESC
+            ORDER BY f.submitted_at DESC
             LIMIT $${paramCount + 1} OFFSET $${paramCount + 2}
         `, { bind: [...params, limit, offset] });
 
@@ -144,10 +167,7 @@ router.get('/', authenticateManager, async (req, res) => {
 
         res.json({
             success: true,
-            data: feedback.map(item => ({
-                ...item,
-                comment: item.comment || '' // Ensure consistent response
-            })),
+            data: feedback,
             pagination: {
                 page: parseInt(page),
                 limit: parseInt(limit),
@@ -174,14 +194,18 @@ router.get('/stats', authenticateManager, async (req, res) => {
     try {
         const [stats] = await sequelize.query(`
             SELECT 
-                COUNT(*) as total_feedback,
-                ROUND(AVG(rating)::numeric, 2) as average_rating,
-                COUNT(CASE WHEN rating = 5 THEN 1 END) as five_star,
-                COUNT(CASE WHEN rating = 4 THEN 1 END) as four_star,
-                COUNT(CASE WHEN rating = 3 THEN 1 END) as three_star,
-                COUNT(CASE WHEN rating = 2 THEN 1 END) as two_star,
-                COUNT(CASE WHEN rating = 1 THEN 1 END) as one_star,
-                COUNT(comment) as total_comments,
+                COUNT(*) as "totalFeedback",
+                ROUND(AVG(average_rating)::numeric, 2) as "averageRating",
+                ROUND(AVG(food_quality)::numeric, 2) as "avgFoodQuality",
+                ROUND(AVG(service_speed)::numeric, 2) as "avgServiceSpeed",
+                ROUND(AVG(overall_experience)::numeric, 2) as "avgOverallExperience",
+                ROUND(AVG(accuracy)::numeric, 2) as "avgAccuracy",
+                ROUND(AVG(value_for_money)::numeric, 2) as "avgValueForMoney",
+                COUNT(CASE WHEN average_rating >= 4.5 THEN 1 END) as "excellent",
+                COUNT(CASE WHEN average_rating >= 3.5 AND average_rating < 4.5 THEN 1 END) as "good",
+                COUNT(CASE WHEN average_rating >= 2.5 AND average_rating < 3.5 THEN 1 END) as "average",
+                COUNT(CASE WHEN average_rating < 2.5 THEN 1 END) as "poor",
+                COUNT(comment) as "totalComments",
                 MAX(created_at) as latest_feedback
             FROM feedback
         `);

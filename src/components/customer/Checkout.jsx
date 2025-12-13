@@ -1,653 +1,560 @@
 // src/components/customer/Checkout.jsx
 import React, { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
-import { orderApi, qrApi } from '../../services/api'; // Import API services
+import { orderApi } from '../../services/api';
 import '../../styles/Checkout.css';
 
 const Checkout = ({ 
-  cart, 
-  subtotal, 
+  cartItems = [], 
+  total = 0, 
   onPlaceOrder, 
   onClose,
-  onBackToMenu 
+  onBackToMenu,
+  onProceedToPayment 
 }) => {
-  
+  const [step, setStep] = useState(1); // 1: Cart Summary, 2: Order Confirmation
   const [paymentMethod, setPaymentMethod] = useState('');
   const [tableNumber, setTableNumber] = useState('');
   const [specialInstructions, setSpecialInstructions] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
-  const [showPaymentQR, setShowPaymentQR] = useState(false);
-  const [orderPlaced, setOrderPlaced] = useState(false);
-  const [orderId, setOrderId] = useState(null);
-  const [qrCodeData, setQrCodeData] = useState(null);
   const [error, setError] = useState('');
   const [orderDetails, setOrderDetails] = useState(null);
+  const [timeRemaining, setTimeRemaining] = useState(15); // 15 minutes estimated time
+  const [orderStatus, setOrderStatus] = useState('pending_approval');
   
-  // Payment methods from SRS
+  // Payment methods
   const PAYMENT_METHODS = [
-    { id: 'cash', label: 'Pay by Cash', icon: '💵' },
-    { id: 'card', label: 'Pay by Card', icon: '💳' },
-    { id: 'online', label: 'Online Transfer', icon: '📱' }
+    { id: 'cash', label: 'Cash', icon: '💵', description: 'Pay with cash at counter' },
+    { id: 'card', label: 'Card', icon: '💳', description: 'Pay with credit/debit card' },
+    { id: 'online', label: 'Online', icon: '📱', description: 'Pay via online transfer' }
   ];
 
   // Calculate totals
-  const calculateTax = () => subtotal * 0.08; // 8% tax as per SRS
-  const calculateTotal = () => subtotal + calculateTax();
+  const subtotal = total / 1.08; // Back-calculate subtotal if total includes tax
+  const tax = total - subtotal;
 
   // Handle payment method selection
-  const handlePaymentMethodSelect = (methodId) => {
+  const handlePaymentSelect = (methodId) => {
+    console.log('💳 Payment method selected:', methodId);
     setPaymentMethod(methodId);
-    setShowPaymentQR(false);
-    setQrCodeData(null);
     setError('');
   };
 
-  // Proceed to payment step
-  const handleProceedToPayment = async () => {
+  // Handle proceed to checkout (Step 1 → Step 2)
+  const handleProceedToCheckout = (e) => {
+    if (e) e.preventDefault();
+    
+    console.clear();
+    console.log('%c🎯 PROCEED TO CHECKOUT BUTTON CLICKED', 'color: #667eea; font-size: 16px; font-weight: bold;');
+    console.log('%cStep 1: Validating Payment Method', 'color: #ff9800; font-weight: bold;');
+    console.log('💳 Payment Method Selected:', paymentMethod || '❌ NONE');
+    
     if (!paymentMethod) {
+      console.log('%c❌ VALIDATION FAILED: No payment method selected', 'color: #f44336; font-weight: bold;');
       setError('Please select a payment method');
       return;
     }
-
-    setError('');
-
-    if (paymentMethod === 'cash') {
-      // For cash payment, directly place order
-      await handlePlaceOrder();
-    } else {
-      // For card/online payment, generate QR code first
-      await generatePaymentQR();
-    }
-  };
-
-  // Generate QR code for digital payments
-  const generatePaymentQR = async () => {
-    try {
-      setIsProcessing(true);
-      
-      // Generate QR code for table
-      const tableNumber = localStorage.getItem('tableNumber') || 'default';
-      const qrResponse = await qrApi.generateTableQR(tableNumber);
-      
-      // Store QR data
-      setQrCodeData({
-        url: qrResponse.data.qrCode || qrResponse.data.qr_url || '#',
-        amount: calculateTotal(),
-        paymentMethod: paymentMethod
-      });
-      
-      setShowPaymentQR(true);
-    } catch (error) {
-      console.error('QR generation failed:', error);
-      setError('Failed to generate payment QR. Please try again or select cash payment.');
-    } finally {
-      setIsProcessing(false);
-    }
-  };
-
-  // Place order with backend
-  const handlePlaceOrder = async () => {
-    if (!paymentMethod) {
-      setError('Please select a payment method');
+    
+    console.log('%cStep 2: Validating Cart', 'color: #ff9800; font-weight: bold;');
+    console.log('🛒 Cart Items Count:', cartItems.length);
+    console.log('📦 Cart Items:', cartItems);
+    
+    if (cartItems.length === 0) {
+      console.log('%c❌ VALIDATION FAILED: Cart is empty', 'color: #f44336; font-weight: bold;');
+      setError('Your cart is empty');
       return;
     }
 
+    console.log('%c✅ ALL VALIDATIONS PASSED!', 'color: #4caf50; font-size: 14px; font-weight: bold;');
+    console.log('%c🚀 TRANSITIONING TO STEP 2 (ORDER CONFIRMATION)', 'color: #2196f3; font-size: 14px; font-weight: bold;');
+    console.log('Payment Method:', paymentMethod);
+    console.log('Cart Total:', cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0));
+    console.log('Items:', cartItems.map(item => `${item.quantity}x ${item.name}`).join(', '));
+    
+    setError(''); // Clear any errors
+    setStep(2); // Move to order confirmation page
+    
+    console.log('%c✨ SUCCESS: Now displaying Step 2 - Order Confirmation Page', 'color: #4caf50; font-size: 14px; font-weight: bold;');
+  };
+
+  // Place order (Step 2)
+  const handlePlaceOrder = async (e) => {
+    if (e) e.preventDefault();
+    console.log('🔄 handlePlaceOrder called');
     setIsProcessing(true);
     setError('');
 
     try {
-      // Prepare order data according to backend schema
+      // Generate session ID if not exists
+      let sessionId = localStorage.getItem('customerSessionId');
+      if (!sessionId) {
+        sessionId = `sess_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+        localStorage.setItem('customerSessionId', sessionId);
+      }
+
+      // Map payment method for backend
+      const paymentMethodMap = {
+        'cash': 'cash',
+        'card': 'card', 
+        'online': 'online_transfer'
+      };
+
+      // Prepare order data
       const orderData = {
-        items: cart.map(item => ({
-          menu_item_id: item.id,
-          name: item.name,
-          price: item.price,
-          quantity: item.quantity,
-          special_instructions: specialInstructions || '',
-          notes: item.notes || ''
+        customerSessionId: sessionId,
+        paymentMethod: paymentMethodMap[paymentMethod] || 'cash',
+        items: cartItems.map(item => ({
+          menuItemId: item.id,
+          quantity: item.quantity || 1,
+          specialInstructions: specialInstructions || null
         })),
-        subtotal: subtotal,
-        tax: calculateTax(),
-        total: calculateTotal(),
-        payment_method: paymentMethod,
-        table_number: tableNumber || null,
-        special_instructions: specialInstructions,
-        status: 'pending_approval'
+        tableNumber: tableNumber || null,
+        specialInstructions: specialInstructions,
+        totalAmount: total // Add this line
       };
 
-      // Submit order to backend
+      console.log('📤 Submitting order:', orderData);
+
+      // Call API
       const response = await orderApi.create(orderData);
+      console.log('📥 Order API response:', response);
       
-      const { orderId, orderNumber } = response.data;
-      setOrderId(orderId);
-      
-      // If digital payment, we need to update QR with actual order ID
-      if (paymentMethod !== 'cash' && qrCodeData) {
-        // Regenerate QR with actual order details
-        const tableNumber = localStorage.getItem('tableNumber') || 'default';
-        const qrResponse = await qrApi.generateTableQR(tableNumber);
-        setQrCodeData({
-          ...qrCodeData,
-          url: qrResponse.data.qrCode || qrResponse.data.qr_url,
-          orderId: orderId
-        });
-      }
+      // Handle response
+      if (response.data && response.data.data) {
+        console.log('✅ Order created successfully');
+        const order = response.data.data;
+        const orderInfo = {
+          orderId: order.id,
+          orderNumber: `ORD-${order.id.toString().padStart(6, '0')}`,
+          status: order.status || 'pending_approval',
+          total: order.total_amount || total,
+          paymentMethod: paymentMethod,
+          tableNumber: tableNumber,
+          timestamp: new Date().toISOString(),
+          estimatedTime: 15 // Default 15 minutes
+        };
 
-      // Store order info for status tracking
-      const orderInfo = {
-        orderId,
-        orderNumber,
-        paymentMethod,
-        total: calculateTotal(),
-        items: cart,
-        timestamp: new Date().toISOString()
-      };
-      
-      localStorage.setItem('currentOrder', JSON.stringify(orderInfo));
-      
-      // Set order details for success screen
-      setOrderDetails(orderInfo);
-      setOrderPlaced(true);
-      
-      // Call parent function if provided
-      if (onPlaceOrder) {
-        onPlaceOrder(orderInfo);
+        // Store order info
+        localStorage.setItem('currentOrder', JSON.stringify(orderInfo));
+        setOrderDetails(orderInfo);
+
+        // Notify parent
+        if (onPlaceOrder) {
+          onPlaceOrder(orderInfo);
+        }
+
+        // Start timer simulation
+        startOrderTimer();
+
+      } else {
+        throw new Error('Invalid response from server');
       }
 
     } catch (error) {
-      console.error('Order submission failed:', error);
-      setError(error.response?.data?.error || 'Failed to submit order. Please try again.');
-    } finally {
-      setIsProcessing(false);
-    }
-  };
-
-  // Handle QR payment completion
-  const handleQRPaymentComplete = async () => {
-    setIsProcessing(true);
-    try {
-      // In real app, this would be handled by webhook
-      // For now, we'll simulate payment completion
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      if (!orderId) {
-        await handlePlaceOrder();
-      }
-      
-      setShowPaymentQR(false);
-    } catch (error) {
-      setError('Payment verification failed. Please contact staff.');
-    } finally {
-      setIsProcessing(false);
-    }
-  };
-
-  const handleQRPaymentCancel = () => {
-    setShowPaymentQR(false);
-    setQrCodeData(null);
-  };
-
-  // Navigate to order status
-  const navigateToOrderStatus = () => {
-    if (orderId && onBackToMenu) {
-      onBackToMenu('order-status', {
-        orderId,
-        orderNumber: orderDetails?.orderNumber,
-        paymentMethod,
-        amount: calculateTotal()
+      console.error('❌ Order failed:', error);
+      console.error('Error details:', {
+        message: error.message,
+        response: error.response?.data,
+        status: error.response?.status
       });
+      setError(error.response?.data?.message || error.message || 'Failed to place order. Please try again.');
+      setStep(1); // Go back to payment selection
+    } finally {
+      setIsProcessing(false);
     }
   };
 
-  // Navigate to receipt
-  const navigateToReceipt = () => {
-    if (orderId) {
-      // Receipt would be available after manager approval
-      alert('Receipt will be available after manager approval');
-      // In future: navigate(`/receipt/${orderId}`);
+  // Timer simulation
+  const startOrderTimer = () => {
+    let timeLeft = 15; // 15 minutes
+    
+    const timer = setInterval(() => {
+      timeLeft--;
+      setTimeRemaining(timeLeft);
+      
+      if (timeLeft <= 0) {
+        clearInterval(timer);
+        setOrderStatus('ready');
+      } else if (timeLeft <= 5) {
+        setOrderStatus('in_progress');
+      }
+    }, 1000); // For demo: 1 second = 1 minute
+    
+    return () => clearInterval(timer);
+  };
+
+  // Handle back to payment selection
+  const handleBackToPayment = () => {
+    setStep(1);
+  };
+
+  // Handle back to menu
+  const handleBackToMenu = () => {
+    if (onBackToMenu) {
+      onBackToMenu();
     }
   };
 
-  // Render QR code section
-  const renderPaymentQR = () => {
-    if (!qrCodeData) return null;
+  // Step 1: Cart Summary & Payment Selection
+  const renderStep1 = () => (
+    <>
+      <div className="checkout-header">
+        <h2>Cart Summary & Payment</h2>
+        <button className="close-btn" onClick={onClose}>×</button>
+      </div>
 
-    if (paymentMethod === 'card') {
-      return (
-        <div className="payment-qr-section">
-          <div className="qr-header">
-            <h3>Scan to Pay by Card</h3>
-            <p>Use your bank app to scan and complete payment</p>
+      <div className="checkout-body">
+        {error && (
+          <div className="error-alert">
+            <span className="error-icon">⚠️</span>
+            <span className="error-text">{error}</span>
+            <button className="dismiss-error" onClick={() => setError('')}>×</button>
           </div>
-          <div className="qr-code-container">
-            {/* In real app, display actual QR code image */}
-            <div className="qr-code-placeholder">
-              <div className="qr-code">
-                <div className="qr-pattern">
-                  <div className="qr-corner top-left"></div>
-                  <div className="qr-corner top-right"></div>
-                  <div className="qr-corner bottom-left"></div>
-                  <div className="qr-data">
-                    Payment: ${qrCodeData.amount.toFixed(2)}
-                    {orderId && <div>Order: {orderId.slice(-8)}</div>}
-                  </div>
+        )}
+
+        {/* Order Items Summary */}
+        <div className="section">
+          <h3>Your Order ({cartItems.length} items)</h3>
+          <div className="order-items">
+            {cartItems.map((item, index) => (
+              <div key={`${item.id}-${index}`} className="order-item">
+                <div className="item-info">
+                  <span className="item-quantity">{item.quantity}x</span>
+                  <span className="item-name">{item.name}</span>
+                </div>
+                <div className="item-price">
+                  ${(item.price * item.quantity).toFixed(2)}
                 </div>
               </div>
-              <div className="qr-amount">${qrCodeData.amount.toFixed(2)}</div>
-              {orderId && (
-                <div className="order-reference">Order: {orderId.slice(-8)}</div>
-              )}
-            </div>
+            ))}
           </div>
-          <div className="qr-instructions">
-            <p>1. Open your banking app</p>
-            <p>2. Tap "Scan QR" in the app</p>
-            <p>3. Point camera at this code</p>
-            <p>4. Confirm payment amount</p>
-          </div>
-          <div className="qr-actions">
-            <button 
-              className="cancel-payment-btn"
-              onClick={handleQRPaymentCancel}
-              disabled={isProcessing}
-            >
-              Cancel Payment
-            </button>
-            <button 
-              className="payment-done-btn"
-              onClick={handleQRPaymentComplete}
-              disabled={isProcessing}
-            >
-              {isProcessing ? 'Verifying...' : 'I\'ve Completed Payment'}
-            </button>
-          </div>
-        </div>
-      );
-    }
 
-    if (paymentMethod === 'online') {
-      return (
-        <div className="payment-qr-section">
-          <div className="qr-header">
-            <h3>Online Transfer QR Code</h3>
-            <p>Scan with your mobile banking app</p>
-          </div>
-          <div className="qr-code-container">
-            <div className="qr-code-placeholder">
-              <div className="qr-code online-qr">
-                <div className="qr-pattern">
-                  <div className="qr-corner top-left"></div>
-                  <div className="qr-corner top-right"></div>
-                  <div className="qr-corner bottom-left"></div>
-                  <div className="qr-data">
-                    <div>Transfer to:</div>
-                    <div>Delicious Restaurant</div>
-                    <div>Account: ****1234</div>
-                    {orderId && <div>Ref: {orderId.slice(-8)}</div>}
-                  </div>
-                </div>
-              </div>
-              <div className="qr-amount">${qrCodeData.amount.toFixed(2)}</div>
+          <div className="price-summary">
+            <div className="price-row">
+              <span>Subtotal:</span>
+              <span>${subtotal.toFixed(2)}</span>
             </div>
-          </div>
-          <div className="bank-details">
-            <h4>Bank Details (Alternative)</h4>
-            <div className="bank-info">
-              <p><strong>Bank:</strong> Sample Bank</p>
-              <p><strong>Account Name:</strong> Delicious Restaurant</p>
-              <p><strong>Account Number:</strong> 1234-5678-9012</p>
-              <p><strong>Reference:</strong> {orderId ? `ORD-${orderId.slice(-8)}` : 'Pending'}</p>
+            <div className="price-row">
+              <span>Tax (8%):</span>
+              <span>${tax.toFixed(2)}</span>
             </div>
-          </div>
-          <div className="qr-actions">
-            <button 
-              className="cancel-payment-btn"
-              onClick={handleQRPaymentCancel}
-              disabled={isProcessing}
-            >
-              Cancel Transfer
-            </button>
-            <button 
-              className="payment-done-btn"
-              onClick={handleQRPaymentComplete}
-              disabled={isProcessing}
-            >
-              {isProcessing ? 'Verifying...' : 'Transfer Completed'}
-            </button>
+            <div className="price-row total">
+              <span>Total:</span>
+              <span>${total.toFixed(2)}</span>
+            </div>
           </div>
         </div>
-      );
-    }
 
-    return null;
-  };
-
-  // Render order summary
-  const renderOrderSummary = () => (
-    <div className="order-summary-section">
-      <h3>Order Summary</h3>
-      <div className="order-items-list">
-        {cart.map((item, index) => (
-          <div key={`${item.id}-${index}`} className="order-summary-item">
-            <div className="summary-item-left">
-              <span className="item-quantity">{item.quantity}x</span>
-              <span className="item-name">{item.name}</span>
-            </div>
-            <div className="summary-item-right">
-              ${(item.price * item.quantity).toFixed(2)}
-            </div>
-          </div>
-        ))}
-      </div>
-      
-      <div className="price-breakdown">
-        <div className="price-row">
-          <span>Subtotal</span>
-          <span>${subtotal.toFixed(2)}</span>
-        </div>
-        <div className="price-row">
-          <span>Tax (8%)</span>
-          <span>${calculateTax().toFixed(2)}</span>
-        </div>
-        <div className="price-row total">
-          <span>Total Amount</span>
-          <span>${calculateTotal().toFixed(2)}</span>
-        </div>
-      </div>
-    </div>
-  );
-
-  // Render payment selection
-  const renderPaymentSelection = () => (
-    <div className="payment-selection-section">
-      <h3>Select Payment Method</h3>
-      <p className="payment-instruction">Choose how you'd like to pay for your order</p>
-      
-      <div className="payment-methods-grid">
-        {PAYMENT_METHODS.map((method) => (
-          <button
-            key={method.id}
-            className={`payment-method-btn ${
-              paymentMethod === method.id ? 'selected' : ''
-            }`}
-            onClick={() => handlePaymentMethodSelect(method.id)}
+        {/* Table Number */}
+        <div className="section">
+          <label className="section-label">
+            <span className="label-icon">🪑</span>
+            Table Number (Optional)
+          </label>
+          <input
+            type="text"
+            placeholder="e.g., 5 or leave blank for takeaway"
+            value={tableNumber}
+            onChange={(e) => setTableNumber(e.target.value)}
             disabled={isProcessing}
-          >
-            <span className="payment-icon">{method.icon}</span>
-            <span className="payment-label">{method.label}</span>
-          </button>
-        ))}
-      </div>
-    </div>
-  );
-
-  // Render order success
-  const renderOrderSuccess = () => (
-    <div className="order-success-section">
-      <div className="success-icon">✅</div>
-      <h3>Order Placed Successfully!</h3>
-      <p>Your order has been received and is waiting for manager approval.</p>
-      
-      {orderDetails && (
-        <div className="order-details-success">
-          <p><strong>Order ID:</strong> {orderDetails.orderNumber || orderId}</p>
-          <p><strong>Total:</strong> ${orderDetails.total.toFixed(2)}</p>
-          <p><strong>Payment:</strong> {PAYMENT_METHODS.find(m => m.id === paymentMethod)?.label}</p>
-          <p><strong>Status:</strong> ⏳ Waiting for Manager Approval</p>
-          <p><strong>Table:</strong> {tableNumber || 'Takeaway'}</p>
+            className="text-input"
+          />
         </div>
-      )}
-      
-      <div className="next-steps">
-        <h4>What happens next? (SRS Workflow)</h4>
-        <ol>
-          <li><strong>Manager Approval:</strong> Manager reviews and approves order (REQ-M-2)</li>
-          <li><strong>Kitchen Dispatch:</strong> Order sent to Kitchen Display System (REQ-K-1)</li>
-          <li><strong>Preparation:</strong> Kitchen staff updates order status (REQ-K-2)</li>
-          <li><strong>Timer Starts:</strong> Count-up timer begins on your screen (REQ-C-7)</li>
-          <li><strong>Ready Notification:</strong> You'll be notified when food is ready (REQ-K-4)</li>
-          <li><strong>Feedback:</strong> Provide feedback after receiving order (REQ-F-1)</li>
-        </ol>
-      </div>
-      
-      <div className="success-actions">
-        <button 
-          className="view-receipt-btn"
-          onClick={navigateToReceipt}
-        >
-          View Receipt (After Approval)
-        </button>
-        <button 
-          className="track-order-btn"
-          onClick={navigateToOrderStatus}
-        >
-          Track My Order →
-        </button>
-      </div>
-    </div>
-  );
 
-  // Error display
-  const renderError = () => {
-    if (!error) return null;
-    
-    return (
-      <div className="checkout-error">
-        <div className="error-icon">⚠️</div>
-        <div className="error-message">{error}</div>
-        <button 
-          className="dismiss-error"
-          onClick={() => setError('')}
-        >
-          ×
-        </button>
-      </div>
-    );
-  };
-
-  // Loading overlay
-  const renderLoadingOverlay = () => {
-    if (!isProcessing) return null;
-    
-    return (
-      <div className="loading-overlay">
-        <div className="loading-spinner"></div>
-        <p>Processing your order...</p>
-      </div>
-    );
-  };
-
-  // Main render logic
-  if (orderPlaced) {
-    return (
-      <div className="checkout-modal">
-        <div className="checkout-content">
-          {renderOrderSuccess()}
-        </div>
-      </div>
-    );
-  }
-
-  if (showPaymentQR) {
-    return (
-      <div className="checkout-modal">
-        <div className="checkout-content">
-          <div className="checkout-header">
-            <h2>Complete Payment</h2>
-            <button 
-              className="close-checkout-btn" 
-              onClick={onClose}
-              disabled={isProcessing}
-            >
-              ×
-            </button>
+        {/* Special Instructions */}
+        <div className="section">
+          <label className="section-label">
+            <span className="label-icon">📝</span>
+            Special Instructions
+          </label>
+          <textarea
+            placeholder="Any allergies, preferences, or special requests?"
+            value={specialInstructions}
+            onChange={(e) => setSpecialInstructions(e.target.value)}
+            disabled={isProcessing}
+            className="text-area"
+            rows="3"
+            maxLength="200"
+          />
+          <div className="char-count">
+            {specialInstructions.length}/200 characters
           </div>
-          {renderPaymentQR()}
-          {renderError()}
-          {renderLoadingOverlay()}
         </div>
-      </div>
-    );
-  }
 
-  return (
-    <div className="checkout-modal">
-      <div className="checkout-overlay" onClick={isProcessing ? undefined : onClose}></div>
-      
-      <div className="checkout-content">
-        <div className="checkout-header">
-          <h2>Checkout</h2>
+        {/* Payment Method Selection */}
+        <div className="section">
+          <h3>Select Payment Method</h3>
+          <p className="section-subtitle">Choose how you'd like to pay</p>
+          
+          <div className="payment-methods">
+            {PAYMENT_METHODS.map(method => (
+              <button
+                key={method.id}
+                className={`payment-method ${paymentMethod === method.id ? 'selected' : ''}`}
+                onClick={() => handlePaymentSelect(method.id)}
+                disabled={isProcessing}
+              >
+                <div className="payment-icon">{method.icon}</div>
+                <div className="payment-details">
+                  <div className="payment-label">{method.label}</div>
+                  <div className="payment-description">{method.description}</div>
+                </div>
+                {paymentMethod === method.id && (
+                  <div className="checkmark">✓</div>
+                )}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Action Buttons */}
+        <div className="action-buttons">
           <button 
-            className="close-checkout-btn" 
+            className="secondary-btn" 
             onClick={onClose}
             disabled={isProcessing}
           >
-            ×
+            Cancel
+          </button>
+          <button 
+            className="primary-btn" 
+            onClick={handleProceedToCheckout}
+            disabled={isProcessing || !paymentMethod || cartItems.length === 0}
+          >
+            Proceed to Checkout →
           </button>
         </div>
 
-        <div className="checkout-body">
-          {renderError()}
+        {/* Business Info */}
+        <div className="business-info">
+          <p><strong>Delicious Restaurant</strong></p>
+          <p>123 Food Street, City • (555) 123-4567</p>
+        </div>
+      </div>
+    </>
+  );
+
+  // Step 2: Order Confirmation
+  const renderStep2 = () => (
+    <>
+      <div className="checkout-header">
+        <h2>Order Confirmation</h2>
+        <button className="close-btn" onClick={onClose}>×</button>
+      </div>
+
+      <div className="checkout-body">
+        {/* Success Message */}
+        <div className="success-message">
+          <div className="success-icon">✅</div>
+          <h3>Your Order Has Been Placed!</h3>
+          <p>We're preparing your food. Here's what happens next:</p>
+        </div>
+
+        {/* Order Details Card */}
+        <div className="order-details-card">
+          <div className="detail-row">
+            <span className="detail-label">Order Number:</span>
+            <span className="detail-value">
+              {orderDetails?.orderNumber || `ORD-${Date.now().toString().slice(-6)}`}
+            </span>
+          </div>
+          <div className="detail-row">
+            <span className="detail-label">Status:</span>
+            <span className={`status-badge status-${orderStatus}`}>
+              {orderStatus === 'pending_approval' && '⏳ Pending Approval'}
+              {orderStatus === 'in_progress' && '👨‍🍳 Preparing'}
+              {orderStatus === 'ready' && '✅ Ready for Pickup'}
+            </span>
+          </div>
+          <div className="detail-row">
+            <span className="detail-label">Payment Method:</span>
+            <span className="detail-value">
+              {PAYMENT_METHODS.find(m => m.id === paymentMethod)?.label || paymentMethod}
+            </span>
+          </div>
+          {tableNumber && (
+            <div className="detail-row">
+              <span className="detail-label">Table:</span>
+              <span className="detail-value">#{tableNumber}</span>
+            </div>
+          )}
+        </div>
+
+        {/* Timer Section */}
+        <div className="timer-section">
+          <div className="timer-header">
+            <span className="timer-icon">⏰</span>
+            <h4>Estimated Arrival Time</h4>
+          </div>
+          <div className="timer-display">
+            <div className="timer-circle">
+              <div className="timer-minutes">{timeRemaining}</div>
+              <div className="timer-label">minutes</div>
+            </div>
+            <div className="timer-progress">
+              <div 
+                className="progress-bar" 
+                style={{ width: `${((15 - timeRemaining) / 15) * 100}%` }}
+              ></div>
+            </div>
+          </div>
+          <p className="timer-note">
+            Your food will be ready in approximately {timeRemaining} minutes
+          </p>
+        </div>
+
+        {/* Order Items Summary */}
+        <div className="section">
+          <h4>Order Summary</h4>
+          <div className="order-items-summary">
+            {cartItems.map((item, index) => (
+              <div key={`${item.id}-${index}`} className="summary-item">
+                <span className="summary-quantity">{item.quantity}x</span>
+                <span className="summary-name">{item.name}</span>
+                <span className="summary-price">
+                  ${(item.price * item.quantity).toFixed(2)}
+                </span>
+              </div>
+            ))}
+          </div>
           
-          {/* Table Number Input */}
-          <div className="table-section">
-            <label htmlFor="tableNumber">
-              <span className="label-icon">🪑</span>
-              Table Number (Optional)
-            </label>
-            <input
-              type="text"
-              id="tableNumber"
-              placeholder="e.g., 5, 12, or leave blank for takeaway"
-              value={tableNumber}
-              onChange={(e) => setTableNumber(e.target.value)}
-              maxLength="10"
-              disabled={isProcessing}
-            />
-            <small>If dining in, please enter your table number</small>
-          </div>
-
-          {/* Special Instructions */}
-          <div className="instructions-section">
-            <label htmlFor="specialInstructions">
-              <span className="label-icon">📝</span>
-              Special Instructions
-            </label>
-            <textarea
-              id="specialInstructions"
-              placeholder="Any allergies, preferences, or special requests?"
-              value={specialInstructions}
-              onChange={(e) => setSpecialInstructions(e.target.value)}
-              rows="3"
-              maxLength="200"
-              disabled={isProcessing}
-            />
-            <small className="char-count">
-              {specialInstructions.length}/200 characters
-            </small>
-          </div>
-
-          {/* Order Summary */}
-          {renderOrderSummary()}
-
-          {/* Payment Selection */}
-          {renderPaymentSelection()}
-
-          {/* Important Notes from SRS */}
-          <div className="checkout-notes">
-            <div className="note-item">
-              <span className="note-icon">⏰</span>
-              <span><strong>Manager Approval:</strong> All orders require manager approval (Business Rule 1)</span>
+          <div className="total-section">
+            <div className="total-row">
+              <span>Total:</span>
+              <span className="total-amount">${total.toFixed(2)}</span>
             </div>
-            <div className="note-item">
-              <span className="note-icon">💳</span>
-              <span><strong>Payment Finality:</strong> Payment method cannot be changed after selection (Business Rule 2)</span>
-            </div>
-            <div className="note-item">
-              <span className="note-icon">📱</span>
-              <span><strong>Digital Receipt:</strong> Receipt generated upon approval (Business Rule 5)</span>
-            </div>
-            <div className="note-item">
-              <span className="note-icon">⭐</span>
-              <span><strong>Feedback:</strong> Available after order completion (Business Rule 3)</span>
-            </div>
-          </div>
-
-          {/* Action Buttons */}
-          <div className="checkout-actions">
-            <button 
-              className="back-to-menu-btn"
-              onClick={onBackToMenu}
-              disabled={isProcessing}
-            >
-              ← Back to Menu
-            </button>
-            
-            <div className="primary-actions">
-              <button 
-                className="cancel-order-btn"
-                onClick={onClose}
-                disabled={isProcessing}
-              >
-                Cancel Order
-              </button>
-              
-              <button 
-                className="confirm-order-btn"
-                onClick={handleProceedToPayment}
-                disabled={!paymentMethod || isProcessing}
-              >
-                {isProcessing ? (
-                  <>
-                    <span className="spinner"></span>
-                    Processing...
-                  </>
-                ) : paymentMethod === 'cash' ? (
-                  'Confirm Cash Order'
-                ) : (
-                  'Proceed to Payment'
-                )}
-              </button>
-            </div>
-          </div>
-
-          {/* Business Info */}
-          <div className="business-info">
-            <p>Delicious Restaurant</p>
-            <p>123 Food Street, City • (555) 123-4567</p>
-            <p>All payments processed securely</p>
           </div>
         </div>
-        
-        {renderLoadingOverlay()}
+
+        {/* Order Status Timeline */}
+        <div className="status-timeline">
+          <h4>Order Status</h4>
+          <div className="timeline-steps">
+            <div className={`timeline-step ${orderStatus === 'pending_approval' ? 'active' : 'completed'}`}>
+              <div className="step-icon">1</div>
+              <div className="step-info">
+                <div className="step-title">Order Received</div>
+                <div className="step-description">Awaiting manager approval</div>
+              </div>
+            </div>
+            
+            <div className={`timeline-step ${orderStatus === 'in_progress' ? 'active' : orderStatus === 'ready' ? 'completed' : ''}`}>
+              <div className="step-icon">2</div>
+              <div className="step-info">
+                <div className="step-title">Preparing</div>
+                <div className="step-description">Kitchen is cooking your food</div>
+              </div>
+            </div>
+            
+            <div className={`timeline-step ${orderStatus === 'ready' ? 'active' : ''}`}>
+              <div className="step-icon">3</div>
+              <div className="step-info">
+                <div className="step-title">Ready</div>
+                <div className="step-description">Food is ready for pickup</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Action Buttons */}
+        <div className="action-buttons">
+          <button 
+            className="secondary-btn" 
+            onClick={handleBackToPayment}
+            disabled={isProcessing}
+          >
+            ← Back to Payment
+          </button>
+          <button 
+            className="primary-btn" 
+            onClick={handlePlaceOrder}
+            disabled={isProcessing || orderDetails}
+          >
+            {isProcessing ? (
+              <>
+                <span className="spinner"></span>
+                Placing Order...
+              </>
+            ) : orderDetails ? (
+              'Order Placed!'
+            ) : (
+              'Confirm & Place Order'
+            )}
+          </button>
+        </div>
+
+        {/* Support Info */}
+        <div className="support-info">
+          <div className="support-item">
+            <span className="support-icon">📞</span>
+            <span>Need help? Call (555) 123-4567</span>
+          </div>
+          <div className="support-item">
+            <span className="support-icon">📍</span>
+            <span>Pickup at counter</span>
+          </div>
+        </div>
+      </div>
+    </>
+  );
+
+  return (
+    <div className="checkout-modal">
+      <div className="checkout-overlay" onClick={onClose}></div>
+      
+      <div className="checkout-content">
+        {/* Step Indicator */}
+        <div className="step-indicator">
+          <div className={`step ${step === 1 ? 'active' : 'completed'}`}>
+            <div className="step-number">1</div>
+            <div className="step-label">Payment</div>
+          </div>
+          <div className="step-line"></div>
+          <div className={`step ${step === 2 ? 'active' : ''}`}>
+            <div className="step-number">2</div>
+            <div className="step-label">Confirmation</div>
+          </div>
+        </div>
+
+        {/* Render current step */}
+        {step === 1 ? renderStep1() : renderStep2()}
+
+        {/* Loading Overlay */}
+        {isProcessing && (
+          <div className="loading-overlay">
+            <div className="loading-spinner"></div>
+            <p>Processing your order...</p>
+          </div>
+        )}
       </div>
     </div>
   );
 };
 
 Checkout.propTypes = {
-  cart: PropTypes.arrayOf(
+  cartItems: PropTypes.arrayOf(
     PropTypes.shape({
       id: PropTypes.oneOfType([PropTypes.string, PropTypes.number]).isRequired,
       name: PropTypes.string.isRequired,
       price: PropTypes.number.isRequired,
       quantity: PropTypes.number.isRequired,
       image: PropTypes.string,
-      description: PropTypes.string,
-      notes: PropTypes.string
+      description: PropTypes.string
     })
-  ).isRequired,
-  subtotal: PropTypes.number.isRequired,
+  ),
+  total: PropTypes.number,
   onPlaceOrder: PropTypes.func,
   onClose: PropTypes.func.isRequired,
-  onBackToMenu: PropTypes.func
+  onBackToMenu: PropTypes.func,
+  onProceedToPayment: PropTypes.func
 };
 
 Checkout.defaultProps = {
-  cart: [],
-  subtotal: 0,
-  onPlaceOrder: null,
-  onBackToMenu: () => {}
+  cartItems: [],
+  total: 0,
+  onPlaceOrder: () => {},
+  onBackToMenu: () => {},
+  onProceedToPayment: () => {}
 };
 
 export default Checkout;

@@ -40,13 +40,14 @@ app.use('/api/menu', require('./routes/menuRoutes'));
 app.use('/api/orders', require('./routes/orderRoutes'));
 app.use('/api/feedback', require('./routes/feedbackRoutes'));
 app.use('/api/qr', require('./routes/qrRoutes'));
+app.use('/api/db', require('./routes/databaseRoutes')); // Database admin routes
 
 // Basic route for testing
 app.get('/', (req, res) => {
   res.json({ 
     message: 'Restaurant Management System API',
     version: '1.0',
-    endpoints: ['/api/menu', '/api/orders', '/api/feedback', '/api/qr']
+    endpoints: ['/api/menu', '/api/orders', '/api/feedback', '/api/qr', '/api/db']
   });
 });
 

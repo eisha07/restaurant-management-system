@@ -130,6 +130,7 @@ const CustomerApp = () => {
             onUpdateQuantity={handleUpdateQuantity}
             onRemoveItem={handleRemoveFromCart}
             onCheckout={() => setCurrentPage('checkout')}
+            onClose={() => setCurrentPage('menu')}
             onBackToMenu={() => setCurrentPage('menu')}
           />
         )}
@@ -138,7 +139,9 @@ const CustomerApp = () => {
           <Checkout
             cartItems={cartItems}
             total={cartTotal}
-            onBackToCart={() => setCurrentPage('cart')}
+            onClose={() => setCurrentPage('cart')}
+            onBackToMenu={() => setCurrentPage('menu')}
+            onPlaceOrder={handlePaymentComplete}
             onProceedToPayment={() => setCurrentPage('payment')}
           />
         )}
