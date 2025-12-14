@@ -7,25 +7,7 @@ const { authenticateManager } = require('../middleware/auth');
 
 const JWT_SECRET = process.env.JWT_SECRET || 'restaurant_secret_key_2024';
 
-// Demo managers for development (in production, these would come from database)
-const DEMO_MANAGERS = [
-    {
-        id: 1,
-        username: 'manager1',
-        password: 'password123',
-        name: 'Manager One',
-        email: 'manager1@restaurant.com'
-    },
-    {
-        id: 2,
-        username: 'manager2',
-        password: 'password123',
-        name: 'Manager Two',
-        email: 'manager2@restaurant.com'
-    }
-];
-
-// Login endpoint
+// Login endpoint - check database
 router.post('/manager/login', async (req, res) => {
     try {
         const { username, password } = req.body;
@@ -37,10 +19,18 @@ router.post('/manager/login', async (req, res) => {
             });
         }
 
-        // Demo authentication (in production, query database with hashed passwords)
-        const manager = DEMO_MANAGERS.find(m => m.username === username && m.password === password);
+        // Query database for manager
+        const managers = await db.sequelize.query(
+            'SELECT id, username, password_hash, email FROM managers WHERE username = ?',
+            {
+                replacements: [username],
+                type: db.sequelize.QueryTypes.SELECT
+            }
+        );
 
-        if (!manager) {
+        const manager = managers[0];
+
+        if (!manager || manager.password_hash !== password) {
             return res.status(401).json({
                 success: false,
                 message: 'Invalid credentials'

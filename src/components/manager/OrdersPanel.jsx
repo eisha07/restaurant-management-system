@@ -56,7 +56,7 @@ const OrdersPanel = ({ pendingOrders, allOrders, onApprove, onReject, onUpdateSt
                     >
                         <div className="order-header">
                             <h4>Order #{order.order_number}</h4>
-                            <span className="order-total">${order.total?.toFixed(2)}</span>
+                            <span className="order-total">${Number(order.total).toFixed(2)}</span>
                         </div>
                         <div className="order-details">
                             <p>Items: {order.items?.length || 0}</p>
@@ -77,7 +77,7 @@ const OrdersPanel = ({ pendingOrders, allOrders, onApprove, onReject, onUpdateSt
                         </div>
                         <div className="order-details">
                             <p>Items: {order.items?.length || 0}</p>
-                            <p>Total: ${order.total?.toFixed(2)}</p>
+                            <p>Total: ${Number(order.total).toFixed(2)}</p>
                         </div>
                     </div>
                 ))}
@@ -111,14 +111,14 @@ const OrdersPanel = ({ pendingOrders, allOrders, onApprove, onReject, onUpdateSt
                     <div className="details-grid">
                         <p><strong>Status:</strong> {selectedOrder.status}</p>
                         <p><strong>Kitchen Status:</strong> {selectedOrder.kitchen_status}</p>
-                        <p><strong>Total:</strong> ${selectedOrder.total?.toFixed(2)}</p>
+                        <p><strong>Total:</strong> ${Number(selectedOrder.total).toFixed(2)}</p>
                         <p><strong>Payment Method:</strong> {selectedOrder.payment_method}</p>
                     </div>
                     <h4>Items:</h4>
                     <ul>
                         {selectedOrder.items?.map((item, idx) => (
                             <li key={idx}>
-                                {item.name} x{item.quantity} - ${(item.price * item.quantity).toFixed(2)}
+                                {item.name} x{item.quantity} - ${(Number(item.price) * item.quantity).toFixed(2)}
                             </li>
                         ))}
                     </ul>

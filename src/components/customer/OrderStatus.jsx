@@ -414,7 +414,7 @@ const OrderStatus = ({ orderId, onBackToMenu, onFeedbackComplete }) => {
             <div key={index} className="order-item">
               <span className="item-quantity">{item.quantity}x</span>
               <span className="item-name">{item.name}</span>
-              <span className="item-price">${(item.price * item.quantity).toFixed(2)}</span>
+              <span className="item-price">${(Number(item.price) * item.quantity).toFixed(2)}</span>
             </div>
           ))}
         </div>
@@ -430,15 +430,15 @@ const OrderStatus = ({ orderId, onBackToMenu, onFeedbackComplete }) => {
       <div className="order-totals">
         <div className="total-row">
           <span>Subtotal:</span>
-          <span>${order?.subtotal?.toFixed(2) || '0.00'}</span>
+          <span>${Number(order?.subtotal).toFixed(2) || '0.00'}</span>
         </div>
         <div className="total-row">
           <span>Tax (8%):</span>
-          <span>${order?.tax?.toFixed(2) || '0.00'}</span>
+          <span>${Number(order?.tax).toFixed(2) || '0.00'}</span>
         </div>
         <div className="total-row grand-total">
           <span>Total:</span>
-          <span>${order?.total?.toFixed(2) || '0.00'}</span>
+          <span>${Number(order?.total).toFixed(2) || '0.00'}</span>
         </div>
       </div>
     </div>

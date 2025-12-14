@@ -220,7 +220,7 @@ const Cart = ({
                 )}
                 
                 <div className="item-price-controls">
-                  <div className="item-price">${item.price.toFixed(2)}</div>
+                  <div className="item-price">${Number(item.price).toFixed(2)}</div>
                   
                   <div className="quantity-control">
                     <button 

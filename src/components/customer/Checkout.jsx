@@ -223,7 +223,7 @@ const Checkout = ({
                   <span className="item-name">{item.name}</span>
                 </div>
                 <div className="item-price">
-                  ${(item.price * item.quantity).toFixed(2)}
+                  ${(Number(item.price) * item.quantity).toFixed(2)}
                 </div>
               </div>
             ))}
@@ -412,7 +412,7 @@ const Checkout = ({
                 <span className="summary-quantity">{item.quantity}x</span>
                 <span className="summary-name">{item.name}</span>
                 <span className="summary-price">
-                  ${(item.price * item.quantity).toFixed(2)}
+                  ${(Number(item.price) * item.quantity).toFixed(2)}
                 </span>
               </div>
             ))}

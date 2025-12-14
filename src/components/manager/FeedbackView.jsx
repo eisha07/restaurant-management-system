@@ -56,7 +56,7 @@ const FeedbackView = () => {
                             <div className="feedback-body">
                                 {item.average_rating && (
                                     <p className="overall-rating">
-                                        <strong>Overall:</strong> {item.average_rating.toFixed(1)}/5
+                                        <strong>Overall:</strong> {Number(item.average_rating).toFixed(1)}/5
                                     </p>
                                 )}
                                 {item.comment && (

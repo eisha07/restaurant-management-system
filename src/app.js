@@ -13,6 +13,9 @@ import Auth from './components/auth/Auth';
 import ManagerDashboard from './components/manager/ManagerDashboard';
 import ProtectedRoute from './components/auth/ProtectedRoute';
 
+// Import kitchen components
+import KitchenDisplay from './components/kitchen/KitchenDisplay';
+
 function App() {
   return (
     <AuthProvider>
@@ -31,6 +34,9 @@ function App() {
               </ProtectedRoute>
             } 
           />
+          
+          {/* Kitchen routes */}
+          <Route path="/kitchen/display" element={<KitchenDisplay />} />
           
           {/* Default route - redirect to customer */}
           <Route path="/" element={<Navigate to="/customer" replace />} />

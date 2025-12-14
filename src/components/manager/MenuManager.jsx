@@ -259,7 +259,7 @@ const MenuManager = ({ onAddItem, onUpdateItem, onDeleteItem }) => {
                             </div>
                             <p className="item-description">{item.description}</p>
                             <div className="item-footer">
-                                <p className="item-price">${item.price?.toFixed(2)}</p>
+                                <p className="item-price">${Number(item.price)?.toFixed(2)}</p>
                                 <p className={`item-status ${item.is_available ? 'available' : 'unavailable'}`}>
                                     {item.is_available ? '✓ Available' : '✗ Unavailable'}
                                 </p>

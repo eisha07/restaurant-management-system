@@ -10,7 +10,7 @@ const corsOptions = {
   origin: ['http://localhost:3000', 'http://localhost:5000', 'http://localhost:3001', 'http://localhost:5173'],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization']
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Kitchen-Token']
 };
 
 // Apply CORS to all routes
@@ -43,6 +43,8 @@ app.use('/api/qr', require('./routes/qrRoutes'));
 app.use('/api/db', require('./routes/databaseRoutes')); // Database admin routes
 app.use('/api/auth', require('./routes/authRoutes')); // Auth routes for manager login
 app.use('/api/manager', require('./routes/managerDashboard')); // Manager dashboard routes
+app.use('/api/kitchen', require('./routes/kitchenRoutes')); // Kitchen display routes
+
 
 // Basic route for testing
 app.get('/', (req, res) => {
@@ -56,7 +58,8 @@ app.get('/', (req, res) => {
       '/api/qr', 
       '/api/db',
       '/api/auth',
-      '/api/manager'
+      '/api/manager',
+      '/api/kitchen'
     ]
   });
 });

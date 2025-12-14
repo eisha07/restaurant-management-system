@@ -38,7 +38,7 @@ const Statistics = ({ statistics, onDateRangeChange }) => {
                     <div className="stat-card">
                         <h3>Total Revenue</h3>
                         <p className="stat-value">
-                            ${statistics.overview?.total_revenue?.toFixed(2) || '0.00'}
+                            ${Number(statistics.overview?.total_revenue)?.toFixed(2) || '0.00'}
                         </p>
                         <p className="stat-label">
                             {statistics.overview?.total_orders || 0} orders
@@ -48,7 +48,7 @@ const Statistics = ({ statistics, onDateRangeChange }) => {
                     <div className="stat-card">
                         <h3>Average Order Value</h3>
                         <p className="stat-value">
-                            ${statistics.overview?.avg_order_value?.toFixed(2) || '0.00'}
+                            ${Number(statistics.overview?.avg_order_value)?.toFixed(2) || '0.00'}
                         </p>
                     </div>
 
@@ -68,7 +68,7 @@ const Statistics = ({ statistics, onDateRangeChange }) => {
                         <ul>
                             {statistics.categories?.map((cat, idx) => (
                                 <li key={idx}>
-                                    {cat.category}: ${cat.category_revenue?.toFixed(2)}
+                                    {cat.category}: ${Number(cat.category_revenue)?.toFixed(2)}
                                 </li>
                             ))}
                         </ul>

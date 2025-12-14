@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { menuApi } from '../../services/api';
-import Cart from './cart';
 import '../../styles/Menu.css';
 
 const Menu = () => {
@@ -22,53 +21,93 @@ const Menu = () => {
   const fallbackData = useRef([
     {
       id: 1,
+      name: 'Chana Masala',
+      description: 'Chickpeas cooked in flavorful tomato gravy',
+      price: 8.99,
+      category: 'DESI',
+      image: 'https://images.unsplash.com/photo-1546833999-b9f581a1996d?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80',
+      isAvailable: true,
+      rating: 4.0
+    },
+    {
+      id: 2,
       name: 'Chicken Biryani',
       description: 'Aromatic basmati rice cooked with tender chicken pieces, herbs, and spices',
       price: 12.99,
-      category: 'Desi',
-      image: '/images/biryani.jpg',
+      category: 'DESI',
+      image: 'https://images.unsplash.com/photo-1631452180519-c014fe946bc7?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80',
       isAvailable: true,
       rating: 4.8
     },
     {
-      id: 2,
+      id: 3,
+      name: 'Chicken Karahi',
+      description: 'Traditional Pakistani curry cooked in wok with tomatoes and ginger',
+      price: 13.99,
+      category: 'DESI',
+      image: 'https://images.unsplash.com/photo-1601050690597-df0568f70950?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80',
+      isAvailable: true,
+      rating: 4.7
+    },
+    {
+      id: 4,
       name: 'Beef Burger',
-      description: 'Juicy beef patty with fresh vegetables and special sauce',
-      price: 8.99,
-      category: 'Fast Food',
-      image: '/images/burger.jpg',
+      description: 'Juicy beef patty with cheese, lettuce, tomato, and special sauce',
+      price: 9.99,
+      category: 'FAST FOOD',
+      image: 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80',
+      isAvailable: true,
+      rating: 4.0
+    },
+    {
+      id: 5,
+      name: 'Cheese Pizza',
+      description: 'Freshly baked pizza with mozzarella cheese and tomato sauce',
+      price: 14.99,
+      category: 'FAST FOOD',
+      image: 'https://images.unsplash.com/photo-1565299624946-b28f40a0ca4b?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80',
+      isAvailable: true,
+      rating: 4.2
+    },
+    {
+      id: 6,
+      name: 'French Fries',
+      description: 'Crispy golden fries served with ketchup',
+      price: 5.99,
+      category: 'FAST FOOD',
+      image: 'https://images.unsplash.com/photo-1576107232684-1279f390859f?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80',
+      isAvailable: true,
+      rating: 4.1
+    },
+    {
+      id: 7,
+      name: 'Paneer Tikka',
+      description: 'Cottage cheese cubes marinated in spices and grilled',
+      price: 10.99,
+      category: 'DESI',
+      image: 'https://images.unsplash.com/photo-1565557623262-b51c2513a641?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80',
       isAvailable: true,
       rating: 4.5
     },
     {
-      id: 3,
-      name: 'Margherita Pizza',
-      description: 'Classic pizza with tomato sauce, mozzarella cheese, and fresh basil',
-      price: 10.99,
-      category: 'Italian',
-      image: '/images/pizza.jpg',
+      id: 8,
+      name: 'Butter Chicken',
+      description: 'Tender chicken in rich tomato and butter sauce',
+      price: 14.99,
+      category: 'DESI',
+      image: 'https://images.unsplash.com/photo-1603894584373-5ac82b2ae398?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80',
       isAvailable: true,
       rating: 4.6
     },
     {
-      id: 4,
-      name: 'Caesar Salad',
-      description: 'Crisp romaine lettuce with Caesar dressing, croutons, and parmesan',
-      price: 7.99,
-      category: 'Salads',
-      image: '/images/salad.jpg',
+      id: 9,
+      name: 'Chicken Wings',
+      description: 'Crispy chicken wings with your choice of sauce',
+      price: 11.99,
+      category: 'FAST FOOD',
+      image: 'https://images.unsplash.com/photo-1567620832903-9fc6debc209f?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80',
       isAvailable: true,
       rating: 4.3
-    },
-    {
-      id: 5,
-      name: 'Chocolate Brownie',
-      description: 'Warm chocolate brownie with vanilla ice cream and chocolate sauce',
-      price: 5.99,
-      category: 'Desserts',
-      image: '/images/brownie.jpg',
-      isAvailable: true,
-      rating: 4.7
     }
   ]);
 
@@ -115,14 +154,7 @@ const Menu = () => {
       setError(null);
       setUsingMockData(false);
       
-      console.log('Fetching menu from API...');
       const response = await menuApi.getAll();
-      
-      console.log('API Response received:', {
-        status: response.status,
-        dataLength: response.data?.length,
-        data: response.data
-      });
       
       if (!response.data || !Array.isArray(response.data)) {
         throw new Error('Invalid response format from server');
@@ -144,20 +176,12 @@ const Menu = () => {
         rating: item.rating || 4.0
       }));
       
-      console.log(`Processed ${items.length} items from server`);
       setMenuItems(items);
       setFilteredItems(items);
       setRetryCount(0);
       setLastFetchTime(new Date());
       
     } catch (err) {
-      console.error('Failed to fetch menu:', {
-        message: err.message,
-        response: err.response,
-        config: err.config
-      });
-      
-      // Determine if we should use mock data
       const isNetworkError = !err.response;
       const isServerError = err.response && err.response.status >= 500;
       
@@ -171,10 +195,9 @@ const Menu = () => {
         setFilteredItems(fallbackData.current);
         setUsingMockData(true);
       } else {
-        setError(`Connection issue: ${err.message}. Retrying in ${2 * (retryCount + 1)} seconds...`);
+        setError(`Connection issue: ${err.message}. Retrying...`);
         setRetryCount(prev => prev + 1);
         
-        // Auto-retry with increasing delay
         setTimeout(() => {
           fetchMenuItems(true);
         }, 2000 * retryCount);
@@ -220,7 +243,7 @@ const Menu = () => {
   const handleCheckout = () => {
     console.log('Proceeding to checkout with:', cartItems);
     setShowCart(false);
-    // Add your checkout logic here
+    alert(`Proceeding to checkout with ${cartCount} items!`);
   };
 
   const toggleCart = () => {
@@ -234,7 +257,6 @@ const Menu = () => {
   const handleCategorySelect = async (category) => {
     if (category === 'All') {
       setSelectedCategory('All');
-      // Don't refetch if we're using mock data
       if (!usingMockData) {
         await fetchMenuItems(true);
       }
@@ -242,7 +264,6 @@ const Menu = () => {
       try {
         setLoading(true);
         
-        // Only fetch from API if not using mock data
         if (!usingMockData) {
           const response = await menuApi.getByCategory(category);
           
@@ -263,9 +284,6 @@ const Menu = () => {
         
         setSelectedCategory(category);
       } catch (err) {
-        console.error(`Failed to fetch ${category} items:`, err);
-        
-        // If server fails, filter existing data
         const filtered = menuItems.filter(item => item.category === category);
         if (filtered.length > 0) {
           setFilteredItems(filtered);
@@ -288,13 +306,11 @@ const Menu = () => {
     setSelectedItem(null);
   };
 
-  // Get item quantity in cart
   const getItemQuantity = (itemId) => {
     const cartItem = cartItems.find(item => item.id === itemId);
     return cartItem ? cartItem.quantity : 0;
   };
 
-  // Add refresh functionality
   const handleRefreshMenu = () => {
     setError(null);
     setRetryCount(0);
@@ -307,6 +323,12 @@ const Menu = () => {
   const formatTime = (date) => {
     if (!date) return 'Never';
     return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  };
+
+  const calculateTotal = () => {
+    return cartItems.reduce((total, item) => {
+      return total + (item.price * (item.quantity || 1));
+    }, 0);
   };
 
   // Loading state
@@ -367,7 +389,7 @@ const Menu = () => {
       <header className="menu-header">
         <div className="restaurant-info">
           <div className="restaurant-logo">
-            <h1>🍽️ Delicious Bites</h1>
+            <h1>🍽️ Spice Haven Restaurant</h1>
             <div className="connection-status">
               {usingMockData ? (
                 <span className="offline-badge">🔴 Offline Mode</span>
@@ -389,7 +411,7 @@ const Menu = () => {
               </button>
             </div>
           </div>
-          <p className="restaurant-tagline">Fine Dining Experience</p>
+          <p className="restaurant-tagline">Authentic Indian & Pakistani Cuisine</p>
           {usingMockData && (
             <p className="offline-warning">
               ⚠️ Using cached data. Click Refresh to retry server connection.
@@ -555,13 +577,14 @@ const Menu = () => {
         )}
       </div>
 
-      {/* Menu Items Grid */}
+      {/* Menu Items Grid - 3 CARDS PER ROW */}
       <div className="menu-grid">
         {filteredItems.length > 0 ? (
           filteredItems.map(item => {
             const itemQuantity = getItemQuantity(item.id);
             return (
               <div key={item.id} className="menu-item-card">
+                {/* Image Container - Fixed better positioning */}
                 <div className="item-image-container">
                   <img 
                     src={item.image} 
@@ -571,37 +594,27 @@ const Menu = () => {
                     onError={(e) => {
                       e.target.src = '/images/default-food.jpg';
                     }}
+                    loading="lazy"
                   />
-                  {!item.isAvailable && (
-                    <div className="out-of-stock-overlay">Out of Stock</div>
-                  )}
-                  {usingMockData && (
-                    <div className="cached-indicator">Cached</div>
-                  )}
+                  
+                  {/* Category Badge */}
                   <div className="item-category">{item.category}</div>
+                  
+                  {/* Rating */}
                   <div className="item-rating">
-                    ⭐ {item.rating.toFixed(1)}
+                    ⭐ {Number(item.rating)?.toFixed(1) || '4.0'}
                   </div>
                 </div>
                 
-                <div className="item-details">
+                {/* Content Area */}
+                <div className="item-content">
                   <div className="item-header">
                     <h3 className="item-name">{item.name}</h3>
-                    <span className="item-price">${item.price.toFixed(2)}</span>
+                    <span className="item-price">${Number(item.price).toFixed(2)}</span>
                   </div>
                   
                   <p className="item-description">
-                    {item.description.length > 80 
-                      ? `${item.description.substring(0, 80)}...` 
-                      : item.description}
-                    {item.description.length > 80 && (
-                      <button 
-                        className="read-more"
-                        onClick={() => handleItemClick(item)}
-                      >
-                        Read more
-                      </button>
-                    )}
+                    {item.description}
                   </p>
                   
                   <div className="item-actions">
@@ -612,7 +625,7 @@ const Menu = () => {
                         disabled={loading}
                       >
                         <span className="add-icon">+</span>
-                        {loading ? 'Adding...' : 'Add to Cart'}
+                        Add to Cart
                         {itemQuantity > 0 && (
                           <span className="item-quantity">{itemQuantity}</span>
                         )}
@@ -648,113 +661,85 @@ const Menu = () => {
         )}
       </div>
 
-      {/* Item Detail Modal */}
-      {selectedItem && (
-        <div className="item-modal-overlay" onClick={closeItemModal}>
-          <div className="item-modal" onClick={(e) => e.stopPropagation()}>
-            <button className="close-modal" onClick={closeItemModal}>
+      {/* LARGER CART MODAL - IMPROVED */}
+      <div className={`cart-overlay ${showCart ? 'active' : ''}`}>
+        <div className="cart-modal">
+          <div className="cart-header">
+            <h2>🛒 Your Order</h2>
+            <button className="close-cart" onClick={toggleCart}>
               ×
             </button>
-            
-            <div className="modal-content">
-              <div className="modal-image-container">
-                <img 
-                  src={selectedItem.image} 
-                  alt={selectedItem.name}
-                  className="modal-image"
-                  onError={(e) => {
-                    e.target.src = '/images/default-food.jpg';
-                  }}
-                />
-                {!selectedItem.isAvailable && (
-                  <div className="modal-out-of-stock">Currently Unavailable</div>
-                )}
+          </div>
+          
+          <div className="cart-content">
+            {cartItems.length > 0 ? (
+              <>
+                <div className="cart-items">
+                  {cartItems.map(item => (
+                    <div key={item.id} className="cart-item">
+                      <div className="cart-item-image">
+                        <img src={item.image} alt={item.name} />
+                      </div>
+                      <div className="cart-item-details">
+                        <div className="cart-item-title">{item.name}</div>
+                        <div className="cart-item-price">${Number(item.price).toFixed(2)}</div>
+                      </div>
+                      <div className="cart-item-controls">
+                        <div className="quantity-control">
+                          <button 
+                            className="quantity-btn"
+                            onClick={() => handleUpdateQuantity(item.id, -1)}
+                          >
+                            -
+                          </button>
+                          <span className="quantity">{item.quantity || 1}</span>
+                          <button 
+                            className="quantity-btn"
+                            onClick={() => handleUpdateQuantity(item.id, 1)}
+                          >
+                            +
+                          </button>
+                        </div>
+                        <button 
+                          className="remove-item"
+                          onClick={() => handleRemoveItem(item.id)}
+                        >
+                          🗑️
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                
+                <div className="cart-summary">
+                  <div className="summary-row">
+                    <span>Subtotal ({cartCount} items)</span>
+                    <span>${calculateTotal().toFixed(2)}</span>
+                  </div>
+                  <div className="summary-row">
+                    <span>Tax (8%)</span>
+                    <span>${(calculateTotal() * 0.08).toFixed(2)}</span>
+                  </div>
+                  <div className="summary-row total">
+                    <span>Total Amount</span>
+                    <span>${(calculateTotal() * 1.08).toFixed(2)}</span>
+                  </div>
+                  
+                  <button className="checkout-btn" onClick={handleCheckout}>
+                    Proceed to Checkout ({cartCount})
+                  </button>
+                </div>
+              </>
+            ) : (
+              <div className="empty-cart">
+                <i>🛒</i>
+                <p>Your cart is empty</p>
+                <p>Add items from the menu to get started!</p>
               </div>
-              
-              <div className="modal-details">
-                <div className="modal-header">
-                  <h2>{selectedItem.name}</h2>
-                  <span className="modal-price">${selectedItem.price.toFixed(2)}</span>
-                </div>
-                
-                <div className="modal-meta">
-                  <span className="modal-category">{selectedItem.category}</span>
-                  <span className="modal-rating">⭐ {selectedItem.rating.toFixed(1)}/5</span>
-                  {usingMockData && (
-                    <span className="modal-cached">📁 Cached Data</span>
-                  )}
-                </div>
-                
-                <p className="modal-description">{selectedItem.description}</p>
-                
-                <div className="modal-actions">
-                  {selectedItem.isAvailable ? (
-                    <button 
-                      className="modal-add-btn"
-                      onClick={() => {
-                        handleAddToCart(selectedItem);
-                        closeItemModal();
-                      }}
-                      disabled={loading}
-                    >
-                      <span className="add-icon">+</span>
-                      Add to Cart
-                      {getItemQuantity(selectedItem.id) > 0 && (
-                        <span className="modal-quantity">
-                          {getItemQuantity(selectedItem.id)} in cart
-                        </span>
-                      )}
-                    </button>
-                  ) : (
-                    <button className="modal-out-of-stock-btn" disabled>
-                      Currently Unavailable
-                    </button>
-                  )}
-                </div>
-              </div>
-            </div>
+            )}
           </div>
         </div>
-      )}
-
-      {/* Footer */}
-      <footer className="menu-footer">
-        <div className="cart-summary">
-          <span className="cart-total">Items in cart: {cartCount}</span>
-          <button 
-            className="view-cart-btn"
-            onClick={toggleCart}
-          >
-            View Cart →
-          </button>
-        </div>
-        <div className="menu-footer-info">
-          <p className="menu-footer-note">
-            Total Items: {menuItems.length} | Showing: {filteredItems.length} | 
-            Data Source: {usingMockData ? 'Offline Cache' : 'Live Server'}
-          </p>
-          {lastFetchTime && !usingMockData && (
-            <p className="last-update-time">
-              Last server sync: {formatTime(lastFetchTime)}
-            </p>
-          )}
-        </div>
-      </footer>
-
-      {/* Cart Overlay */}
-      {showCart && (
-        <div className="cart-overlay">
-          <div className="cart-modal">
-            <Cart
-              cartItems={cartItems}
-              onUpdateQuantity={handleUpdateQuantity}
-              onRemoveItem={handleRemoveItem}
-              onCheckout={handleCheckout}
-              onClose={() => setShowCart(false)}
-            />
-          </div>
-        </div>
-      )}
+      </div>
     </div>
   );
 };

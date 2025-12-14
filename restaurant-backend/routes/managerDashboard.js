@@ -29,11 +29,11 @@ router.get('/orders/pending', authenticateManager, authorizeManager, async (req,
             ORDER BY o.created_at DESC
         `;
         
-        const result = await db.query(query);
+        const orders = await db.sequelize.query(query, { type: db.sequelize.QueryTypes.SELECT });
         res.json({
             success: true,
-            count: result.rows.length,
-            orders: result.rows
+            count: orders.length,
+            orders: orders
         });
     } catch (error) {
         console.error('Error fetching pending orders:', error);
@@ -73,10 +73,10 @@ router.get('/orders/all', authenticateManager, authorizeManager, async (req, res
                 o.created_at DESC
         `;
         
-        const result = await db.query(query);
+        const orders = await db.sequelize.query(query, { type: db.sequelize.QueryTypes.SELECT });
         res.json({
             success: true,
-            orders: result.rows
+            orders: orders
         });
     } catch (error) {
         console.error('Error fetching all orders:', error);
@@ -100,16 +100,22 @@ router.put('/orders/:id/approve', authenticateManager, authorizeManager, async (
             RETURNING *
         `;
         
-        const result = await db.query(query, [expectedCompletion, id]);
+        const result = await db.sequelize.query(query, {
+            replacements: [expectedCompletion, id],
+            type: db.sequelize.QueryTypes.UPDATE
+        });
         
-        if (result.rows.length === 0) {
+        if (!result || result.length === 0) {
             return res.status(404).json({ success: false, message: 'Order not found' });
         }
         
         // Create kitchen log
-        await db.query(
-            'INSERT INTO kitchen_logs (order_id, status, notes) VALUES ($1, $2, $3)',
-            [id, 'received', 'Order approved by manager']
+        await db.sequelize.query(
+            'INSERT INTO kitchen_logs (order_id, status, notes) VALUES (?, ?, ?)',
+            {
+                replacements: [id, 'received', 'Order approved by manager'],
+                type: db.sequelize.QueryTypes.INSERT
+            }
         );
         
         res.json({
@@ -129,17 +135,23 @@ router.put('/orders/:id/reject', authenticateManager, authorizeManager, async (r
     const { reason } = req.body;
     
     try {
-        const query = 'UPDATE orders SET status = $1 WHERE id = $2 RETURNING *';
-        const result = await db.query(query, ['rejected', id]);
+        const query = 'UPDATE orders SET status = ? WHERE id = ? RETURNING *';
+        const result = await db.sequelize.query(query, {
+            replacements: ['rejected', id],
+            type: db.sequelize.QueryTypes.UPDATE
+        });
         
-        if (result.rows.length === 0) {
+        if (!result || result.length === 0) {
             return res.status(404).json({ success: false, message: 'Order not found' });
         }
         
         // Log the rejection
-        await db.query(
-            'INSERT INTO kitchen_logs (order_id, status, notes) VALUES ($1, $2, $3)',
-            [id, 'rejected', `Order rejected by manager. Reason: ${reason || 'No reason provided'}`]
+        await db.sequelize.query(
+            'INSERT INTO kitchen_logs (order_id, status, notes) VALUES (?, ?, ?)',
+            {
+                replacements: [id, 'rejected', `Order rejected by manager. Reason: ${reason || 'No reason provided'}`],
+                type: db.sequelize.QueryTypes.INSERT
+            }
         );
         
         res.json({
@@ -166,22 +178,28 @@ router.put('/orders/:id/status', authenticateManager, authorizeManager, async (r
             RETURNING *
         `;
         
-        const result = await db.query(query, [status, kitchen_status, id]);
+        const result = await db.sequelize.query(query, {
+            replacements: [status, kitchen_status, id],
+            type: db.sequelize.QueryTypes.UPDATE
+        });
         
-        if (result.rows.length === 0) {
+        if (!result || result.length === 0) {
             return res.status(404).json({ success: false, message: 'Order not found' });
         }
         
         // Create kitchen log
-        await db.query(
-            'INSERT INTO kitchen_logs (order_id, status, notes) VALUES ($1, $2, $3)',
-            [id, kitchen_status || status, `Status updated to ${kitchen_status || status}`]
+        await db.sequelize.query(
+            'INSERT INTO kitchen_logs (order_id, status, notes) VALUES (?, ?, ?)',
+            {
+                replacements: [id, kitchen_status || status, `Status updated to ${kitchen_status || status}`],
+                type: db.sequelize.QueryTypes.INSERT
+            }
         );
         
         res.json({
             success: true,
             message: 'Order status updated successfully',
-            order: result.rows[0]
+            order: result[0]
         });
     } catch (error) {
         console.error('Error updating order status:', error);
@@ -198,10 +216,10 @@ router.get('/menu', authenticateManager, authorizeManager, async (req, res) => {
             ORDER BY category, name
         `;
         
-        const result = await db.query(query);
+        const items = await db.sequelize.query(query, { type: db.sequelize.QueryTypes.SELECT });
         
         // Group by category for frontend
-        const menuByCategory = result.rows.reduce((acc, item) => {
+        const menuByCategory = items.reduce((acc, item) => {
             if (!acc[item.category]) {
                 acc[item.category] = [];
             }
@@ -211,7 +229,7 @@ router.get('/menu', authenticateManager, authorizeManager, async (req, res) => {
         
         res.json({
             success: true,
-            items: result.rows,
+            items: items,
             categories: menuByCategory
         });
     } catch (error) {
@@ -241,14 +259,15 @@ router.post('/menu', authenticateManager, authorizeManager, async (req, res) => 
             RETURNING *
         `;
         
-        const result = await db.query(query, [
-            name, description, price, category, image_url, is_available !== false
-        ]);
+        const result = await db.sequelize.query(query, {
+            replacements: [name, description, price, category, image_url, is_available !== false],
+            type: db.sequelize.QueryTypes.INSERT
+        });
         
         res.json({
             success: true,
             message: 'Menu item added successfully',
-            item: result.rows[0]
+            item: result[0]
         });
     } catch (error) {
         console.error('Error adding menu item:', error);
@@ -270,18 +289,19 @@ router.put('/menu/:id', authenticateManager, authorizeManager, async (req, res) 
             RETURNING *
         `;
         
-        const result = await db.query(query, [
-            name, description, price, category, image_url, is_available, id
-        ]);
+        const result = await db.sequelize.query(query, {
+            replacements: [name, description, price, category, image_url, is_available, id],
+            type: db.sequelize.QueryTypes.UPDATE
+        });
         
-        if (result.rows.length === 0) {
+        if (!result || result.length === 0) {
             return res.status(404).json({ success: false, message: 'Menu item not found' });
         }
         
         res.json({
             success: true,
             message: 'Menu item updated successfully',
-            item: result.rows[0]
+            item: result[0]
         });
     } catch (error) {
         console.error('Error updating menu item:', error);
@@ -295,20 +315,26 @@ router.delete('/menu/:id', authenticateManager, authorizeManager, async (req, re
     
     try {
         // Check if item exists in any orders
-        const checkQuery = 'SELECT * FROM order_items WHERE menu_item_id = $1 LIMIT 1';
-        const checkResult = await db.query(checkQuery, [id]);
+        const checkQuery = 'SELECT * FROM order_items WHERE menu_item_id = ? LIMIT 1';
+        const checkResult = await db.sequelize.query(checkQuery, {
+            replacements: [id],
+            type: db.sequelize.QueryTypes.SELECT
+        });
         
-        if (checkResult.rows.length > 0) {
+        if (checkResult && checkResult.length > 0) {
             return res.status(400).json({ 
                 success: false, 
                 message: 'Cannot delete menu item. It exists in existing orders.' 
             });
         }
         
-        const query = 'DELETE FROM menu_items WHERE id = $1 RETURNING *';
-        const result = await db.query(query, [id]);
+        const query = 'DELETE FROM menu_items WHERE id = ? RETURNING *';
+        const result = await db.sequelize.query(query, {
+            replacements: [id],
+            type: db.sequelize.QueryTypes.DELETE
+        });
         
-        if (result.rows.length === 0) {
+        if (!result || result.length === 0) {
             return res.status(404).json({ success: false, message: 'Menu item not found' });
         }
         
@@ -378,19 +404,19 @@ router.get('/statistics', authenticateManager, authorizeManager, async (req, res
         `;
         
         const [revenueResult, topItemsResult, categoryResult, dailyTrendResult] = await Promise.all([
-            db.query(revenueQuery, [start_date, end_date]),
-            db.query(topItemsQuery, [start_date, end_date]),
-            db.query(categoryQuery, [start_date, end_date]),
-            db.query(dailyTrendQuery, [start_date, end_date])
+            db.sequelize.query(revenueQuery, { replacements: [start_date, end_date], type: db.sequelize.QueryTypes.SELECT }),
+            db.sequelize.query(topItemsQuery, { replacements: [start_date, end_date], type: db.sequelize.QueryTypes.SELECT }),
+            db.sequelize.query(categoryQuery, { replacements: [start_date, end_date], type: db.sequelize.QueryTypes.SELECT }),
+            db.sequelize.query(dailyTrendQuery, { replacements: [start_date, end_date], type: db.sequelize.QueryTypes.SELECT })
         ]);
         
         res.json({
             success: true,
             statistics: {
-                overview: revenueResult.rows[0],
-                topItems: topItemsResult.rows,
-                categories: categoryResult.rows,
-                dailyTrend: dailyTrendResult.rows
+                overview: revenueResult[0],
+                topItems: topItemsResult,
+                categories: categoryResult,
+                dailyTrend: dailyTrendResult
             }
         });
     } catch (error) {
@@ -410,11 +436,11 @@ router.get('/feedback', authenticateManager, authorizeManager, async (req, res) 
             LIMIT 50
         `;
         
-        const result = await db.query(query);
+        const feedback = await db.sequelize.query(query, { type: db.sequelize.QueryTypes.SELECT });
         
         res.json({
             success: true,
-            feedback: result.rows
+            feedback: feedback
         });
     } catch (error) {
         console.error('Error fetching feedback:', error);

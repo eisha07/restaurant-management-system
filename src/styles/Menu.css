@@ -1,4 +1,6 @@
-/* Base Styles - Aligned with SRS Requirements */
+/* menu.css - Integrated: Old menu cards with new cart and features */
+
+/* Base Styles */
 .menu-container {
   max-width: 1200px;
   margin: 0 auto;
@@ -8,7 +10,7 @@
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 }
 
-/* Header - SRS specifies top bar with logo and cart icon */
+/* Header */
 .menu-header {
   display: flex;
   justify-content: space-between;
@@ -42,7 +44,7 @@
   font-size: 0.9rem;
 }
 
-/* Cart Section - SRS: Persistent cart icon with item count */
+/* Cart Section */
 .cart-section {
   position: relative;
 }
@@ -52,37 +54,39 @@
   background: white;
   border: none;
   border-radius: 50%;
-  width: 50px;
-  height: 50px;
-  font-size: 1.5rem;
+  width: 55px;
+  height: 55px;
+  font-size: 1.6rem;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: transform 0.2s, box-shadow 0.2s;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+  transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  box-shadow: 0 5px 20px rgba(0, 0, 0, 0.15);
 }
 
 .cart-button:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
+  transform: translateY(-3px) scale(1.05);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
 }
 
 .cart-count {
   position: absolute;
-  top: -5px;
-  right: -5px;
+  top: -8px;
+  right: -8px;
   background: #ff4757;
   color: white;
   border-radius: 50%;
-  width: 24px;
-  height: 24px;
-  font-size: 0.8rem;
+  width: 28px;
+  height: 28px;
+  font-size: 0.9rem;
   font-weight: bold;
   display: flex;
   align-items: center;
   justify-content: center;
-  animation: bounce 0.5s;
+  animation: bounce 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94);
 }
 
 @keyframes bounce {
@@ -90,7 +94,7 @@
   50% { transform: scale(1.2); }
 }
 
-/* Search and Filter Bar - SRS: Search bar and filter button */
+/* Search and Filter Bar */
 .search-filter-bar {
   display: flex;
   gap: 1rem;
@@ -162,7 +166,8 @@
   font-size: 1.1rem;
 }
 
-/* Menu Grid - SRS: Scrollable grid of food items */
+/* OLD MENU CARD STYLING - Keep this exactly */
+/* Menu Grid - OLD: Scrollable grid of food items */
 .menu-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
@@ -171,6 +176,7 @@
   margin-bottom: 2rem;
 }
 
+/* Card Container - OLD */
 .menu-item-card {
   background: white;
   border-radius: 20px;
@@ -187,7 +193,7 @@
   box-shadow: 0 15px 40px rgba(0, 0, 0, 0.2);
 }
 
-/* Item Image - SRS: Image displays item description on click */
+/* Item Image - OLD */
 .item-image-container {
   position: relative;
   height: 200px;
@@ -210,7 +216,38 @@
   transform: scale(1.05);
 }
 
-/* SRS: Display if dish is available or temporarily out of order */
+/* Category Badge - OLD */
+.item-category {
+  position: absolute;
+  top: 1rem;
+  left: 1rem;
+  background: rgba(102, 126, 234, 0.9);
+  color: white;
+  padding: 0.25rem 0.75rem;
+  border-radius: 15px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  z-index: 2;
+}
+
+/* Rating - ADDED from new */
+.item-rating {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  background: rgba(0, 0, 0, 0.8);
+  color: white;
+  padding: 0.25rem 0.5rem;
+  border-radius: 15px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+
+/* Out of Stock Overlay - OLD */
 .out-of-stock-overlay {
   position: absolute;
   top: 0;
@@ -229,19 +266,7 @@
   z-index: 2;
 }
 
-.item-category {
-  position: absolute;
-  top: 1rem;
-  left: 1rem;
-  background: rgba(102, 126, 234, 0.9);
-  color: white;
-  padding: 0.25rem 0.75rem;
-  border-radius: 15px;
-  font-size: 0.8rem;
-  font-weight: 600;
-  z-index: 2;
-}
-
+/* Item Details - OLD */
 .item-details {
   padding: 1.5rem;
   flex: 1;
@@ -249,6 +274,7 @@
   flex-direction: column;
 }
 
+/* Header with Name and Price - OLD */
 .item-header {
   display: flex;
   justify-content: space-between;
@@ -270,6 +296,7 @@
   margin-left: 1rem;
 }
 
+/* Description - OLD */
 .item-description {
   color: #666;
   font-size: 0.95rem;
@@ -278,7 +305,7 @@
   flex: 1;
 }
 
-/* SRS: Prominent "Add" button */
+/* Add to Cart Button - OLD but keep prominent */
 .item-actions {
   margin-top: auto;
 }
@@ -325,6 +352,7 @@
   font-weight: bold;
 }
 
+/* Out of Stock Button - OLD */
 .out-of-stock-btn {
   width: 100%;
   padding: 1rem;
@@ -337,74 +365,284 @@
   cursor: not-allowed;
 }
 
-/* Loading State */
-.loading-container {
+/* NEW LARGER CART MODAL - Keep this from new code */
+.cart-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.8);
   display: flex;
-  flex-direction: column;
   align-items: center;
   justify-content: center;
-  min-height: 400px;
+  z-index: 2000;
+  padding: 1rem;
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.3s, visibility 0.3s;
+}
+
+.cart-overlay.active {
+  opacity: 1;
+  visibility: visible;
+}
+
+.cart-modal {
   background: white;
   border-radius: 20px;
-  margin: 2rem;
-  padding: 2rem;
-}
-
-.spinner {
-  width: 40px;
-  height: 40px;
-  border: 4px solid #f3f3f3;
-  border-top: 4px solid #ff6b35;
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-  margin-bottom: 20px;
-}
-
-@keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
-}
-
-/* Error State - SRS: User-friendly error messages */
-.error-container {
+  width: 90%;
+  max-width: 850px;
+  height: 85vh;
+  overflow: hidden;
+  box-shadow: 0 25px 50px rgba(0, 0, 0, 0.4);
+  transform: translateY(30px) scale(0.95);
+  transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
   display: flex;
   flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  min-height: 400px;
-  text-align: center;
-  padding: 40px 20px;
-  background: white;
-  border-radius: 20px;
-  max-width: 500px;
-  margin: 50px auto;
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
 }
 
-.error-message {
-  color: #d32f2f;
-  margin-bottom: 20px;
-  font-size: 18px;
-  line-height: 1.5;
+.cart-overlay.active .cart-modal {
+  transform: translateY(0) scale(1);
 }
 
-.retry-button {
-  background-color: #ff6b35;
+.cart-header {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: white;
+  padding: 1.8rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.cart-header h2 {
+  font-size: 1.8rem;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.close-cart {
+  background: rgba(255, 255, 255, 0.2);
   border: none;
-  padding: 10px 20px;
-  border-radius: 8px;
+  color: white;
+  width: 45px;
+  height: 45px;
+  border-radius: 50%;
+  font-size: 1.8rem;
   cursor: pointer;
-  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   transition: all 0.3s;
 }
 
-.retry-button:hover {
-  background-color: #e55a2b;
-  transform: translateY(-2px);
+.close-cart:hover {
+  background: rgba(255, 255, 255, 0.3);
+  transform: rotate(90deg);
 }
 
-/* Connection Status Styles - Fixed for SRS compliance */
+.cart-content {
+  flex: 1;
+  padding: 1.8rem;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+.cart-items {
+  flex: 1;
+  margin-bottom: 1.8rem;
+}
+
+.cart-item {
+  display: flex;
+  align-items: center;
+  padding: 1.2rem 0;
+  border-bottom: 1px solid #eee;
+  gap: 1.2rem;
+}
+
+.cart-item-image {
+  width: 90px;
+  height: 90px;
+  border-radius: 12px;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.cart-item-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.cart-item-details {
+  flex: 1;
+}
+
+.cart-item-title {
+  font-weight: 700;
+  font-size: 1.2rem;
+  margin-bottom: 0.4rem;
+  color: #333;
+}
+
+.cart-item-price {
+  color: #667eea;
+  font-weight: 700;
+  font-size: 1.1rem;
+}
+
+.cart-item-controls {
+  display: flex;
+  align-items: center;
+  gap: 1.2rem;
+}
+
+.quantity-control {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  background: #f8f9fa;
+  padding: 0.4rem;
+  border-radius: 12px;
+}
+
+.quantity-btn {
+  background: white;
+  border: none;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  cursor: pointer;
+  font-weight: bold;
+  font-size: 1.2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+  min-height: 44px;
+  min-width: 44px;
+}
+
+.quantity-btn:hover {
+  background: #667eea;
+  color: white;
+  transform: scale(1.1);
+}
+
+.quantity {
+  font-weight: 700;
+  font-size: 1.1rem;
+  min-width: 30px;
+  text-align: center;
+  color: #333;
+}
+
+.remove-item {
+  background: none;
+  border: none;
+  color: #ff4757;
+  cursor: pointer;
+  font-size: 1.4rem;
+  transition: transform 0.3s;
+  min-height: 44px;
+  min-width: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  padding: 0.5rem;
+}
+
+.remove-item:hover {
+  background: #ff4757;
+  color: white;
+  transform: scale(1.1);
+}
+
+.cart-summary {
+  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+  padding: 1.8rem;
+  border-radius: 16px;
+  border: 1px solid #dee2e6;
+}
+
+.summary-row {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+  font-size: 1.1rem;
+  color: #555;
+}
+
+.summary-row.total {
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: #667eea;
+  border-top: 2px solid #dee2e6;
+  padding-top: 1rem;
+  margin-top: 0.5rem;
+}
+
+.checkout-btn {
+  width: 100%;
+  padding: 1.2rem;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  border-radius: 12px;
+  font-size: 1.2rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.3s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 1.5rem;
+  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+  min-height: 44px;
+}
+
+.checkout-btn:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+  background: linear-gradient(135deg, #5a6fd8 0%, #6a4190 100%);
+}
+
+/* Empty Cart State */
+.empty-cart {
+  text-align: center;
+  padding: 40px 20px;
+  color: #888;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.empty-cart i {
+  font-size: 4rem;
+  margin-bottom: 20px;
+  color: #ddd;
+}
+
+.empty-cart p {
+  font-size: 1.2rem;
+  margin: 0.5rem 0;
+}
+
+/* Keep all other features from new code */
+
+/* Connection Status */
 .connection-status {
   display: flex;
   align-items: center;
@@ -485,7 +723,35 @@
   cursor: not-allowed;
 }
 
-/* Enhanced error container - Keep but update */
+/* Loading State */
+.loading-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 400px;
+  background: white;
+  border-radius: 20px;
+  margin: 2rem;
+  padding: 2rem;
+}
+
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid #f3f3f3;
+  border-top: 4px solid #ff6b35;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: 20px;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Error State */
 .error-container {
   display: flex;
   flex-direction: column;
@@ -586,7 +852,7 @@
   color: white;
 }
 
-/* Warning banner - SRS: Clear error messages */
+/* Warning banner */
 .warning-banner {
   background-color: rgba(255, 243, 205, 0.95);
   color: #856404;
@@ -679,7 +945,7 @@
   color: #d4edda;
 }
 
-/* Cached indicator on items */
+/* Cached indicator */
 .cached-indicator {
   position: absolute;
   top: 1rem;
@@ -732,7 +998,7 @@
   border: 1px solid rgba(133, 100, 4, 0.3);
 }
 
-/* No results enhancement */
+/* No results */
 .no-results {
   grid-column: 1 / -1;
   text-align: center;
@@ -778,7 +1044,7 @@
   box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
 }
 
-/* Filter dropdown - SRS: Filter by category */
+/* Filter dropdown */
 .filter-dropdown {
   position: absolute;
   top: calc(100% + 0.5rem);
@@ -938,21 +1204,7 @@
   color: #333;
 }
 
-/* SRS: Buttons must be of sufficient size for easy tapping */
-button {
-  min-height: 44px;
-  min-width: 44px;
-}
-
-/* SRS: Color Scheme - Sufficient contrast */
-.add-to-cart-btn,
-.filter-button.active,
-.retry-button {
-  background-color: #667eea;
-  color: white;
-}
-
-/* Responsive Design - SRS: Mobile-first interface */
+/* Responsive Design */
 @media (max-width: 768px) {
   .menu-grid {
     grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
@@ -1023,6 +1275,12 @@ button {
     margin: 0 10px 15px;
     justify-content: center;
   }
+  
+  .cart-modal {
+    width: 95%;
+    height: 90vh;
+    max-width: 95%;
+  }
 }
 
 @media (max-width: 480px) {
@@ -1049,4 +1307,10 @@ button {
   .warning-text {
     font-size: 0.9rem;
   }
+}
+
+/* Ensure all buttons are tappable */
+button {
+  min-height: 44px;
+  min-width: 44px;
 }
