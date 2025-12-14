@@ -1,0 +1,415 @@
+ // server/routes/managerDashboard.js
+const express = require('express');
+const router = express.Router();
+const db = require('../config/database');
+const { authenticateManager, authorizeManager } = require('../middleware/auth');
+
+// Get all pending orders
+router.get('/orders/pending', authenticateManager, authorizeManager, async (req, res) => {
+    try {
+        const query = `
+            SELECT 
+                o.id, o.order_number, o.customer_id, o.table_number, 
+                o.subtotal, o.tax, o.total, o.payment_method, 
+                o.payment_status, o.status, o.kitchen_status,
+                o.special_instructions, o.created_at,
+                json_agg(
+                    json_build_object(
+                        'id', oi.id,
+                        'name', oi.name,
+                        'price', oi.price,
+                        'quantity', oi.quantity,
+                        'special_instructions', oi.special_instructions
+                    )
+                ) as items
+            FROM orders o
+            LEFT JOIN order_items oi ON o.id = oi.order_id
+            WHERE o.status = 'pending_approval'
+            GROUP BY o.id
+            ORDER BY o.created_at DESC
+        `;
+        
+        const result = await db.query(query);
+        res.json({
+            success: true,
+            count: result.rows.length,
+            orders: result.rows
+        });
+    } catch (error) {
+        console.error('Error fetching pending orders:', error);
+        res.status(500).json({ success: false, message: 'Server error' });
+    }
+});
+
+// Get all orders (approved, in_progress, ready)
+router.get('/orders/all', authenticateManager, authorizeManager, async (req, res) => {
+    try {
+        const query = `
+            SELECT 
+                o.id, o.order_number, o.customer_id, o.table_number, 
+                o.subtotal, o.tax, o.total, o.payment_method, 
+                o.payment_status, o.status, o.kitchen_status,
+                o.special_instructions, o.created_at, o.expected_completion,
+                json_agg(
+                    json_build_object(
+                        'id', oi.id,
+                        'name', oi.name,
+                        'price', oi.price,
+                        'quantity', oi.quantity
+                    )
+                ) as items
+            FROM orders o
+            LEFT JOIN order_items oi ON o.id = oi.order_id
+            WHERE o.status IN ('approved', 'in_progress', 'ready', 'completed')
+            GROUP BY o.id
+            ORDER BY 
+                CASE o.status
+                    WHEN 'in_progress' THEN 1
+                    WHEN 'approved' THEN 2
+                    WHEN 'ready' THEN 3
+                    WHEN 'completed' THEN 4
+                    ELSE 5
+                END,
+                o.created_at DESC
+        `;
+        
+        const result = await db.query(query);
+        res.json({
+            success: true,
+            orders: result.rows
+        });
+    } catch (error) {
+        console.error('Error fetching all orders:', error);
+        res.status(500).json({ success: false, message: 'Server error' });
+    }
+});
+
+// Approve order
+router.put('/orders/:id/approve', authenticateManager, authorizeManager, async (req, res) => {
+    const { id } = req.params;
+    const { expectedCompletion } = req.body;
+    
+    try {
+        const query = `
+            UPDATE orders 
+            SET status = 'approved', 
+                kitchen_status = 'received',
+                approved_at = NOW(),
+                expected_completion = COALESCE($1, NOW() + INTERVAL '25 minutes')
+            WHERE id = $2 
+            RETURNING *
+        `;
+        
+        const result = await db.query(query, [expectedCompletion, id]);
+        
+        if (result.rows.length === 0) {
+            return res.status(404).json({ success: false, message: 'Order not found' });
+        }
+        
+        // Create kitchen log
+        await db.query(
+            'INSERT INTO kitchen_logs (order_id, status, notes) VALUES ($1, $2, $3)',
+            [id, 'received', 'Order approved by manager']
+        );
+        
+        res.json({
+            success: true,
+            message: 'Order approved successfully',
+            order: result.rows[0]
+        });
+    } catch (error) {
+        console.error('Error approving order:', error);
+        res.status(500).json({ success: false, message: 'Server error' });
+    }
+});
+
+// Reject order
+router.put('/orders/:id/reject', authenticateManager, authorizeManager, async (req, res) => {
+    const { id } = req.params;
+    const { reason } = req.body;
+    
+    try {
+        const query = 'UPDATE orders SET status = $1 WHERE id = $2 RETURNING *';
+        const result = await db.query(query, ['rejected', id]);
+        
+        if (result.rows.length === 0) {
+            return res.status(404).json({ success: false, message: 'Order not found' });
+        }
+        
+        // Log the rejection
+        await db.query(
+            'INSERT INTO kitchen_logs (order_id, status, notes) VALUES ($1, $2, $3)',
+            [id, 'rejected', `Order rejected by manager. Reason: ${reason || 'No reason provided'}`]
+        );
+        
+        res.json({
+            success: true,
+            message: 'Order rejected successfully',
+            order: result.rows[0]
+        });
+    } catch (error) {
+        console.error('Error rejecting order:', error);
+        res.status(500).json({ success: false, message: 'Server error' });
+    }
+});
+
+// Update order status
+router.put('/orders/:id/status', authenticateManager, authorizeManager, async (req, res) => {
+    const { id } = req.params;
+    const { status, kitchen_status } = req.body;
+    
+    try {
+        const query = `
+            UPDATE orders 
+            SET status = $1, kitchen_status = $2
+            WHERE id = $3 
+            RETURNING *
+        `;
+        
+        const result = await db.query(query, [status, kitchen_status, id]);
+        
+        if (result.rows.length === 0) {
+            return res.status(404).json({ success: false, message: 'Order not found' });
+        }
+        
+        // Create kitchen log
+        await db.query(
+            'INSERT INTO kitchen_logs (order_id, status, notes) VALUES ($1, $2, $3)',
+            [id, kitchen_status || status, `Status updated to ${kitchen_status || status}`]
+        );
+        
+        res.json({
+            success: true,
+            message: 'Order status updated successfully',
+            order: result.rows[0]
+        });
+    } catch (error) {
+        console.error('Error updating order status:', error);
+        res.status(500).json({ success: false, message: 'Server error' });
+    }
+});
+
+// Get menu items
+router.get('/menu', authenticateManager, authorizeManager, async (req, res) => {
+    try {
+        const query = `
+            SELECT * FROM menu_items 
+            ORDER BY category, name
+        `;
+        
+        const result = await db.query(query);
+        
+        // Group by category for frontend
+        const menuByCategory = result.rows.reduce((acc, item) => {
+            if (!acc[item.category]) {
+                acc[item.category] = [];
+            }
+            acc[item.category].push(item);
+            return acc;
+        }, {});
+        
+        res.json({
+            success: true,
+            items: result.rows,
+            categories: menuByCategory
+        });
+    } catch (error) {
+        console.error('Error fetching menu:', error);
+        res.status(500).json({ success: false, message: 'Server error' });
+    }
+});
+
+// Add new menu item
+router.post('/menu', authenticateManager, authorizeManager, async (req, res) => {
+    const { name, description, price, category, image_url, is_available } = req.body;
+    
+    try {
+        const query = `
+            INSERT INTO menu_items 
+            (name, description, price, category, image_url, is_available, created_at)
+            VALUES ($1, $2, $3, $4, $5, $6, NOW())
+            RETURNING *
+        `;
+        
+        const result = await db.query(query, [
+            name, description, price, category, image_url, is_available !== false
+        ]);
+        
+        res.json({
+            success: true,
+            message: 'Menu item added successfully',
+            item: result.rows[0]
+        });
+    } catch (error) {
+        console.error('Error adding menu item:', error);
+        res.status(500).json({ success: false, message: 'Server error' });
+    }
+});
+
+// Update menu item
+router.put('/menu/:id', authenticateManager, authorizeManager, async (req, res) => {
+    const { id } = req.params;
+    const { name, description, price, category, image_url, is_available } = req.body;
+    
+    try {
+        const query = `
+            UPDATE menu_items 
+            SET name = $1, description = $2, price = $3, 
+                category = $4, image_url = $5, is_available = $6
+            WHERE id = $7
+            RETURNING *
+        `;
+        
+        const result = await db.query(query, [
+            name, description, price, category, image_url, is_available, id
+        ]);
+        
+        if (result.rows.length === 0) {
+            return res.status(404).json({ success: false, message: 'Menu item not found' });
+        }
+        
+        res.json({
+            success: true,
+            message: 'Menu item updated successfully',
+            item: result.rows[0]
+        });
+    } catch (error) {
+        console.error('Error updating menu item:', error);
+        res.status(500).json({ success: false, message: 'Server error' });
+    }
+});
+
+// Delete menu item
+router.delete('/menu/:id', authenticateManager, authorizeManager, async (req, res) => {
+    const { id } = req.params;
+    
+    try {
+        // Check if item exists in any orders
+        const checkQuery = 'SELECT * FROM order_items WHERE menu_item_id = $1 LIMIT 1';
+        const checkResult = await db.query(checkQuery, [id]);
+        
+        if (checkResult.rows.length > 0) {
+            return res.status(400).json({ 
+                success: false, 
+                message: 'Cannot delete menu item. It exists in existing orders.' 
+            });
+        }
+        
+        const query = 'DELETE FROM menu_items WHERE id = $1 RETURNING *';
+        const result = await db.query(query, [id]);
+        
+        if (result.rows.length === 0) {
+            return res.status(404).json({ success: false, message: 'Menu item not found' });
+        }
+        
+        res.json({
+            success: true,
+            message: 'Menu item deleted successfully'
+        });
+    } catch (error) {
+        console.error('Error deleting menu item:', error);
+        res.status(500).json({ success: false, message: 'Server error' });
+    }
+});
+
+// Get statistics
+router.get('/statistics', authenticateManager, authorizeManager, async (req, res) => {
+    const { start_date, end_date } = req.query;
+    
+    try {
+        // Total revenue
+        const revenueQuery = `
+            SELECT COALESCE(SUM(total), 0) as total_revenue,
+                   COUNT(*) as total_orders,
+                   AVG(total) as avg_order_value
+            FROM orders 
+            WHERE status IN ('completed', 'ready')
+            AND created_at BETWEEN COALESCE($1, NOW() - INTERVAL '7 days') AND COALESCE($2, NOW())
+        `;
+        
+        // Top selling items
+        const topItemsQuery = `
+            SELECT mi.name, SUM(oi.quantity) as total_quantity,
+                   SUM(oi.price * oi.quantity) as total_revenue
+            FROM order_items oi
+            JOIN menu_items mi ON oi.menu_item_id = mi.id
+            JOIN orders o ON oi.order_id = o.id
+            WHERE o.status IN ('completed', 'ready')
+            AND o.created_at BETWEEN COALESCE($1, NOW() - INTERVAL '7 days') AND COALESCE($2, NOW())
+            GROUP BY mi.name
+            ORDER BY total_quantity DESC
+            LIMIT 10
+        `;
+        
+        // Sales by category
+        const categoryQuery = `
+            SELECT mi.category, COUNT(DISTINCT o.id) as order_count,
+                   SUM(oi.quantity) as item_count,
+                   SUM(oi.price * oi.quantity) as category_revenue
+            FROM orders o
+            JOIN order_items oi ON o.id = oi.order_id
+            JOIN menu_items mi ON oi.menu_item_id = mi.id
+            WHERE o.status IN ('completed', 'ready')
+            AND o.created_at BETWEEN COALESCE($1, NOW() - INTERVAL '7 days') AND COALESCE($2, NOW())
+            GROUP BY mi.category
+            ORDER BY category_revenue DESC
+        `;
+        
+        // Daily sales trend
+        const dailyTrendQuery = `
+            SELECT DATE(created_at) as date,
+                   COUNT(*) as orders,
+                   SUM(total) as revenue
+            FROM orders
+            WHERE status IN ('completed', 'ready')
+            AND created_at BETWEEN COALESCE($1, NOW() - INTERVAL '30 days') AND COALESCE($2, NOW())
+            GROUP BY DATE(created_at)
+            ORDER BY date
+        `;
+        
+        const [revenueResult, topItemsResult, categoryResult, dailyTrendResult] = await Promise.all([
+            db.query(revenueQuery, [start_date, end_date]),
+            db.query(topItemsQuery, [start_date, end_date]),
+            db.query(categoryQuery, [start_date, end_date]),
+            db.query(dailyTrendQuery, [start_date, end_date])
+        ]);
+        
+        res.json({
+            success: true,
+            statistics: {
+                overview: revenueResult.rows[0],
+                topItems: topItemsResult.rows,
+                categories: categoryResult.rows,
+                dailyTrend: dailyTrendResult.rows
+            }
+        });
+    } catch (error) {
+        console.error('Error fetching statistics:', error);
+        res.status(500).json({ success: false, message: 'Server error' });
+    }
+});
+
+// Get feedback
+router.get('/feedback', authenticateManager, authorizeManager, async (req, res) => {
+    try {
+        const query = `
+            SELECT f.*, o.order_number, o.total
+            FROM feedback f
+            JOIN orders o ON f.order_id = o.id
+            ORDER BY f.submitted_at DESC
+            LIMIT 50
+        `;
+        
+        const result = await db.query(query);
+        
+        res.json({
+            success: true,
+            feedback: result.rows
+        });
+    } catch (error) {
+        console.error('Error fetching feedback:', error);
+        res.status(500).json({ success: false, message: 'Server error' });
+    }
+});
+
+module.exports = router;

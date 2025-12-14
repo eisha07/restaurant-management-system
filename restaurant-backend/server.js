@@ -41,13 +41,23 @@ app.use('/api/orders', require('./routes/orderRoutes'));
 app.use('/api/feedback', require('./routes/feedbackRoutes'));
 app.use('/api/qr', require('./routes/qrRoutes'));
 app.use('/api/db', require('./routes/databaseRoutes')); // Database admin routes
+app.use('/api/auth', require('./routes/authRoutes')); // Auth routes for manager login
+app.use('/api/manager', require('./routes/managerDashboard')); // Manager dashboard routes
 
 // Basic route for testing
 app.get('/', (req, res) => {
   res.json({ 
     message: 'Restaurant Management System API',
     version: '1.0',
-    endpoints: ['/api/menu', '/api/orders', '/api/feedback', '/api/qr', '/api/db']
+    endpoints: [
+      '/api/menu', 
+      '/api/orders', 
+      '/api/feedback', 
+      '/api/qr', 
+      '/api/db',
+      '/api/auth',
+      '/api/manager'
+    ]
   });
 });
 
@@ -123,7 +133,21 @@ app.use((req, res) => {
       'GET /api/menu',
       'POST /api/orders',
       'POST /api/feedback',
-      'GET /api/qr'
+      'GET /api/qr',
+      'POST /api/auth/manager/login',
+      'GET /api/auth/verify',
+      'POST /api/auth/logout',
+      'GET /api/manager/orders/pending',
+      'GET /api/manager/orders/all',
+      'PUT /api/manager/orders/:id/approve',
+      'PUT /api/manager/orders/:id/reject',
+      'PUT /api/manager/orders/:id/status',
+      'GET /api/manager/menu',
+      'POST /api/manager/menu',
+      'PUT /api/manager/menu/:id',
+      'DELETE /api/manager/menu/:id',
+      'GET /api/manager/statistics',
+      'GET /api/manager/feedback'
     ]
   });
 });
