@@ -21,9 +21,9 @@ router.post('/manager/login', async (req, res) => {
 
         // Query database for manager
         const managers = await db.sequelize.query(
-            'SELECT id, username, password_hash, email FROM managers WHERE username = ?',
+            'SELECT manager_id, username, password_hash, email, full_name, role FROM managers WHERE username = $1',
             {
-                replacements: [username],
+                bind: [username],
                 type: db.sequelize.QueryTypes.SELECT
             }
         );
@@ -40,10 +40,11 @@ router.post('/manager/login', async (req, res) => {
         // Generate JWT token
         const token = jwt.sign(
             {
-                id: manager.id,
+                id: manager.manager_id,
                 username: manager.username,
-                name: manager.name,
-                email: manager.email
+                name: manager.full_name,
+                email: manager.email,
+                role: manager.role
             },
             JWT_SECRET,
             { expiresIn: '24h' }
@@ -54,10 +55,11 @@ router.post('/manager/login', async (req, res) => {
             message: 'Login successful',
             token,
             manager: {
-                id: manager.id,
+                id: manager.manager_id,
                 username: manager.username,
-                name: manager.name,
-                email: manager.email
+                name: manager.full_name,
+                email: manager.email,
+                role: manager.role
             }
         });
     } catch (error) {

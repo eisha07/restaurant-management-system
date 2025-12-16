@@ -7,13 +7,15 @@ const { authenticateKitchen } = require('../middleware/kitchenAuth');
 // Get all active orders for kitchen
 router.get('/orders/active', authenticateKitchen, async (req, res) => {
     try {
-        // Get orders from database - match actual database statuses
+        // Get orders from database with kitchen status
         const ordersQuery = `
-            SELECT id, order_number, table_number, status, kitchen_status, 
-                   total, special_instructions, created_at, expected_completion
-            FROM orders 
-            WHERE kitchen_status IN ('received', 'preparing', 'ready')
-            ORDER BY created_at ASC
+            SELECT o.order_id, o.order_number, rt.table_number, ks.name as kitchen_status, 
+                   ks.code as kitchen_status_code, o.special_instructions, o.created_at, o.expected_completion
+            FROM orders o
+            LEFT JOIN kitchen_statuses ks ON o.kitchen_status_id = ks.status_id
+            LEFT JOIN restaurant_tables rt ON o.table_id = rt.table_id
+            WHERE ks.code IN ('pending', 'preparing', 'ready')
+            ORDER BY o.created_at ASC
         `;
         
         const orders = await db.sequelize.query(ordersQuery, { 
@@ -25,14 +27,14 @@ router.get('/orders/active', authenticateKitchen, async (req, res) => {
             return res.json({
                 success: true,
                 orders: [],
-                groupedOrders: { received: [], preparing: [], ready: [] },
+                groupedOrders: { pending: [], preparing: [], ready: [] },
                 total: 0
             });
         }
         
-        const orderIds = orders.map(o => o.id).join(',');
+        const orderIds = orders.map(o => o.order_id).join(',');
         const itemsQuery = `
-            SELECT order_id, id, name, price, quantity, special_instructions 
+            SELECT order_id, order_item_id, item_name, item_price, quantity, special_instructions 
             FROM order_items 
             WHERE order_id IN (${orderIds})
         `;
@@ -47,20 +49,32 @@ router.get('/orders/active', authenticateKitchen, async (req, res) => {
             if (!itemsByOrderId[item.order_id]) {
                 itemsByOrderId[item.order_id] = [];
             }
-            itemsByOrderId[item.order_id].push(item);
+            itemsByOrderId[item.order_id].push({
+                name: item.item_name,
+                price: item.item_price,
+                quantity: item.quantity,
+                special_instructions: item.special_instructions
+            });
         });
         
         // Combine orders with items
         const ordersWithItems = orders.map(order => ({
-            ...order,
-            items: itemsByOrderId[order.id] || []
+            id: order.order_id,
+            order_number: order.order_number,
+            table_number: order.table_number,
+            status: order.kitchen_status_code,
+            kitchen_status: order.kitchen_status,
+            special_instructions: order.special_instructions,
+            created_at: order.created_at,
+            expected_completion: order.expected_completion,
+            items: itemsByOrderId[order.order_id] || []
         }));
         
         // Group by status - map to Kanban columns
         const groupedOrders = {
-            received: ordersWithItems.filter(o => o.kitchen_status === 'received'),
-            preparing: ordersWithItems.filter(o => o.kitchen_status === 'preparing'),
-            ready: ordersWithItems.filter(o => o.kitchen_status === 'ready')
+            pending: ordersWithItems.filter(o => o.status === 'pending'),
+            preparing: ordersWithItems.filter(o => o.status === 'preparing'),
+            ready: ordersWithItems.filter(o => o.status === 'ready')
         };
 
         res.json({
@@ -78,66 +92,61 @@ router.get('/orders/active', authenticateKitchen, async (req, res) => {
 // Update order status (kitchen side)
 router.put('/orders/:id/status', authenticateKitchen, async (req, res) => {
     const { id } = req.params;
-    const { status, expected_completion, notes } = req.body;
+    const { status_code, expected_completion, notes } = req.body;
     
     try {
-        // Start transaction
-        await db.query('BEGIN');
+        // Get status ID from code
+        const statusQuery = `SELECT status_id FROM kitchen_statuses WHERE code = $1`;
+        const statusResult = await db.sequelize.query(statusQuery, { 
+            replacements: [status_code],
+            type: db.sequelize.QueryTypes.SELECT 
+        });
         
-        // Update order
+        if (statusResult.length === 0) {
+            return res.status(400).json({ success: false, message: 'Invalid status code' });
+        }
+        
+        const statusId = statusResult[0].status_id;
+        
+        // Update order kitchen status
         const updateOrderQuery = `
             UPDATE orders 
-            SET kitchen_status = $1,
-                status = CASE 
-                    WHEN $1 = 'ready' THEN 'ready'
-                    WHEN $1 = 'preparing' THEN 'in_progress'
-                    ELSE status
-                END,
-                expected_completion = COALESCE($2, expected_completion)
-            WHERE id = $3 
-            RETURNING *
+            SET kitchen_status_id = $1,
+                expected_completion = COALESCE($2, expected_completion),
+                updated_at = NOW()
+            WHERE order_id = $3 
+            RETURNING order_id
         `;
         
-        const orderResult = await db.query(updateOrderQuery, [
-            status, 
-            expected_completion, 
-            id
-        ]);
+        const orderResult = await db.sequelize.query(updateOrderQuery, { 
+            replacements: [statusId, expected_completion, id],
+            type: db.sequelize.QueryTypes.UPDATE 
+        });
         
-        if (orderResult.rows.length === 0) {
-            await db.query('ROLLBACK');
+        if (orderResult.length === 0) {
             return res.status(404).json({ success: false, message: 'Order not found' });
         }
         
         // Create kitchen log
         const logQuery = `
             INSERT INTO kitchen_logs 
-            (order_id, status, notes, created_at)
-            VALUES ($1, $2, $3, NOW())
-            RETURNING *
+            (order_id, status_id, updated_by, notes, created_at)
+            VALUES ($1, $2, $3, $4, NOW())
         `;
         
-        await db.query(logQuery, [id, status, notes || `Status changed to ${status}`]);
-        
-        // If order is marked as ready, update main status
-        if (status === 'ready') {
-            await db.query(
-                'UPDATE orders SET status = $1 WHERE id = $2',
-                ['ready', id]
-            );
-        }
-        
-        await db.query('COMMIT');
+        await db.sequelize.query(logQuery, { 
+            replacements: [id, statusId, 1, notes || `Status changed to ${status_code}`],
+            type: db.sequelize.QueryTypes.INSERT 
+        });
         
         res.json({
             success: true,
-            message: `Order status updated to ${status}`,
-            order: orderResult.rows[0]
+            message: `Order status updated to ${status_code}`,
+            orderId: id
         });
     } catch (error) {
-        await db.query('ROLLBACK');
         console.error('Error updating order status:', error);
-        res.status(500).json({ success: false, message: 'Server error' });
+        res.status(500).json({ success: false, message: 'Server error: ' + error.message });
     }
 });
 

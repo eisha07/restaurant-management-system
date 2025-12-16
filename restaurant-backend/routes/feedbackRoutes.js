@@ -47,11 +47,14 @@ router.post('/', async (req, res) => {
         }
 
         // Check if order exists
-        const [order] = await sequelize.query(`
-            SELECT id, status 
+        const order = await sequelize.query(`
+            SELECT order_id, order_status_id 
             FROM orders 
-            WHERE id = $1
-        `, { bind: [orderId] });
+            WHERE order_id = $1
+        `, { 
+            replacements: [orderId],
+            type: sequelize.QueryTypes.SELECT 
+        });
 
         if (order.length === 0) {
             return res.status(400).json({
@@ -61,9 +64,12 @@ router.post('/', async (req, res) => {
         }
 
         // Check if feedback already exists for this order
-        const [existingFeedback] = await sequelize.query(`
-            SELECT id FROM feedback WHERE order_id = $1
-        `, { bind: [orderId] });
+        const existingFeedback = await sequelize.query(`
+            SELECT feedback_id FROM feedback WHERE order_id = $1
+        `, { 
+            replacements: [orderId],
+            type: sequelize.QueryTypes.SELECT 
+        });
 
         if (existingFeedback.length > 0) {
             return res.status(400).json({
@@ -77,26 +83,26 @@ router.post('/', async (req, res) => {
         const averageRating = (ratings.reduce((a, b) => a + b, 0) / ratings.length).toFixed(2);
 
         // Create feedback with both simple and detailed ratings
-        const [newFeedback] = await sequelize.query(`
+        await sequelize.query(`
             INSERT INTO feedback (
                 order_id, 
+                customer_id,
                 food_quality, 
                 service_speed, 
                 overall_experience,
-                accuracy,
+                order_accuracy,
                 value_for_money,
-                average_rating,
-                comment
+                comment,
+                submitted_at
             )
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-            RETURNING id, order_id, food_quality, service_speed, overall_experience, accuracy, value_for_money, average_rating, comment, submitted_at
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW())
         `, { 
-            bind: [orderId, foodQuality || overallRating, serviceSpeed || overallRating, overallExperience || overallRating, accuracy || overallRating, valueForMoney || overallRating, averageRating, comment || null] 
+            replacements: [orderId, null, foodQuality || overallRating, serviceSpeed || overallRating, overallExperience || overallRating, accuracy || overallRating, valueForMoney || overallRating, comment || null],
+            type: sequelize.QueryTypes.INSERT 
         });
 
         res.status(201).json({
             success: true,
-            data: newFeedback[0],
             message: 'Thank you for your feedback!'
         });
 
@@ -118,52 +124,38 @@ router.post('/', async (req, res) => {
 router.get('/', authenticateManager, async (req, res) => {
     try {
         const { page = 1, limit = 20, minRating } = req.query;
-        const offset = (page - 1) * limit;
+        const offset = (parseInt(page) - 1) * parseInt(limit);
 
-        let whereClause = 'WHERE 1=1';
-        const params = [];
-        let paramCount = 0;
+        // Get total count
+        const [countResult] = await sequelize.query(`
+            SELECT COUNT(*) as total FROM feedback
+        `);
+        const totalCount = parseInt(countResult[0].total);
 
-        // Filter by minimum rating (using average_rating)
-        if (minRating) {
-            paramCount++;
-            whereClause += ` AND f.average_rating >= $${paramCount}`;
-            params.push(minRating);
-        }
-
-        // Get all feedback with order details
+        // Get paginated feedback
         const [feedback] = await sequelize.query(`
             SELECT 
-                f.id,
-                f.food_quality as "foodQuality",
-                f.service_speed as "serviceSpeed",
-                f.overall_experience as "overallExperience",
-                f.accuracy,
-                f.value_for_money as "valueForMoney",
-                f.average_rating as "averageRating",
+                f.feedback_id,
+                f.order_id,
+                f.food_quality,
+                f.service_speed,
+                f.overall_experience,
+                f.order_accuracy as accuracy,
+                f.value_for_money,
                 f.comment,
-                f.submitted_at as "submittedAt",
-                o.id as "orderId",
-                o.order_number as "orderNumber",
-                o.total as "orderTotal",
-                o.payment_method as "paymentMethod",
-                o.created_at as "orderCreatedAt"
+                f.submitted_at,
+                o.order_number,
+                o.created_at as order_created_at
             FROM feedback f
-            JOIN orders o ON f.order_id = o.id
-            ${whereClause}
+            LEFT JOIN orders o ON f.order_id = o.order_id
             ORDER BY f.submitted_at DESC
-            LIMIT $${paramCount + 1} OFFSET $${paramCount + 2}
-        `, { bind: [...params, limit, offset] });
+            LIMIT $1 OFFSET $2
+        `, {
+            replacements: [parseInt(limit), offset],
+            type: sequelize.QueryTypes.SELECT
+        });
 
-        // Get total count separately
-        const [totalResult] = await sequelize.query(`
-            SELECT COUNT(*) as total_count
-            FROM feedback f
-            ${whereClause}
-        `, { bind: params });
-
-        const totalCount = parseInt(totalResult[0].total_count);
-        const totalPages = Math.ceil(totalCount / limit);
+        const totalPages = Math.ceil(totalCount / parseInt(limit));
 
         res.json({
             success: true,
@@ -171,10 +163,10 @@ router.get('/', authenticateManager, async (req, res) => {
             pagination: {
                 page: parseInt(page),
                 limit: parseInt(limit),
-                totalCount,
-                totalPages,
-                hasNext: page < totalPages,
-                hasPrev: page > 1
+                totalCount: totalCount,
+                totalPages: totalPages,
+                hasNext: parseInt(page) < totalPages,
+                hasPrev: parseInt(page) > 1
             },
             message: 'Feedback retrieved successfully'
         });
@@ -194,52 +186,58 @@ router.get('/stats', authenticateManager, async (req, res) => {
     try {
         const [stats] = await sequelize.query(`
             SELECT 
-                COUNT(*) as "totalFeedback",
-                ROUND(AVG(average_rating)::numeric, 2) as "averageRating",
-                ROUND(AVG(food_quality)::numeric, 2) as "avgFoodQuality",
-                ROUND(AVG(service_speed)::numeric, 2) as "avgServiceSpeed",
-                ROUND(AVG(overall_experience)::numeric, 2) as "avgOverallExperience",
-                ROUND(AVG(accuracy)::numeric, 2) as "avgAccuracy",
-                ROUND(AVG(value_for_money)::numeric, 2) as "avgValueForMoney",
-                COUNT(CASE WHEN average_rating >= 4.5 THEN 1 END) as "excellent",
-                COUNT(CASE WHEN average_rating >= 3.5 AND average_rating < 4.5 THEN 1 END) as "good",
-                COUNT(CASE WHEN average_rating >= 2.5 AND average_rating < 3.5 THEN 1 END) as "average",
-                COUNT(CASE WHEN average_rating < 2.5 THEN 1 END) as "poor",
-                COUNT(comment) as "totalComments",
-                MAX(created_at) as latest_feedback
+                COUNT(*) as total_feedback,
+                ROUND(AVG(food_quality)::numeric, 2) as avg_food_quality,
+                ROUND(AVG(service_speed)::numeric, 2) as avg_service_speed,
+                ROUND(AVG(overall_experience)::numeric, 2) as avg_overall_experience,
+                ROUND(AVG(order_accuracy)::numeric, 2) as avg_accuracy,
+                ROUND(AVG(value_for_money)::numeric, 2) as avg_value_for_money,
+                COUNT(CASE WHEN overall_experience >= 4.5 THEN 1 END) as excellent,
+                COUNT(CASE WHEN overall_experience >= 3.5 AND overall_experience < 4.5 THEN 1 END) as good,
+                COUNT(CASE WHEN overall_experience >= 2.5 AND overall_experience < 3.5 THEN 1 END) as average,
+                COUNT(CASE WHEN overall_experience < 2.5 THEN 1 END) as poor,
+                COUNT(CASE WHEN comment IS NOT NULL AND comment != '' THEN 1 END) as total_comments,
+                MAX(submitted_at) as latest_feedback
             FROM feedback
         `);
 
         const [recentComments] = await sequelize.query(`
             SELECT 
-                f.rating,
+                f.overall_experience as rating,
                 f.comment,
-                f.created_at,
-                o.id as order_id
+                f.submitted_at,
+                f.order_id
             FROM feedback f
-            JOIN orders o ON f.order_id = o.id
             WHERE f.comment IS NOT NULL AND f.comment != ''
-            ORDER BY f.created_at DESC
+            ORDER BY f.submitted_at DESC
             LIMIT 5
         `);
 
         const statistics = {
             summary: {
                 totalFeedback: parseInt(stats[0].total_feedback) || 0,
-                averageRating: stats[0].average_rating || '0.0',
+                averageRating: parseFloat(stats[0].avg_overall_experience) || 0,
                 totalComments: parseInt(stats[0].total_comments) || 0,
                 latestFeedback: stats[0].latest_feedback
             },
+            ratings: {
+                foodQuality: parseFloat(stats[0].avg_food_quality) || 0,
+                serviceSpeed: parseFloat(stats[0].avg_service_speed) || 0,
+                overallExperience: parseFloat(stats[0].avg_overall_experience) || 0,
+                accuracy: parseFloat(stats[0].avg_accuracy) || 0,
+                valueForMoney: parseFloat(stats[0].avg_value_for_money) || 0
+            },
             ratingDistribution: {
-                fiveStar: parseInt(stats[0].five_star) || 0,
-                fourStar: parseInt(stats[0].four_star) || 0,
-                threeStar: parseInt(stats[0].three_star) || 0,
-                twoStar: parseInt(stats[0].two_star) || 0,
-                oneStar: parseInt(stats[0].one_star) || 0
+                excellent: parseInt(stats[0].excellent) || 0,
+                good: parseInt(stats[0].good) || 0,
+                average: parseInt(stats[0].average) || 0,
+                poor: parseInt(stats[0].poor) || 0
             },
             recentComments: recentComments.map(comment => ({
-                ...comment,
-                comment: comment.comment || ''
+                rating: parseFloat(comment.rating) || 0,
+                comment: comment.comment || '',
+                submittedAt: comment.submitted_at,
+                orderId: comment.order_id
             }))
         };
 

@@ -9,42 +9,30 @@ const { sequelize } = require('../config/database');
 // GET /api/orders - List all orders (for Manager Dashboard)
 router.get('/', async (req, res) => {
     try {
-        const [orders] = await sequelize.query(`
+        const orders = await sequelize.query(`
             SELECT 
-                o.id,
-                o.order_number as "orderNumber",
-                o.customer_id as "customerId",
-                o.table_number as "tableNumber",
-                o.status,
-                o.payment_method as "paymentMethod",
-                o.payment_status as "paymentStatus",
-                o.total as "totalAmount",
-                o.subtotal,
-                o.tax,
-                o.created_at as "createdAt",
-                o.approved_at as "approvedAt",
-                o.expected_completion as "expectedCompletion",
-                json_agg(
-                    json_build_object(
-                        'id', oi.id,
-                        'menu_item_id', oi.menu_item_id,
-                        'name', oi.name,
-                        'quantity', oi.quantity,
-                        'price', oi.price,
-                        'special_instructions', oi.special_instructions
-                    )
-                ) FILTER (WHERE oi.id IS NOT NULL) as items
+                o.order_id as id,
+                o.order_number,
+                c.customer_id,
+                rt.table_number,
+                os.name as status,
+                pm.name as payment_method,
+                ps.name as payment_status,
+                o.created_at,
+                o.approved_at,
+                o.expected_completion
             FROM orders o
-            LEFT JOIN order_items oi ON o.id = oi.order_id
-            GROUP BY o.id
+            LEFT JOIN customers c ON o.customer_id = c.customer_id
+            LEFT JOIN restaurant_tables rt ON o.table_id = rt.table_id
+            LEFT JOIN order_statuses os ON o.order_status_id = os.status_id
+            LEFT JOIN payment_methods pm ON o.payment_method_id = pm.method_id
+            LEFT JOIN payment_statuses ps ON o.payment_status_id = ps.status_id
             ORDER BY o.created_at DESC
-        `);
-
-        res.json({
-            success: true,
-            data: orders,
-            message: 'Orders retrieved successfully'
+        `, { 
+            type: sequelize.QueryTypes.SELECT 
         });
+
+        res.json(orders);
     } catch (error) {
         console.error('Error fetching orders:', error);
         res.status(500).json({
@@ -60,38 +48,29 @@ router.get('/:id', async (req, res) => {
     try {
         const { id } = req.params;
 
-        const [orders] = await sequelize.query(`
+        const orders = await sequelize.query(`
             SELECT 
-                o.id,
-                o.order_number as "orderNumber",
-                o.customer_id as "customerId",
-                o.table_number as "tableNumber",
-                o.status,
-                o.payment_method as "paymentMethod",
-                o.payment_status as "paymentStatus",
-                o.total as "totalAmount",
-                o.subtotal,
-                o.tax,
-                o.created_at as "createdAt",
-                o.approved_at as "approvedAt",
-                o.expected_completion as "expectedCompletion",
-                json_agg(
-                    json_build_object(
-                        'id', oi.id,
-                        'menu_item_id', oi.menu_item_id,
-                        'name', oi.name,
-                        'description', m.description,
-                        'quantity', oi.quantity,
-                        'price', oi.price,
-                        'special_instructions', oi.special_instructions
-                    )
-                ) FILTER (WHERE oi.id IS NOT NULL) as items
+                o.order_id as id,
+                o.order_number,
+                c.customer_id,
+                rt.table_number,
+                os.name as status,
+                pm.name as payment_method,
+                ps.name as payment_status,
+                o.created_at,
+                o.approved_at,
+                o.expected_completion
             FROM orders o
-            LEFT JOIN order_items oi ON o.id = oi.order_id
-            LEFT JOIN menu_items m ON oi.menu_item_id = m.id
-            WHERE o.id = $1
-            GROUP BY o.id
-        `, { bind: [id] });
+            LEFT JOIN customers c ON o.customer_id = c.customer_id
+            LEFT JOIN restaurant_tables rt ON o.table_id = rt.table_id
+            LEFT JOIN order_statuses os ON o.order_status_id = os.status_id
+            LEFT JOIN payment_methods pm ON o.payment_method_id = pm.method_id
+            LEFT JOIN payment_statuses ps ON o.payment_status_id = ps.status_id
+            WHERE o.order_id = $1
+        `, { 
+            bind: [id],
+            type: sequelize.QueryTypes.SELECT 
+        });
 
         if (orders.length === 0) {
             return res.status(404).json({
@@ -100,11 +79,7 @@ router.get('/:id', async (req, res) => {
             });
         }
 
-        res.json({
-            success: true,
-            data: orders[0],
-            message: 'Order retrieved successfully'
-        });
+        res.json(orders[0]);
     } catch (error) {
         console.error('Error fetching order:', error);
         res.status(500).json({
@@ -167,41 +142,29 @@ router.get('/session/:sessionId', async (req, res) => {
 // GET /api/orders/kitchen/active - Get active orders for kitchen display
 router.get('/kitchen/active', async (req, res) => {
     try {
-        const [orders] = await sequelize.query(`
+        const orders = await sequelize.query(`
             SELECT 
-                o.id,
-                o.order_number as "orderNumber",
-                o.customer_id as "customerId",
-                o.table_number as "tableNumber",
-                o.status,
-                o.kitchen_status as "kitchenStatus",
-                o.total as "totalAmount",
-                o.special_instructions as "specialInstructions",
-                o.created_at as "createdAt",
-                o.approved_at as "approvedAt",
-                o.expected_completion as "expectedCompletion",
-                string_agg(
-                    oi.name || ' x' || oi.quantity, 
-                    ', ' ORDER BY oi.name
-                ) as items_summary,
-                COUNT(oi.id) as item_count
+                o.order_id as id,
+                o.order_number,
+                c.customer_id,
+                rt.table_number,
+                os.name as status,
+                ks.name as kitchen_status,
+                o.created_at,
+                o.approved_at,
+                o.expected_completion
             FROM orders o
-            LEFT JOIN order_items oi ON o.id = oi.order_id
-            WHERE o.status IN ('approved', 'in_progress') AND o.kitchen_status IN ('pending', 'preparing')
-            GROUP BY o.id
-            ORDER BY 
-                CASE 
-                    WHEN o.status = 'in_progress' THEN 1
-                    WHEN o.status = 'approved' THEN 2
-                END,
-                o.approved_at ASC
-        `);
-
-        res.json({
-            success: true,
-            data: orders,
-            message: 'Active kitchen orders retrieved successfully'
+            LEFT JOIN customers c ON o.customer_id = c.customer_id
+            LEFT JOIN restaurant_tables rt ON o.table_id = rt.table_id
+            LEFT JOIN order_statuses os ON o.order_status_id = os.status_id
+            LEFT JOIN kitchen_statuses ks ON o.kitchen_status_id = ks.status_id
+            WHERE os.name IN ('approved', 'in_progress') AND ks.name IN ('pending', 'preparing')
+            ORDER BY o.created_at ASC
+        `, { 
+            type: sequelize.QueryTypes.SELECT 
         });
+
+        res.json(orders);
     } catch (error) {
         console.error('Error fetching kitchen orders:', error);
         res.status(500).json({
@@ -219,10 +182,15 @@ router.get('/kitchen/active', async (req, res) => {
 // POST /api/orders - Create a new order (Customer places order)
 router.post('/', async (req, res) => {
     try {
+        console.log('📝 POST /api/orders - Order creation attempt');
         const { customerSessionId, paymentMethod, items } = req.body;
+        console.log('   Session ID:', customerSessionId);
+        console.log('   Payment Method:', paymentMethod);
+        console.log('   Items:', JSON.stringify(items, null, 2));
 
         // Validation
         if (!customerSessionId || !paymentMethod || !items || !Array.isArray(items) || items.length === 0) {
+            console.log('❌ Validation failed - missing required fields');
             return res.status(400).json({
                 success: false,
                 message: 'Missing required fields: customerSessionId, paymentMethod, items (non-empty array)'
@@ -251,9 +219,9 @@ router.post('/', async (req, res) => {
             }
 
             // Check if menu item exists and is available
-            const [menuItem] = await sequelize.query(
-                'SELECT id, name, price, is_available FROM menu_items WHERE id = $1',
-                { bind: [item.menuItemId] }
+            const menuItem = await sequelize.query(
+                'SELECT item_id, name, price, is_available FROM menu_items WHERE item_id = $1',
+                { bind: [item.menuItemId], type: sequelize.QueryTypes.SELECT }
             );
 
             if (menuItem.length === 0) {
@@ -289,82 +257,138 @@ router.post('/', async (req, res) => {
         // Generate order number
         const orderNumber = `ORD-${Date.now()}`;
 
+        // Get or create customer using session ID
+        console.log('🔍 Looking up customer with session_id:', customerSessionId);
+        let customerResult = await sequelize.query(`
+            SELECT customer_id FROM customers WHERE session_id = $1
+        `, { bind: [customerSessionId], type: sequelize.QueryTypes.SELECT });
+
+        let customerId;
+        if (customerResult.length === 0) {
+            // Create new customer with session ID
+            console.log('✨ Customer not found, creating new customer...');
+            const createCustomerResult = await sequelize.query(`
+                INSERT INTO customers (session_id, created_at, updated_at)
+                VALUES ($1, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+                RETURNING customer_id
+            `, { bind: [customerSessionId], type: sequelize.QueryTypes.SELECT });
+            customerId = createCustomerResult[0].customer_id;
+            console.log('   ✅ Created customer_id:', customerId);
+        } else {
+            customerId = customerResult[0].customer_id;
+            console.log('   ✅ Found existing customer_id:', customerId);
+        }
+
+        // Get payment method ID
+        const paymentMethodResult = await sequelize.query(`
+            SELECT method_id FROM payment_methods WHERE name = $1
+        `, { bind: [paymentMethod], type: sequelize.QueryTypes.SELECT });
+        
+        if (paymentMethodResult.length === 0) {
+            return res.status(400).json({
+                success: false,
+                message: 'Invalid payment method'
+            });
+        }
+
+        // Get status IDs
+        console.log('🔍 Getting status IDs...');
+        const pendingStatusResult = await sequelize.query(`
+            SELECT status_id FROM order_statuses WHERE name = 'pending_approval'
+        `, { type: sequelize.QueryTypes.SELECT });
+        console.log('   Order status (pending_approval):', pendingStatusResult[0]);
+        
+        const pendingPaymentStatusResult = await sequelize.query(`
+            SELECT status_id FROM payment_statuses WHERE name = 'pending'
+        `, { type: sequelize.QueryTypes.SELECT });
+        console.log('   Payment status (pending):', pendingPaymentStatusResult[0]);
+
+        const pendingKitchenStatusResult = await sequelize.query(`
+            SELECT status_id FROM kitchen_statuses WHERE name = 'pending'
+        `, { type: sequelize.QueryTypes.SELECT });
+        console.log('   Kitchen status (pending):', pendingKitchenStatusResult[0]);
+
         // Create order and order items in a transaction
-        const [newOrder] = await sequelize.query(`
+        console.log('💾 Inserting order into database...');
+        const newOrder = await sequelize.query(`
             INSERT INTO orders (
                 order_number,
                 customer_id, 
-                payment_method,
-                subtotal,
-                tax,
-                total, 
-                status,
-                payment_status,
-                kitchen_status
+                payment_method_id,
+                order_status_id,
+                payment_status_id,
+                kitchen_status_id
             ) 
-            VALUES ($1, $2, $3, $4, $5, $6, 'pending_approval', 'pending', 'pending') 
-            RETURNING *
-        `, { bind: [orderNumber, customerSessionId, paymentMethod, subtotal, tax, total] });
+            VALUES ($1, $2, $3, $4, $5, $6) 
+            RETURNING order_id, order_number, customer_id
+        `, { 
+            bind: [
+                orderNumber, 
+                customerId, 
+                paymentMethodResult[0].method_id,
+                pendingStatusResult[0].status_id,
+                pendingPaymentStatusResult[0].status_id,
+                pendingKitchenStatusResult[0].status_id
+            ],
+            type: sequelize.QueryTypes.SELECT
+        });
+
+        console.log('   ✅ Order created with order_id:', newOrder[0].order_id);
 
         // Create order items
+        console.log('💾 Inserting order items...');
         for (const item of orderItemsData) {
             await sequelize.query(`
                 INSERT INTO order_items (
                     order_id, 
                     menu_item_id, 
-                    name,
+                    item_name,
+                    item_price, 
                     quantity, 
-                    price, 
                     special_instructions
                 ) 
                 VALUES ($1, $2, $3, $4, $5, $6)
             `, {
                 bind: [
-                    newOrder[0].id,
+                    newOrder[0].order_id,
                     item.menuItemId,
                     item.name,
-                    item.quantity,
                     item.price,
+                    item.quantity,
                     item.specialInstructions
                 ]
             });
         }
+        console.log('   ✅ All order items inserted');
 
         // Get the complete order with items
-        const [completeOrder] = await sequelize.query(`
+        const completeOrder = await sequelize.query(`
             SELECT 
-                o.id,
-                o.order_number as "orderNumber",
-                o.customer_id as "customerId",
-                o.status,
-                o.payment_method as "paymentMethod",
-                o.payment_status as "paymentStatus",
-                o.subtotal,
-                o.tax,
-                o.total,
-                o.created_at as "createdAt",
-                json_agg(
-                    json_build_object(
-                        'menu_item_id', oi.menu_item_id,
-                        'name', oi.name,
-                        'quantity', oi.quantity,
-                        'price', oi.price
-                    )
-                ) FILTER (WHERE oi.id IS NOT NULL) as items
+                o.order_id as id,
+                o.order_number,
+                c.customer_id,
+                os.name as status,
+                pm.name as payment_method,
+                ps.name as payment_status,
+                o.created_at
             FROM orders o
-            LEFT JOIN order_items oi ON o.id = oi.order_id
-            WHERE o.id = $1
-            GROUP BY o.id
-        `, { bind: [newOrder[0].id] });
-
-        res.status(201).json({
-            success: true,
-            data: completeOrder[0],
-            message: 'Order created successfully and awaiting manager approval'
+            LEFT JOIN customers c ON o.customer_id = c.customer_id
+            LEFT JOIN order_statuses os ON o.order_status_id = os.status_id
+            LEFT JOIN payment_methods pm ON o.payment_method_id = pm.method_id
+            LEFT JOIN payment_statuses ps ON o.payment_status_id = ps.status_id
+            WHERE o.order_id = $1
+        `, { 
+            bind: [newOrder[0].order_id],
+            type: sequelize.QueryTypes.SELECT
         });
 
+        console.log('✅ Order creation successful!');
+        console.log('   Complete order:', JSON.stringify(completeOrder[0], null, 2));
+        res.status(201).json(completeOrder[0]);
+
     } catch (error) {
-        console.error('Error creating order:', error);
+        console.error('❌ Error creating order:', error.message);
+        console.error('   Stack:', error.stack);
         res.status(500).json({
             success: false,
             message: 'Failed to create order',
@@ -393,9 +417,9 @@ router.patch('/:id/status', async (req, res) => {
         }
 
         // Check if order exists
-        const [existingOrder] = await sequelize.query(
-            'SELECT id, status FROM orders WHERE id = $1',
-            { bind: [id] }
+        const existingOrder = await sequelize.query(
+            'SELECT order_id FROM orders WHERE order_id = $1',
+            { bind: [id], type: sequelize.QueryTypes.SELECT }
         );
 
         if (existingOrder.length === 0) {
@@ -405,35 +429,27 @@ router.patch('/:id/status', async (req, res) => {
             });
         }
 
-        // Build update query with timestamp logic
-        let updateQuery = 'UPDATE orders SET status = $1';
-        const params = [status];
-        let paramCount = 1;
+        // Get status ID
+        const statusResult = await sequelize.query(
+            'SELECT status_id FROM order_statuses WHERE name = $1',
+            { bind: [status], type: sequelize.QueryTypes.SELECT }
+        );
 
-        // Set appropriate timestamps based on status
-        if (status === 'approved') {
-            paramCount++;
-            updateQuery += `, approved_at = CURRENT_TIMESTAMP`;
-        } else if (status === 'in_progress') {
-            paramCount++;
-            updateQuery += `, kitchen_started_at = CURRENT_TIMESTAMP`;
-        } else if (status === 'ready') {
-            paramCount++;
-            updateQuery += `, ready_at = CURRENT_TIMESTAMP`;
-        } else if (status === 'cancelled') {
-            paramCount++;
-            updateQuery += `, completed_at = CURRENT_TIMESTAMP`;
+        if (statusResult.length === 0) {
+            return res.status(400).json({
+                success: false,
+                message: 'Invalid status'
+            });
         }
 
-        paramCount++;
-        updateQuery += `, updated_at = CURRENT_TIMESTAMP WHERE id = $${paramCount} RETURNING *`;
-        params.push(id);
-
-        const [updatedOrder] = await sequelize.query(updateQuery, { bind: params });
+        // Update order status
+        await sequelize.query(
+            'UPDATE orders SET order_status_id = $1 WHERE order_id = $2',
+            { bind: [statusResult[0].status_id, id] }
+        );
 
         res.json({
             success: true,
-            data: updatedOrder[0],
             message: `Order status updated to ${status}`
         });
 
@@ -452,26 +468,40 @@ router.patch('/:id/approve', async (req, res) => {
     try {
         const { id } = req.params;
 
-        const [updatedOrder] = await sequelize.query(`
+        // Get approved and pending kitchen status IDs
+        const approvedStatusResult = await sequelize.query(
+            'SELECT status_id FROM order_statuses WHERE name = $1',
+            { bind: ['approved'], type: sequelize.QueryTypes.SELECT }
+        );
+
+        const pendingKitchenStatusResult = await sequelize.query(
+            'SELECT status_id FROM kitchen_statuses WHERE name = $1',
+            { bind: ['pending'], type: sequelize.QueryTypes.SELECT }
+        );
+
+        // Update order status
+        const updatedOrder = await sequelize.query(`
             UPDATE orders 
             SET 
-                status = 'approved',
-                approved_at = CURRENT_TIMESTAMP,
-                updated_at = CURRENT_TIMESTAMP
-            WHERE id = $1 AND status = 'pending_approval'
-            RETURNING *
-        `, { bind: [id] });
+                order_status_id = $1,
+                kitchen_status_id = $2,
+                approved_at = CURRENT_TIMESTAMP
+            WHERE order_id = $3
+            RETURNING order_id
+        `, { 
+            bind: [approvedStatusResult[0].status_id, pendingKitchenStatusResult[0].status_id, id],
+            type: sequelize.QueryTypes.SELECT
+        });
 
         if (updatedOrder.length === 0) {
             return res.status(404).json({
                 success: false,
-                message: 'Order not found or already processed'
+                message: 'Order not found'
             });
         }
 
         res.json({
             success: true,
-            data: updatedOrder[0],
             message: 'Order approved and sent to kitchen'
         });
 
@@ -491,26 +521,33 @@ router.patch('/:id/cancel', async (req, res) => {
         const { id } = req.params;
         const { reason } = req.body;
 
-        const [updatedOrder] = await sequelize.query(`
+        // Get cancelled status ID
+        const cancelledStatusResult = await sequelize.query(
+            'SELECT status_id FROM order_statuses WHERE name = $1',
+            { bind: ['cancelled'], type: sequelize.QueryTypes.SELECT }
+        );
+
+        // Update order status
+        const updatedOrder = await sequelize.query(`
             UPDATE orders 
             SET 
-                status = 'cancelled',
-                completed_at = CURRENT_TIMESTAMP,
-                updated_at = CURRENT_TIMESTAMP
-            WHERE id = $1 AND status IN ('pending_approval', 'approved')
-            RETURNING *
-        `, { bind: [id] });
+                order_status_id = $1
+            WHERE order_id = $2
+            RETURNING order_id
+        `, { 
+            bind: [cancelledStatusResult[0].status_id, id],
+            type: sequelize.QueryTypes.SELECT
+        });
 
         if (updatedOrder.length === 0) {
             return res.status(404).json({
                 success: false,
-                message: 'Order not found or cannot be cancelled'
+                message: 'Order not found'
             });
         }
 
         res.json({
             success: true,
-            data: updatedOrder[0],
             message: `Order cancelled${reason ? ': ' + reason : ''}`
         });
 

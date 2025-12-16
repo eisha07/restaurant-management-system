@@ -9,23 +9,17 @@ router.get('/orders/pending', authenticateManager, authorizeManager, async (req,
     try {
         const query = `
             SELECT 
-                o.id, o.order_number, o.customer_id, o.table_number, 
-                o.subtotal, o.tax, o.total, o.payment_method, 
-                o.payment_status, o.status, o.kitchen_status,
-                o.special_instructions, o.created_at,
-                json_agg(
-                    json_build_object(
-                        'id', oi.id,
-                        'name', oi.name,
-                        'price', oi.price,
-                        'quantity', oi.quantity,
-                        'special_instructions', oi.special_instructions
-                    )
-                ) as items
+                o.order_id as id, o.order_number, c.customer_id, rt.table_number, 
+                os.name as status, pm.name as payment_method, ps.name as payment_status,
+                ks.name as kitchen_status, o.special_instructions, o.created_at
             FROM orders o
-            LEFT JOIN order_items oi ON o.id = oi.order_id
-            WHERE o.status = 'pending_approval'
-            GROUP BY o.id
+            LEFT JOIN customers c ON o.customer_id = c.customer_id
+            LEFT JOIN restaurant_tables rt ON o.table_id = rt.table_id
+            LEFT JOIN order_statuses os ON o.order_status_id = os.status_id
+            LEFT JOIN payment_methods pm ON o.payment_method_id = pm.method_id
+            LEFT JOIN payment_statuses ps ON o.payment_status_id = ps.status_id
+            LEFT JOIN kitchen_statuses ks ON o.kitchen_status_id = ks.status_id
+            WHERE os.name = 'pending_approval'
             ORDER BY o.created_at DESC
         `;
         
@@ -46,24 +40,19 @@ router.get('/orders/all', authenticateManager, authorizeManager, async (req, res
     try {
         const query = `
             SELECT 
-                o.id, o.order_number, o.customer_id, o.table_number, 
-                o.subtotal, o.tax, o.total, o.payment_method, 
-                o.payment_status, o.status, o.kitchen_status,
-                o.special_instructions, o.created_at, o.expected_completion,
-                json_agg(
-                    json_build_object(
-                        'id', oi.id,
-                        'name', oi.name,
-                        'price', oi.price,
-                        'quantity', oi.quantity
-                    )
-                ) as items
+                o.order_id as id, o.order_number, c.customer_id, rt.table_number, 
+                os.name as status, pm.name as payment_method, ps.name as payment_status,
+                ks.name as kitchen_status, o.special_instructions, o.created_at, o.expected_completion
             FROM orders o
-            LEFT JOIN order_items oi ON o.id = oi.order_id
-            WHERE o.status IN ('approved', 'in_progress', 'ready', 'completed')
-            GROUP BY o.id
+            LEFT JOIN customers c ON o.customer_id = c.customer_id
+            LEFT JOIN restaurant_tables rt ON o.table_id = rt.table_id
+            LEFT JOIN order_statuses os ON o.order_status_id = os.status_id
+            LEFT JOIN payment_methods pm ON o.payment_method_id = pm.method_id
+            LEFT JOIN payment_statuses ps ON o.payment_status_id = ps.status_id
+            LEFT JOIN kitchen_statuses ks ON o.kitchen_status_id = ks.status_id
+            WHERE os.name IN ('approved', 'in_progress', 'ready', 'completed')
             ORDER BY 
-                CASE o.status
+                CASE os.name
                     WHEN 'in_progress' THEN 1
                     WHEN 'approved' THEN 2
                     WHEN 'ready' THEN 3
@@ -90,38 +79,32 @@ router.put('/orders/:id/approve', authenticateManager, authorizeManager, async (
     const { expectedCompletion } = req.body;
     
     try {
-        const query = `
-            UPDATE orders 
-            SET status = 'approved', 
-                kitchen_status = 'received',
-                approved_at = NOW(),
-                expected_completion = COALESCE($1, NOW() + INTERVAL '25 minutes')
-            WHERE id = $2 
-            RETURNING *
-        `;
-        
-        const result = await db.sequelize.query(query, {
-            replacements: [expectedCompletion, id],
-            type: db.sequelize.QueryTypes.UPDATE
-        });
-        
-        if (!result || result.length === 0) {
-            return res.status(404).json({ success: false, message: 'Order not found' });
-        }
-        
-        // Create kitchen log
-        await db.sequelize.query(
-            'INSERT INTO kitchen_logs (order_id, status, notes) VALUES (?, ?, ?)',
-            {
-                replacements: [id, 'received', 'Order approved by manager'],
-                type: db.sequelize.QueryTypes.INSERT
-            }
+        // Get approved and pending kitchen status IDs
+        const approvedStatusResult = await db.sequelize.query(
+            'SELECT status_id FROM order_statuses WHERE name = $1',
+            { bind: ['approved'], type: db.sequelize.QueryTypes.SELECT }
         );
+
+        const pendingKitchenStatusResult = await db.sequelize.query(
+            'SELECT status_id FROM kitchen_statuses WHERE name = $1',
+            { bind: ['pending'], type: db.sequelize.QueryTypes.SELECT }
+        );
+
+        // Update order
+        await db.sequelize.query(`
+            UPDATE orders 
+            SET order_status_id = $1, 
+                kitchen_status_id = $2,
+                approved_at = NOW(),
+                expected_completion = COALESCE($3, NOW() + INTERVAL '25 minutes')
+            WHERE order_id = $4
+        `, {
+            bind: [approvedStatusResult[0].status_id, pendingKitchenStatusResult[0].status_id, expectedCompletion, id]
+        });
         
         res.json({
             success: true,
-            message: 'Order approved successfully',
-            order: result.rows[0]
+            message: 'Order approved successfully'
         });
     } catch (error) {
         console.error('Error approving order:', error);
@@ -135,29 +118,23 @@ router.put('/orders/:id/reject', authenticateManager, authorizeManager, async (r
     const { reason } = req.body;
     
     try {
-        const query = 'UPDATE orders SET status = ? WHERE id = ? RETURNING *';
-        const result = await db.sequelize.query(query, {
-            replacements: ['rejected', id],
-            type: db.sequelize.QueryTypes.UPDATE
-        });
-        
-        if (!result || result.length === 0) {
-            return res.status(404).json({ success: false, message: 'Order not found' });
-        }
-        
-        // Log the rejection
-        await db.sequelize.query(
-            'INSERT INTO kitchen_logs (order_id, status, notes) VALUES (?, ?, ?)',
-            {
-                replacements: [id, 'rejected', `Order rejected by manager. Reason: ${reason || 'No reason provided'}`],
-                type: db.sequelize.QueryTypes.INSERT
-            }
+        const cancelledStatusResult = await db.sequelize.query(
+            'SELECT status_id FROM order_statuses WHERE name = $1',
+            { bind: ['cancelled'], type: db.sequelize.QueryTypes.SELECT }
         );
+
+        await db.sequelize.query(`
+            UPDATE orders 
+            SET order_status_id = $1, 
+                cancellation_reason = $2
+            WHERE order_id = $3
+        `, {
+            bind: [cancelledStatusResult[0].status_id, reason || 'Rejected by manager', id]
+        });
         
         res.json({
             success: true,
-            message: 'Order rejected successfully',
-            order: result.rows[0]
+            message: 'Order rejected successfully'
         });
     } catch (error) {
         console.error('Error rejecting order:', error);

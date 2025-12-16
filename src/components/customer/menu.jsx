@@ -2,14 +2,14 @@ import React, { useState, useEffect, useRef } from 'react';
 import { menuApi } from '../../services/api';
 import '../../styles/Menu.css';
 
-const Menu = () => {
+const Menu = ({ onAddToCart: onAddToCartProp, cartItems: cartItemsProp, onViewCart }) => {
   const [menuItems, setMenuItems] = useState([]);
   const [filteredItems, setFilteredItems] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [showFilters, setShowFilters] = useState(false);
   const [selectedItem, setSelectedItem] = useState(null);
-  const [cartItems, setCartItems] = useState([]);
+  const [cartItems, setCartItems] = useState(cartItemsProp || []);
   const [cartCount, setCartCount] = useState(0);
   const [showCart, setShowCart] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -208,6 +208,12 @@ const Menu = () => {
   };
 
   const handleAddToCart = (item) => {
+    // Call parent's onAddToCart if provided
+    if (onAddToCartProp) {
+      onAddToCartProp(item);
+    }
+    
+    // Update local cart state
     setCartItems(prevItems => {
       const existingItem = prevItems.find(i => i.id === item.id);
       if (existingItem) {
@@ -241,9 +247,16 @@ const Menu = () => {
   };
 
   const handleCheckout = () => {
-    console.log('Proceeding to checkout with:', cartItems);
-    setShowCart(false);
-    alert(`Proceeding to checkout with ${cartCount} items!`);
+    if (onViewCart) {
+      // Navigate to cart/checkout page via parent component
+      setShowCart(false);
+      onViewCart();
+    } else {
+      // Fallback behavior if no navigation prop provided
+      console.log('Proceeding to checkout with:', cartItems);
+      setShowCart(false);
+      alert(`Proceeding to checkout with ${cartCount} items!`);
+    }
   };
 
   const toggleCart = () => {

@@ -36,101 +36,62 @@ const mockMenuItems = [
 // =============================================
 
 // GET /api/menu - Complete menu with categories and items
-// Return from mock data to bypass database issues
 router.get('/', async (req, res) => {
     try {
-        console.log('Menu root endpoint called');
-        // For now, return mock data to avoid database query timeout
-        res.json(mockMenuItems);
-    } catch (error) {
-        console.error('ERROR in menu route:', error);
-        res.status(500).json({ error: error.message });
-    }
-});
+        const { search } = req.query;
+        
+        // Query menu items from database
+        const [items] = await sequelize.query(`
+            SELECT 
+                m.id,
+                m.name,
+                m.description,
+                m.price,
+                m.image_url,
+                m.is_available,
+                c.name as category
+            FROM menu_items m
+            LEFT JOIN categories c ON m.category_id = c.id
+            WHERE m.is_available = true
+            ORDER BY m.name
+        `);
 
-// GET /api/menu/items - All menu items with filters
-// This endpoint returns exactly what frontend expects
-router.get('/items', async (req, res) => {
-    const { category, search, available } = req.query;
-    
-    // Return mock data immediately (DB is unreachable)
-    // This prevents the infinite loop/hang
-    try {
-        let items = [...mockMenuItems];
-        
-        // Filter by availability
-        if (available !== 'false') {
-            items = items.filter(item => item.is_available === true);
-        }
-        
-        // Filter by category
-        if (category && category !== 'all') {
-            items = items.filter(item => item.category === category);
-        }
-        
-        // Search by name or description
+        // Apply search filter if provided
+        let filteredItems = items;
         if (search) {
             const searchLower = search.toLowerCase();
-            items = items.filter(item =>
+            filteredItems = items.filter(item =>
                 item.name.toLowerCase().includes(searchLower) ||
                 item.description.toLowerCase().includes(searchLower)
             );
         }
-        
-        console.log(`Returning ${items.length} menu items from cache`);
-        res.json(items);
-        
-    } catch (error) {
-        console.error('Error processing menu request:', error);
-        res.status(500).json({
-            error: 'Error processing request',
-            data: mockMenuItems
-        });
-    }
-});
-
-// GET /api/menu/simple - Simple endpoint returning exactly what frontend needs
-router.get('/simple', async (req, res) => {
-    try {
-        const [items] = await sequelize.query(`
-            SELECT 
-                id,
-                name,
-                description,
-                price,
-                image_url as "image",
-                is_available as "isAvailable",
-                category_id
-            FROM menu_items
-            WHERE is_available = true
-            ORDER BY name
-        `);
 
         // Transform to frontend format
-        const transformed = items.map(item => ({
+        const transformed = filteredItems.map(item => ({
             id: item.id,
             name: item.name,
             description: item.description || '',
             price: parseFloat(item.price),
-            category: 'Category ' + item.category_id, // You might want to join with categories table
-            image: item.image || '/images/default-food.jpg',
-            isAvailable: item.isAvailable,
+            category: item.category || 'Uncategorized',
+            image_url: item.image_url || '/images/default-food.jpg',
+            is_available: item.is_available,
             rating: 4.5
         }));
 
+        console.log(`Returning ${transformed.length} menu items`);
         res.json(transformed);
-
+        
     } catch (error) {
-        console.error('Error in simple menu endpoint:', error);
+        console.error('Error fetching menu:', error);
+        // Fallback to mock data if DB is down
         res.json(mockMenuItems);
     }
 });
 
-// GET /api/menu/items/:id - Single menu item details
+// GET /api/menu/items/:id - Get single menu item details
 router.get('/items/:id', async (req, res) => {
     try {
         const { id } = req.params;
-
         const [items] = await sequelize.query(`
             SELECT 
                 m.id,

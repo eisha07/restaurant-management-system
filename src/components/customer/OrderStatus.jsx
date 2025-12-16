@@ -1,15 +1,15 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { orderApi } from '../../services/api';
 import '../../styles/OrderStatus.css';
 
-const OrderStatus = ({ orderId, onBackToMenu, onFeedbackComplete }) => {
-  // Get orderId from props instead of route params
+const OrderStatus = ({ order: orderProp, orderId, onBackToMenu, onFeedbackComplete }) => {
+  // Get orderId from props or from order object
   const timerRef = useRef(null);
   const pollRef = useRef(null);
   
   const [timeElapsed, setTimeElapsed] = useState(0);
-  const [order, setOrder] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [order, setOrder] = useState(orderProp || null);
+  const [loading, setLoading] = useState(!orderProp);
   const [error, setError] = useState(null);
   const [expectedTime, setExpectedTime] = useState(25);
   const [showFeedback, setShowFeedback] = useState(false);
@@ -58,7 +58,8 @@ const OrderStatus = ({ orderId, onBackToMenu, onFeedbackComplete }) => {
   ];
 
   useEffect(() => {
-    if (!orderId) {
+    const actualOrderId = orderProp?.id || orderId;
+    if (!actualOrderId) {
       setError('No order ID provided');
       setLoading(false);
       return;
@@ -76,7 +77,7 @@ const OrderStatus = ({ orderId, onBackToMenu, onFeedbackComplete }) => {
       clearInterval(timerRef.current);
       stopPolling();
     };
-  }, [orderId]);
+  }, [orderProp?.id, orderId]);
 
   useEffect(() => {
     // Check if order is ready for feedback (SRS Business Rule 3)
@@ -95,7 +96,23 @@ const OrderStatus = ({ orderId, onBackToMenu, onFeedbackComplete }) => {
       setLoading(true);
       setError(null);
       
-      const response = await orderApi.getById(orderId);
+      // If order prop is provided, use it directly
+      if (orderProp) {
+        setOrder(orderProp);
+        setLoading(false);
+        setError(null);
+        return;
+      }
+      
+      // Otherwise fetch from API using orderId
+      const actualOrderId = orderId || order?.id;
+      if (!actualOrderId) {
+        setError('No order ID provided');
+        setLoading(false);
+        return;
+      }
+      
+      const response = await orderApi.getById(actualOrderId);
       const orderData = response.data;
       
       // Transform backend data to frontend format
@@ -255,11 +272,15 @@ const OrderStatus = ({ orderId, onBackToMenu, onFeedbackComplete }) => {
   };
 
   const handleNavigateToFeedback = () => {
-    navigate(`/feedback/${orderId}`);
+    if (onFeedbackComplete) {
+      onFeedbackComplete();
+    }
   };
 
   const handleOrderAgain = () => {
-    navigate('/');
+    if (onBackToMenu) {
+      onBackToMenu();
+    }
   };
 
   const handleNeedHelp = () => {
@@ -500,7 +521,7 @@ const OrderStatus = ({ orderId, onBackToMenu, onFeedbackComplete }) => {
         <button className="view-receipt-btn" onClick={handleViewReceipt}>
           📄 View Receipt
         </button>
-        <button className="home-btn" onClick={() => navigate('/')}>
+        <button className="home-btn" onClick={handleOrderAgain}>
           🏠 Back to Menu
         </button>
         <button className="help-btn" onClick={handleNeedHelp}>
@@ -534,7 +555,7 @@ const OrderStatus = ({ orderId, onBackToMenu, onFeedbackComplete }) => {
             <li>Try returning to menu and scanning QR again</li>
           </ul>
         </div>
-        <button className="back-btn" onClick={() => navigate('/')}>
+        <button className="back-btn" onClick={handleOrderAgain}>
           Back to Menu
         </button>
       </div>

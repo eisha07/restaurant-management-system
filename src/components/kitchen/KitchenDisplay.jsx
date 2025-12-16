@@ -8,6 +8,13 @@ const KitchenDisplay = () => {
         preparing: [],
         ready: []
     });
+    
+    // Ensure orders always have the right structure
+    const safeOrders = {
+        received: orders?.received || [],
+        preparing: orders?.preparing || [],
+        ready: orders?.ready || []
+    };
     const [selectedOrder, setSelectedOrder] = useState(null);
     const [loading, setLoading] = useState(true);
     const [soundEnabled, setSoundEnabled] = useState(true);
@@ -21,7 +28,7 @@ const KitchenDisplay = () => {
             const response = await fetch('/api/kitchen/orders/active');
             const data = await response.json();
             
-            if (data.success) {
+            if (data.success && data.groupedOrders) {
                 const previousCount = Object.values(orders).flat().length;
                 const newCount = Object.values(data.groupedOrders).flat().length;
                 
@@ -34,7 +41,17 @@ const KitchenDisplay = () => {
                     setTimeout(() => setNewOrderAlert(false), 3000);
                 }
                 
-                setOrders(data.groupedOrders);
+                // Map pending to received for UI
+                const mappedOrders = {
+                    received: data.groupedOrders.pending || [],
+                    preparing: data.groupedOrders.preparing || [],
+                    ready: data.groupedOrders.ready || []
+                };
+                
+                setOrders(mappedOrders);
+                setLoading(false);
+            } else {
+                console.warn('Invalid response format:', data);
                 setLoading(false);
             }
         } catch (error) {
@@ -151,7 +168,7 @@ const KitchenDisplay = () => {
         audioRef.current.volume = 0.3;
     }, []);
 
-    if (loading && Object.values(orders).flat().length === 0) {
+    if (loading && Object.values(safeOrders).flat().length === 0) {
         return (
             <div className="kitchen-loading">
                 <div className="spinner-large"></div>
@@ -168,16 +185,16 @@ const KitchenDisplay = () => {
                     <h1>KITCHEN DISPLAY SYSTEM</h1>
                     <div className="kitchen-stats">
                         <span className="stat-item">
-                            <strong>Active:</strong> {Object.values(orders).flat().length}
+                            <strong>Active:</strong> {Object.values(safeOrders).flat().length}
                         </span>
                         <span className="stat-item">
-                            <strong>New:</strong> {orders.received.length}
+                            <strong>New:</strong> {safeOrders.received.length}
                         </span>
                         <span className="stat-item">
-                            <strong>Preparing:</strong> {orders.preparing.length}
+                            <strong>Preparing:</strong> {safeOrders.preparing.length}
                         </span>
                         <span className="stat-item">
-                            <strong>Ready:</strong> {orders.ready.length}
+                            <strong>Ready:</strong> {safeOrders.ready.length}
                         </span>
                     </div>
                 </div>
@@ -226,10 +243,10 @@ const KitchenDisplay = () => {
                 >
                     <div className="column-header">
                         <h2>📥 RECEIVED</h2>
-                        <span className="order-count">{orders.received.length}</span>
+                        <span className="order-count">{safeOrders.received.length}</span>
                     </div>
                     <div className="order-list">
-                        {orders.received.map(order => (
+                        {safeOrders.received.map(order => (
                             <OrderCard 
                                 key={order.id}
                                 order={order}
@@ -240,7 +257,7 @@ const KitchenDisplay = () => {
                                 onStart={() => updateOrderStatus(order.id, 'preparing', 'Started preparation')}
                             />
                         ))}
-                        {orders.received.length === 0 && (
+                        {safeOrders.received.length === 0 && (
                             <div className="empty-column">
                                 <p>No new orders</p>
                             </div>
@@ -256,10 +273,10 @@ const KitchenDisplay = () => {
                 >
                     <div className="column-header">
                         <h2>👨‍🍳 PREPARING</h2>
-                        <span className="order-count">{orders.preparing.length}</span>
+                        <span className="order-count">{safeOrders.preparing.length}</span>
                     </div>
                     <div className="order-list">
-                        {orders.preparing.map(order => (
+                        {safeOrders.preparing.map(order => (
                             <OrderCard 
                                 key={order.id}
                                 order={order}
@@ -270,7 +287,7 @@ const KitchenDisplay = () => {
                                 onReady={() => updateOrderStatus(order.id, 'ready', 'Order ready for pickup')}
                             />
                         ))}
-                        {orders.preparing.length === 0 && (
+                        {safeOrders.preparing.length === 0 && (
                             <div className="empty-column">
                                 <p>No orders in progress</p>
                             </div>
@@ -286,10 +303,10 @@ const KitchenDisplay = () => {
                 >
                     <div className="column-header">
                         <h2>✅ READY</h2>
-                        <span className="order-count">{orders.ready.length}</span>
+                        <span className="order-count">{safeOrders.ready.length}</span>
                     </div>
                     <div className="order-list">
-                        {orders.ready.map(order => (
+                        {safeOrders.ready.map(order => (
                             <OrderCard 
                                 key={order.id}
                                 order={order}
@@ -299,7 +316,7 @@ const KitchenDisplay = () => {
                                 onComplete={() => updateOrderStatus(order.id, 'completed', 'Order collected')}
                             />
                         ))}
-                        {orders.ready.length === 0 && (
+                        {safeOrders.ready.length === 0 && (
                             <div className="empty-column">
                                 <p>No orders ready</p>
                             </div>
