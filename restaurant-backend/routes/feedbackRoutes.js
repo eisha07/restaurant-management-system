@@ -149,7 +149,7 @@ router.get('/', authenticateManager, async (req, res) => {
         const totalCount = parseInt(countResult[0].total);
 
         // Get paginated feedback
-        const [feedback] = await sequelize.query(`
+        const feedback = await sequelize.query(`
             SELECT 
                 f.feedback_id,
                 f.order_id,
@@ -165,9 +165,9 @@ router.get('/', authenticateManager, async (req, res) => {
             FROM feedback f
             LEFT JOIN orders o ON f.order_id = o.order_id
             ORDER BY f.submitted_at DESC
-            LIMIT $1 OFFSET $2
+            LIMIT :limit OFFSET :offset
         `, {
-            replacements: [parseInt(limit), offset],
+            replacements: { limit: parseInt(limit), offset: offset },
             type: sequelize.QueryTypes.SELECT
         });
 

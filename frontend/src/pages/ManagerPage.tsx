@@ -42,8 +42,10 @@ export default function ManagerPage() {
   // Use persistent state for orders - survives navigation and tab switches
   const [orders, setOrders] = usePersistentState('managerOrders', mockOrders, sessionStorage);
   const [loading, setLoading] = useState(false);
+  const [stats, setStats] = useState(mockStatistics);
+  const [menuItemsList, setMenuItemsList] = useState(menuItems);
+  const [feedbackList, setFeedbackList] = useState([]);
 
-  const stats = mockStatistics;
   const pendingOrders = orders.filter(o => o.status === 'pending_approval');
 
   // Check if already authenticated on mount and fetch pending orders
@@ -71,7 +73,59 @@ export default function ManagerPage() {
         }
       };
       
+      // Fetch statistics
+      const fetchStatistics = async () => {
+        try {
+          const statsData = await managerApi.getStatistics();
+          if (statsData) {
+            setStats({
+              todayOrders: statsData.totalOrders,
+              todayRevenue: statsData.totalRevenue,
+              averageOrderValue: statsData.averageOrderValue,
+              averageRating: 4.5, // Will be updated from feedback
+              totalOrders: statsData.totalOrders,
+              topItems: mockStatistics.topItems // Keep mock for now
+            });
+            console.log('✅ Loaded statistics from API');
+          }
+        } catch (error) {
+          console.error('Failed to fetch statistics on mount:', error);
+          // Keep mock statistics as fallback
+        }
+      };
+      
+      // Fetch menu items
+      const fetchMenu = async () => {
+        try {
+          const menuData = await managerApi.getMenuItems();
+          if (menuData && Array.isArray(menuData)) {
+            setMenuItemsList(menuData);
+            console.log('✅ Loaded', menuData.length, 'menu items from API');
+          }
+        } catch (error) {
+          console.error('Failed to fetch menu items:', error);
+          // Keep mock menu as fallback
+        }
+      };
+
+      // Fetch feedback
+      const fetchFeedback = async () => {
+        try {
+          const feedbackData = await managerApi.getFeedback(1, 50);
+          if (feedbackData && feedbackData.feedback && Array.isArray(feedbackData.feedback)) {
+            setFeedbackList(feedbackData.feedback);
+            console.log('✅ Loaded', feedbackData.feedback.length, 'feedback items from API');
+          }
+        } catch (error) {
+          console.error('Failed to fetch feedback:', error);
+          // Keep mock feedback as fallback
+        }
+      };
+
       fetchPendingOrders();
+      fetchStatistics();
+      fetchMenu();
+      fetchFeedback();
       
       // Subscribe to manager dashboard for real-time order updates
       subscribeToManagerDashboard();
@@ -171,6 +225,29 @@ export default function ManagerPage() {
       toast({
         title: 'Error',
         description: `Failed to reject order: ${errorMsg}`,
+        variant: 'destructive',
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDeleteMenuItem = async (itemId: number) => {
+    try {
+      setLoading(true);
+      await managerApi.deleteMenuItem(itemId);
+      // Update local state
+      setMenuItemsList(menuItemsList.filter(item => item.id !== itemId));
+      toast({
+        title: 'Item deleted',
+        description: 'Menu item has been removed',
+      });
+    } catch (err) {
+      console.error('Failed to delete menu item:', err);
+      const errorMsg = err instanceof Error ? err.message : String(err);
+      toast({
+        title: 'Error',
+        description: `Failed to delete item: ${errorMsg}`,
         variant: 'destructive',
       });
     } finally {
@@ -500,13 +577,13 @@ export default function ManagerPage() {
             <div className="animate-fade-in">
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between">
-                  <CardTitle>Menu Items ({menuItems.length})</CardTitle>
+                  <CardTitle>Menu Items ({menuItemsList.length})</CardTitle>
                   <Button className="bg-gradient-primary">+ Add Item</Button>
                 </CardHeader>
                 <CardContent>
                   <ScrollArea className="h-[600px]">
                     <div className="space-y-3">
-                      {menuItems.map(item => (
+                      {menuItemsList.map(item => (
                         <div
                           key={item.id}
                           className="flex items-center gap-4 p-4 bg-muted/30 rounded-lg hover:bg-muted/50 transition-colors"
@@ -527,6 +604,15 @@ export default function ManagerPage() {
                             </Badge>
                           </div>
                           <Button variant="ghost" size="sm">Edit</Button>
+                          <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            className="text-destructive hover:text-destructive"
+                            onClick={() => handleDeleteMenuItem(item.id)}
+                            disabled={loading}
+                          >
+                            Delete
+                          </Button>
                         </div>
                       ))}
                     </div>
@@ -544,7 +630,16 @@ export default function ManagerPage() {
           {/* Feedback Tab */}
           {activeTab === 'feedback' && (
             <div className="space-y-4 animate-fade-in">
-              {mockFeedback.map(feedback => (
+              {feedbackList.length === 0 ? (
+                <Card>
+                  <CardContent className="py-12 text-center">
+                    <MessageSquare className="w-12 h-12 text-muted-foreground/30 mx-auto mb-4" />
+                    <p className="text-lg font-medium">No feedback yet</p>
+                    <p className="text-muted-foreground">Customer feedback will appear here</p>
+                  </CardContent>
+                </Card>
+              ) : (
+                feedbackList.map(feedback => (
                 <Card key={feedback.id}>
                   <CardContent className="p-6">
                     <div className="flex items-center justify-between mb-4">
@@ -594,7 +689,8 @@ export default function ManagerPage() {
                     </div>
                   </CardContent>
                 </Card>
-              ))}
+                ))
+              )}
             </div>
           )}
         </div>

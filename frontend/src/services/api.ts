@@ -280,6 +280,99 @@ export const managerApi = {
       throw error;
     }
   },
+
+  /**
+   * Get all menu items for manager
+   */
+  getMenuItems: async (): Promise<MenuItem[]> => {
+    try {
+      const response = await api.get<MenuItem[]>('/menu');
+      return response.data;
+    } catch (error) {
+      console.error('Failed to fetch menu items:', error);
+      throw error;
+    }
+  },
+
+  /**
+   * Create new menu item
+   */
+  createMenuItem: async (itemData: {
+    name: string;
+    description: string;
+    price: number;
+    category: string;
+    image_url?: string;
+    is_available?: boolean;
+  }): Promise<MenuItem> => {
+    try {
+      const response = await api.post<MenuItem>('/menu/items', itemData);
+      return response.data;
+    } catch (error) {
+      console.error('Failed to create menu item:', error);
+      throw error;
+    }
+  },
+
+  /**
+   * Update menu item
+   */
+  updateMenuItem: async (
+    itemId: number,
+    itemData: Partial<{
+      name: string;
+      description: string;
+      price: number;
+      category: string;
+      image_url: string;
+      is_available: boolean;
+    }>
+  ): Promise<MenuItem> => {
+    try {
+      const response = await api.put<MenuItem>(`/menu/items/${itemId}`, itemData);
+      return response.data;
+    } catch (error) {
+      console.error(`Failed to update menu item ${itemId}:`, error);
+      throw error;
+    }
+  },
+
+  /**
+   * Delete menu item
+   */
+  deleteMenuItem: async (itemId: number): Promise<void> => {
+    try {
+      await api.delete(`/menu/items/${itemId}`);
+    } catch (error) {
+      console.error(`Failed to delete menu item ${itemId}:`, error);
+      throw error;
+    }
+  },
+
+  /**
+   * Get customer feedback for manager
+   */
+  getFeedback: async (page = 1, limit = 10): Promise<{
+    feedback: Feedback[];
+    total: number;
+    page: number;
+  }> => {
+    try {
+      const response = await api.get('/feedback', {
+        params: { page, limit },
+      });
+      // Handle both response formats
+      const data = response.data;
+      return {
+        feedback: data.data || data.feedback || [],
+        total: data.pagination?.totalCount || data.total || 0,
+        page: data.pagination?.page || page || 1,
+      };
+    } catch (error) {
+      console.error('Failed to fetch feedback:', error);
+      throw error;
+    }
+  },
 };
 
 // ==================== KITCHEN API ====================
