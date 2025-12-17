@@ -156,7 +156,10 @@ const Menu = ({ onAddToCart: onAddToCartProp, cartItems: cartItemsProp, onViewCa
       
       const response = await menuApi.getAll();
       
+      console.log('Menu API Response:', { response, dataType: typeof response.data, isArray: Array.isArray(response.data), dataLength: response.data?.length });
+      
       if (!response.data || !Array.isArray(response.data)) {
+        console.error('Invalid response format:', { response, data: response.data });
         throw new Error('Invalid response format from server');
       }
       
@@ -182,6 +185,14 @@ const Menu = ({ onAddToCart: onAddToCartProp, cartItems: cartItemsProp, onViewCa
       setLastFetchTime(new Date());
       
     } catch (err) {
+      console.error('Menu fetch error:', { 
+        message: err.message, 
+        stack: err.stack,
+        response: err.response?.status,
+        isNetworkError: !err.response,
+        retryCount 
+      });
+      
       const isNetworkError = !err.response;
       const isServerError = err.response && err.response.status >= 500;
       
@@ -190,6 +201,7 @@ const Menu = ({ onAddToCart: onAddToCartProp, cartItems: cartItemsProp, onViewCa
           ? 'Network error: Unable to connect to server. Using offline data.'
           : `Server error (${err.response?.status}). Using offline data.`;
         
+        console.warn('Falling back to mock data:', errorMsg);
         setError(errorMsg);
         setMenuItems(fallbackData.current);
         setFilteredItems(fallbackData.current);

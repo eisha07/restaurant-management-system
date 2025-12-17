@@ -92,11 +92,11 @@ const Checkout = ({
         localStorage.setItem('customerSessionId', sessionId);
       }
 
-      // Map payment method for backend
+      // Map payment method for backend (must match database payment_methods.code)
       const paymentMethodMap = {
         'cash': 'cash',
         'card': 'card', 
-        'online': 'online_transfer'
+        'online': 'online'
       };
 
       // Prepare order data
@@ -119,28 +119,40 @@ const Checkout = ({
       const response = await orderApi.create(orderData);
       console.log('📥 Order API response:', response);
       
-      // Handle response
-      if (response.data && response.data.data) {
+      // Handle response - API returns order directly, not wrapped
+      const order = response.data;
+      if (order && (order.id || order.order_id)) {
         console.log('✅ Order created successfully');
-        const order = response.data.data;
-        const orderInfo = {
-          orderId: order.id,
-          orderNumber: `ORD-${order.id.toString().padStart(6, '0')}`,
-          status: order.status || 'pending_approval',
+        const orderId = order.id || order.order_id;
+        
+        // Create full order object for tracking
+        const fullOrder = {
+          id: orderId,
+          order_number: order.order_number || `ORD-${orderId.toString().padStart(6, '0')}`,
+          status: order.status || 'pending_approval',  // Use lowercase status code
+          status_name: order.status_name || 'Pending Approval',
+          items: order.items || [],
+          subtotal: order.subtotal || 0,
+          tax: order.tax || 0,
           total: order.total_amount || total,
-          paymentMethod: paymentMethod,
-          tableNumber: tableNumber,
-          timestamp: new Date().toISOString(),
-          estimatedTime: 15 // Default 15 minutes
+          total_amount: order.total_amount || total,
+          payment_method: paymentMethod,
+          table_number: tableNumber,
+          special_instructions: specialInstructions,
+          created_at: order.created_at || new Date().toISOString(),
+          updated_at: order.updated_at || new Date().toISOString(),
+          kitchen_status: order.kitchen_status || 'pending',
+          expected_completion: order.expected_completion,
+          customer_id: order.customer_id
         };
 
-        // Store order info
-        localStorage.setItem('currentOrder', JSON.stringify(orderInfo));
-        setOrderDetails(orderInfo);
+        // Store full order info for OrderStatus component
+        localStorage.setItem('currentOrder', JSON.stringify(fullOrder));
+        setOrderDetails(fullOrder);
 
-        // Notify parent
+        // Notify parent with full order object
         if (onPlaceOrder) {
-          onPlaceOrder(orderInfo);
+          onPlaceOrder(fullOrder);
         }
 
         // Start timer simulation

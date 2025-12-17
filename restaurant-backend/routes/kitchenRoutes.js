@@ -139,6 +139,32 @@ router.put('/orders/:id/status', authenticateKitchen, async (req, res) => {
             type: db.sequelize.QueryTypes.INSERT 
         });
         
+        // 📡 Broadcast order update via Socket.IO
+        if (global.io) {
+            console.log('📡 Broadcasting order status update:', id, status_code);
+            global.io.to('managers').emit('order-update', {
+                orderId: id,
+                status: status_code,
+                message: `Order #${id} status changed to ${status_code}`,
+                timestamp: new Date().toISOString()
+            });
+            
+            global.io.to('kitchen').emit('order-update', {
+                orderId: id,
+                status: status_code,
+                timestamp: new Date().toISOString()
+            });
+            
+            // Notify customer
+            global.io.to('order_' + id).emit('order-update', {
+                orderId: id,
+                status: status_code,
+                statusDisplay: status_code.replace(/_/g, ' ').toUpperCase(),
+                message: `Your order is now ${status_code.replace(/_/g, ' ').toUpperCase()}`,
+                timestamp: new Date().toISOString()
+            });
+        }
+        
         res.json({
             success: true,
             message: `Order status updated to ${status_code}`,
@@ -181,6 +207,24 @@ router.put('/orders/:id/expected-time', authenticateKitchen, async (req, res) =>
             'INSERT INTO kitchen_logs (order_id, status, notes) VALUES ($1, $2, $3)',
             [id, 'time_updated', `Expected completion set to ${completionTime || `${minutes} minutes`}`]
         );
+        
+        // 📡 Broadcast expected time update via Socket.IO
+        if (global.io) {
+            console.log('📡 Broadcasting expected time update:', id);
+            global.io.to('order_' + id).emit('order-update', {
+                orderId: id,
+                expectedTime: completionTime,
+                minutesRemaining: minutes,
+                message: `Your order will be ready in approximately ${minutes} minutes`,
+                timestamp: new Date().toISOString()
+            });
+            
+            global.io.to('managers').emit('order-update', {
+                orderId: id,
+                expectedTime: completionTime,
+                timestamp: new Date().toISOString()
+            });
+        }
         
         res.json({
             success: true,

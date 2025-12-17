@@ -377,6 +377,109 @@ export const feedbackApi = {
   }
 };
 
+// ================= MANAGER API SERVICE =================
+export const managerApi = {
+  // GET PENDING ORDERS
+  getPendingOrders: async () => {
+    const token = localStorage.getItem('manager_token');
+    const response = await api.get('/manager/orders/pending', {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    return response;
+  },
+
+  // GET ALL ORDERS
+  getAllOrders: async () => {
+    const token = localStorage.getItem('manager_token');
+    const response = await api.get('/manager/orders/all', {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    return response;
+  },
+
+  // APPROVE ORDER
+  approveOrder: async (orderId, expectedCompletion) => {
+    const token = localStorage.getItem('manager_token');
+    const response = await api.put(`/manager/orders/${orderId}/approve`, 
+      { expectedCompletion },
+      { headers: { 'Authorization': `Bearer ${token}` } }
+    );
+    return response;
+  },
+
+  // REJECT ORDER
+  rejectOrder: async (orderId, reason) => {
+    const token = localStorage.getItem('manager_token');
+    const response = await api.put(`/manager/orders/${orderId}/reject`,
+      { reason },
+      { headers: { 'Authorization': `Bearer ${token}` } }
+    );
+    return response;
+  },
+
+  // UPDATE ORDER STATUS
+  updateOrderStatus: async (orderId, status, kitchenStatus) => {
+    const token = localStorage.getItem('manager_token');
+    const response = await api.put(`/manager/orders/${orderId}/status`,
+      { status, kitchen_status: kitchenStatus },
+      { headers: { 'Authorization': `Bearer ${token}` } }
+    );
+    return response;
+  },
+
+  // GET STATISTICS
+  getStatistics: async (startDate = null, endDate = null) => {
+    const token = localStorage.getItem('manager_token');
+    let url = '/manager/statistics';
+    if (startDate && endDate) {
+      url += `?start_date=${startDate}&end_date=${endDate}`;
+    }
+    
+    const response = await api.get(url, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    return response;
+  },
+
+  // GET FEEDBACK
+  getFeedback: async () => {
+    const token = localStorage.getItem('manager_token');
+    const response = await api.get('/manager/feedback', {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    return response;
+  }
+};
+
+// ================= KITCHEN API SERVICE =================
+export const kitchenApi = {
+  // GET ACTIVE ORDERS
+  getActiveOrders: async () => {
+    const response = await api.get('/kitchen/orders/active');
+    return response;
+  },
+
+  // UPDATE ORDER STATUS
+  updateOrderStatus: async (orderId, status) => {
+    const response = await api.put(`/kitchen/orders/${orderId}/status`, { status });
+    return response;
+  },
+
+  // UPDATE EXPECTED TIME
+  updateExpectedTime: async (orderId, expectedMinutes) => {
+    const response = await api.put(`/kitchen/orders/${orderId}/expected-time`, { 
+      expected_minutes: expectedMinutes 
+    });
+    return response;
+  },
+
+  // GET TIMELINE
+  getTimeline: async (orderId) => {
+    const response = await api.get(`/kitchen/orders/${orderId}/timeline`);
+    return response;
+  }
+};
+
 // ================= HEALTH CHECK =================
 export const healthApi = {
   check: async () => {

@@ -10,6 +10,8 @@ import MenuManager from './MenuManager';
 import Statistics from './Statistics';
 import FeedbackView from './FeedbackView';
 import { useAuth } from '../../contexts/AuthContext';
+import { managerApi } from '../../services/api';
+import { joinManagerRoom, onNewOrder, offNewOrder, onOrderUpdate, offOrderUpdate, onNewFeedback, offNewFeedback } from '../../services/socket';
 
 const ManagerDashboard = () => {
     const [activeSection, setActiveSection] = useState('orders');
@@ -23,68 +25,45 @@ const ManagerDashboard = () => {
 
     const fetchPendingOrders = async () => {
         try {
-            const token = localStorage.getItem('manager_token');
-            const response = await fetch('/api/manager/orders/pending', {
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
-            const data = await response.json();
-            if (data.success) {
-                setPendingOrders(data.orders);
+            const response = await managerApi.getPendingOrders();
+            if (response.data.success) {
+                setPendingOrders(response.data.orders);
             }
         } catch (err) {
             console.error('Error fetching pending orders:', err);
+            setError('Failed to load pending orders');
         }
     };
 
     const fetchAllOrders = async () => {
         try {
-            const token = localStorage.getItem('manager_token');
-            const response = await fetch('/api/manager/orders/all', {
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
-            const data = await response.json();
-            if (data.success) {
-                setAllOrders(data.orders);
+            const response = await managerApi.getAllOrders();
+            if (response.data.success) {
+                setAllOrders(response.data.orders);
             }
         } catch (err) {
             console.error('Error fetching all orders:', err);
+            setError('Failed to load all orders');
         }
     };
 
     const fetchStatistics = async (startDate = null, endDate = null) => {
         try {
-            const token = localStorage.getItem('manager_token');
-            let url = '/api/manager/statistics';
-            if (startDate && endDate) {
-                url += `?start_date=${startDate}&end_date=${endDate}`;
-            }
-            
-            const response = await fetch(url, {
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
-            const data = await response.json();
-            if (data.success) {
-                setStatistics(data.statistics);
+            const response = await managerApi.getStatistics(startDate, endDate);
+            if (response.data.success) {
+                setStatistics(response.data.statistics);
             }
         } catch (err) {
             console.error('Error fetching statistics:', err);
+            setError('Failed to load statistics');
         }
     };
 
     const handleApproveOrder = async (orderId, expectedCompletion) => {
         try {
-            const token = localStorage.getItem('manager_token');
-            const response = await fetch(`/api/manager/orders/${orderId}/approve`, {
-                method: 'PUT',
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ expectedCompletion })
-            });
+            const response = await managerApi.approveOrder(orderId, expectedCompletion);
             
-            const data = await response.json();
-            if (data.success) {
+            if (response.data.success) {
                 // Refresh orders
                 await fetchPendingOrders();
                 await fetchAllOrders();
@@ -99,18 +78,9 @@ const ManagerDashboard = () => {
 
     const handleRejectOrder = async (orderId, reason) => {
         try {
-            const token = localStorage.getItem('manager_token');
-            const response = await fetch(`/api/manager/orders/${orderId}/reject`, {
-                method: 'PUT',
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ reason })
-            });
+            const response = await managerApi.rejectOrder(orderId, reason);
             
-            const data = await response.json();
-            if (data.success) {
+            if (response.data.success) {
                 await fetchPendingOrders();
                 return true;
             }
@@ -123,18 +93,9 @@ const ManagerDashboard = () => {
 
     const handleUpdateOrderStatus = async (orderId, status, kitchenStatus) => {
         try {
-            const token = localStorage.getItem('manager_token');
-            const response = await fetch(`/api/manager/orders/${orderId}/status`, {
-                method: 'PUT',
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ status, kitchen_status: kitchenStatus })
-            });
+            const response = await managerApi.updateOrderStatus(orderId, status, kitchenStatus);
             
-            const data = await response.json();
-            if (data.success) {
+            if (response.data.success) {
                 await fetchAllOrders();
                 return true;
             }
@@ -225,13 +186,44 @@ const ManagerDashboard = () => {
 
         loadData();
 
-        // Set up polling for real-time updates
+        // Join manager room and listen for new orders
+        joinManagerRoom();
+        
+        const handleNewOrder = (data) => {
+            console.log('🔔 New order received via Socket.io:', data);
+            // Refresh pending orders when new order arrives
+            fetchPendingOrders();
+            fetchAllOrders();
+        };
+        
+        const handleOrderUpdate = (data) => {
+            console.log('📊 Order status updated via Socket.io:', data);
+            // Refresh orders when status changes
+            fetchPendingOrders();
+            fetchAllOrders();
+        };
+
+        const handleNewFeedback = (data) => {
+            console.log('⭐ New feedback received via Socket.io:', data);
+            // Could show notification or refresh feedback section
+        };
+        
+        onNewOrder(handleNewOrder);
+        onOrderUpdate(handleOrderUpdate);
+        onNewFeedback(handleNewFeedback);
+
+        // Set up polling for real-time updates as fallback (increased interval since we have Socket.IO)
         const interval = setInterval(() => {
             fetchPendingOrders();
             fetchAllOrders();
-        }, 10000); // Update every 10 seconds
+        }, 30000); // Update every 30 seconds as fallback
 
-        return () => clearInterval(interval);
+        return () => {
+            clearInterval(interval);
+            offNewOrder(handleNewOrder);
+            offOrderUpdate(handleOrderUpdate);
+            offNewFeedback(handleNewFeedback);
+        };
     }, []);
 
     if (loading) {

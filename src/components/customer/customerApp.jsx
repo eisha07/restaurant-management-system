@@ -52,16 +52,27 @@ const CustomerApp = () => {
     );
   };
 
-  const handlePaymentComplete = (paymentDetails) => {
-    console.log('Payment completed:', paymentDetails);
-    const order = {
-      id: `ORD-${Date.now()}`,
-      items: [...cartItems],
-      payment: paymentDetails,
-      status: 'pending_approval',
-      timestamp: new Date().toISOString(),
-      total: cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0) * 1.08 // including tax
-    };
+  const handlePaymentComplete = (orderData) => {
+    console.log('✅ Order completed:', orderData);
+    
+    // Handle both from Checkout (full order object) and Payment (payment details)
+    let order;
+    if (orderData.id || orderData.order_id) {
+      // This is a full order object from Checkout
+      order = orderData;
+    } else {
+      // This is payment details from Payment component
+      order = {
+        id: `ORD-${Date.now()}`,
+        items: [...cartItems],
+        payment: orderData,
+        status: 'pending_approval',
+        timestamp: new Date().toISOString(),
+        total: cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0) * 1.08
+      };
+    }
+    
+    console.log('📦 Setting current order:', order);
     setCurrentOrder(order);
     setCartItems([]);
     setCurrentPage('order-status');

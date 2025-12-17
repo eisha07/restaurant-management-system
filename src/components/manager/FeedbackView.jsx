@@ -1,5 +1,6 @@
 // Feedback view component for customer feedback display
 import React, { useState, useEffect } from 'react';
+import { managerApi } from '../../services/api';
 
 const FeedbackView = () => {
     const [feedback, setFeedback] = useState([]);
@@ -9,15 +10,11 @@ const FeedbackView = () => {
     useEffect(() => {
         const fetchFeedback = async () => {
             try {
-                const token = localStorage.getItem('manager_token');
-                const response = await fetch('/api/manager/feedback', {
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
-                const data = await response.json();
-                if (data.success) {
-                    setFeedback(data.feedback);
+                const response = await managerApi.getFeedback();
+                if (response.data.success) {
+                    setFeedback(response.data.feedback);
                 } else {
-                    setError(data.message);
+                    setError(response.data.message);
                 }
             } catch (err) {
                 setError('Failed to load feedback');

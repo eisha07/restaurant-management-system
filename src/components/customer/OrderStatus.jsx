@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { orderApi } from '../../services/api';
+import { initSocket, getSocket, onOrderUpdate, offOrderUpdate, onOrderApproved, offOrderApproved, onOrderRejected, offOrderRejected } from '../../services/socket';
 import '../../styles/OrderStatus.css';
 
 const OrderStatus = ({ order: orderProp, orderId, onBackToMenu, onFeedbackComplete }) => {
@@ -68,6 +69,47 @@ const OrderStatus = ({ order: orderProp, orderId, onBackToMenu, onFeedbackComple
     fetchOrder();
     startPolling();
 
+    // 🔌 Initialize Socket.IO connection for real-time updates
+    const socket = initSocket();
+    
+    // Join customer room for this order
+    socket.emit('join-customer', { 
+      orderId: actualOrderId,
+      sessionId: localStorage.getItem('customerSessionId')
+    });
+    console.log('📱 Customer joined order room:', actualOrderId);
+
+    // Listen for order status updates
+    const handleOrderUpdate = (data) => {
+      if (data.orderId == actualOrderId) {
+        console.log('🔄 Real-time order update received:', data);
+        setLastUpdate(new Date());
+        fetchOrder(); // Refresh order data
+      }
+    };
+
+    // Listen for order approval
+    const handleOrderApproved = (data) => {
+      if (data.orderId == actualOrderId) {
+        console.log('✅ Order approved notification:', data);
+        setOrder(prev => ({ ...prev, status: 'approved' }));
+        setLastUpdate(new Date());
+      }
+    };
+
+    // Listen for order rejection
+    const handleOrderRejected = (data) => {
+      if (data.orderId == actualOrderId) {
+        console.log('❌ Order rejected notification:', data);
+        setOrder(prev => ({ ...prev, status: 'rejected', rejection_reason: data.reason }));
+        setLastUpdate(new Date());
+      }
+    };
+
+    onOrderUpdate(handleOrderUpdate);
+    onOrderApproved(handleOrderApproved);
+    onOrderRejected(handleOrderRejected);
+
     // Start timer for elapsed time
     timerRef.current = setInterval(() => {
       setTimeElapsed(prev => prev + 1);
@@ -76,6 +118,9 @@ const OrderStatus = ({ order: orderProp, orderId, onBackToMenu, onFeedbackComple
     return () => {
       clearInterval(timerRef.current);
       stopPolling();
+      offOrderUpdate(handleOrderUpdate);
+      offOrderApproved(handleOrderApproved);
+      offOrderRejected(handleOrderRejected);
     };
   }, [orderProp?.id, orderId]);
 

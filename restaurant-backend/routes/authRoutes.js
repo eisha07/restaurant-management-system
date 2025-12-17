@@ -7,6 +7,62 @@ const { authenticateManager } = require('../middleware/auth');
 
 const JWT_SECRET = process.env.JWT_SECRET || 'restaurant_secret_key_2024';
 
+// Simple manager login with password (for development)
+router.post('/manager-login', async (req, res) => {
+    try {
+        const { password } = req.body;
+
+        if (!password) {
+            return res.status(400).json({
+                success: false,
+                message: 'Password is required'
+            });
+        }
+
+        // Default manager password for development
+        const DEFAULT_PASSWORD = process.env.MANAGER_PASSWORD || 'admin123';
+
+        if (password !== DEFAULT_PASSWORD) {
+            return res.status(401).json({
+                success: false,
+                message: 'Invalid password'
+            });
+        }
+
+        // Generate JWT token
+        const token = jwt.sign(
+            {
+                id: 1,
+                username: 'manager',
+                name: 'Manager',
+                email: 'manager@restaurant.com',
+                role: 'manager'
+            },
+            JWT_SECRET,
+            { expiresIn: '24h' }
+        );
+
+        res.json({
+            success: true,
+            message: 'Login successful',
+            token,
+            manager: {
+                id: 1,
+                username: 'manager',
+                name: 'Manager',
+                email: 'manager@restaurant.com',
+                role: 'manager'
+            }
+        });
+    } catch (error) {
+        console.error('Login error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Server error'
+        });
+    }
+});
+
 // Login endpoint - check database
 router.post('/manager/login', async (req, res) => {
     try {

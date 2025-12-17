@@ -101,6 +101,22 @@ router.post('/', async (req, res) => {
             type: sequelize.QueryTypes.INSERT 
         });
 
+        // 📡 Broadcast new feedback via Socket.IO
+        if (global.io) {
+            console.log('📡 Broadcasting new feedback notification:', orderId);
+            global.io.to('managers').emit('new-feedback', {
+                orderId: orderId,
+                rating: overallExperience || rating,
+                foodQuality: foodQuality || rating,
+                serviceSpeed: serviceSpeed || rating,
+                accuracy: accuracy || rating,
+                valueForMoney: valueForMoney || rating,
+                comment: comment,
+                message: `⭐ New feedback received for Order #${orderId} (${overallExperience || rating}/5 stars)`,
+                timestamp: new Date().toISOString()
+            });
+        }
+
         res.status(201).json({
             success: true,
             message: 'Thank you for your feedback!'

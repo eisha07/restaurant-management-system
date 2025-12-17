@@ -1,6 +1,8 @@
 // client/src/components/kitchen/KitchenDisplay.jsx
 import React, { useState, useEffect, useRef } from 'react';
 import '../../styles/KitchenDisplay.css';
+import { kitchenApi } from '../../services/api';
+import { joinKitchenRoom, onNewOrder, offNewOrder, onOrderUpdate, offOrderUpdate } from '../../services/socket';
 
 const KitchenDisplay = () => {
     const [orders, setOrders] = useState({
@@ -25,8 +27,8 @@ const KitchenDisplay = () => {
     // Fetch orders from API
     const fetchOrders = async () => {
         try {
-            const response = await fetch('/api/kitchen/orders/active');
-            const data = await response.json();
+            const response = await kitchenApi.getActiveOrders();
+            const data = response.data;
             
             if (data.success && data.groupedOrders) {
                 const previousCount = Object.values(orders).flat().length;
@@ -63,14 +65,9 @@ const KitchenDisplay = () => {
     // Update order status
     const updateOrderStatus = async (orderId, newStatus, notes = '') => {
         try {
-            const response = await fetch(`/api/kitchen/orders/${orderId}/status`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ status: newStatus, notes })
-            });
+            const response = await kitchenApi.updateOrderStatus(orderId, newStatus);
             
-            const data = await response.json();
-            if (data.success) {
+            if (response.data.success) {
                 fetchOrders(); // Refresh orders
                 return true;
             }
@@ -84,14 +81,9 @@ const KitchenDisplay = () => {
     // Set expected completion time
     const setExpectedTime = async (orderId, minutes) => {
         try {
-            const response = await fetch(`/api/kitchen/orders/${orderId}/expected-time`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ minutes })
-            });
+            const response = await kitchenApi.updateExpectedTime(orderId, minutes);
             
-            const data = await response.json();
-            if (data.success) {
+            if (response.data.success) {
                 fetchOrders();
                 return true;
             }
@@ -150,15 +142,31 @@ const KitchenDisplay = () => {
     useEffect(() => {
         fetchOrders();
         
-        // Set up real-time updates (polling every 5 seconds)
-        const interval = setInterval(fetchOrders, 5000);
+        // Join kitchen room and listen for new orders
+        joinKitchenRoom();
         
-        // Set up WebSocket connection for real-time (alternative)
-        // const ws = new WebSocket('ws://localhost:5000/kitchen-ws');
+        const handleNewOrder = (data) => {
+            console.log('🔔 New order alert in kitchen:', data);
+            // Refresh orders when new order arrives
+            fetchOrders();
+        };
+
+        const handleOrderUpdate = (data) => {
+            console.log('🔄 Kitchen order status update:', data);
+            // Refresh orders when status changes
+            fetchOrders();
+        };
+        
+        onNewOrder(handleNewOrder);
+        onOrderUpdate(handleOrderUpdate);
+        
+        // Set up real-time updates (polling every 10 seconds as fallback, since Socket.IO is primary now)
+        const interval = setInterval(fetchOrders, 10000);
         
         return () => {
             clearInterval(interval);
-            // ws.close();
+            offNewOrder(handleNewOrder);
+            offOrderUpdate(handleOrderUpdate);
         };
     }, []);
 
@@ -497,8 +505,8 @@ const OrderDetailModal = ({ order, onClose, onUpdateStatus, onSetTime }) => {
     useEffect(() => {
         const fetchTimeline = async () => {
             try {
-                const response = await fetch(`/api/kitchen/orders/${order.id}/timeline`);
-                const data = await response.json();
+                const response = await kitchenApi.getTimeline(order.id);
+                const data = response.data;
                 if (data.success) {
                     setTimeline(data.timeline);
                 }

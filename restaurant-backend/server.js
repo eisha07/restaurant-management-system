@@ -1,13 +1,28 @@
 const express = require('express');
 const cors = require('cors');
+const http = require('http');
+const socketIO = require('socket.io');
 require('dotenv').config();
 
 const app = express();
+const server = http.createServer(app);
 const PORT = process.env.PORT || 5000;
+
+// Socket.io configuration
+const io = socketIO(server, {
+  cors: {
+    origin: ['http://localhost:3000', 'http://localhost:3001', 'http://localhost:5000', 'http://localhost:5173', 'http://localhost:8080'],
+    credentials: true,
+    methods: ['GET', 'POST']
+  }
+});
+
+// Make io globally accessible
+global.io = io;
 
 // CORS configuration
 const corsOptions = {
-  origin: ['http://localhost:3000', 'http://localhost:5000', 'http://localhost:3001', 'http://localhost:5173'],
+  origin: ['http://localhost:3000', 'http://localhost:5000', 'http://localhost:3001', 'http://localhost:5173', 'http://localhost:8080'],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Kitchen-Token']
@@ -20,11 +35,11 @@ app.use(cors(corsOptions));
 app.use(express.json());
 
 // Add request timeout to prevent hanging requests
-app.use((req, res, next) => {
-  req.setTimeout(5000); // 5 second timeout per request
-  res.setTimeout(5000);
-  next();
-});
+// app.use((req, res, next) => {
+//   req.setTimeout(30000); // 30 second timeout per request
+//   res.setTimeout(30000);
+//   next();
+// });
 
 // Handle preflight requests with a regular route
 app.options('/', (req, res) => {
@@ -155,8 +170,42 @@ app.use((req, res) => {
   });
 });
 
+// Socket.io connection handling
+io.on('connection', (socket) => {
+  console.log('🔌 New client connected:', socket.id);
+
+  // Join manager room if they're a manager
+  socket.on('join-manager', () => {
+    socket.join('managers');
+    console.log('   Manager joined room:', socket.id);
+  });
+
+  // Join kitchen room if they're in kitchen
+  socket.on('join-kitchen', () => {
+    socket.join('kitchen');
+    console.log('   Kitchen joined room:', socket.id);
+  });
+
+  // Join customer room for order updates
+  socket.on('join-customer', (data) => {
+    const { orderId, sessionId } = data;
+    if (orderId) {
+      socket.join('order_' + orderId);
+      console.log('   👤 Customer joined order room:', orderId);
+    }
+    if (sessionId) {
+      socket.join('session_' + sessionId);
+      console.log('   📱 Customer session joined:', sessionId);
+    }
+  });
+
+  socket.on('disconnect', () => {
+    console.log('🔌 Client disconnected:', socket.id);
+  });
+});
+
 // Start server
-app.listen(PORT, () => {
+server.listen(PORT, '0.0.0.0', () => {
   console.log(`
   🚀 Server running on port ${PORT}
   📍 Environment: ${process.env.NODE_ENV || 'development'}
@@ -164,5 +213,14 @@ app.listen(PORT, () => {
   📊 API Health: http://localhost:${PORT}/api/health
   🧪 API Test: http://localhost:${PORT}/api/test
   📋 Menu Test: http://localhost:${PORT}/api/menu/test
+  🔌 Socket.io: ws://localhost:${PORT}
   `);
+});
+
+server.on('error', (err) => {
+  console.error('❌ Server error:', err);
+});
+
+server.on('clientError', (err, socket) => {
+  console.error('❌ Client error:', err);
 });
