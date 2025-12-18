@@ -52,7 +52,7 @@ router.post('/', async (req, res) => {
             FROM orders 
             WHERE order_id = $1
         `, { 
-            replacements: [orderId],
+            bind: [orderId],
             type: sequelize.QueryTypes.SELECT 
         });
 
@@ -67,7 +67,7 @@ router.post('/', async (req, res) => {
         const existingFeedback = await sequelize.query(`
             SELECT feedback_id FROM feedback WHERE order_id = $1
         `, { 
-            replacements: [orderId],
+            bind: [orderId],
             type: sequelize.QueryTypes.SELECT 
         });
 
@@ -97,7 +97,7 @@ router.post('/', async (req, res) => {
             )
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW())
         `, { 
-            replacements: [orderId, null, foodQuality || overallRating, serviceSpeed || overallRating, overallExperience || overallRating, accuracy || overallRating, valueForMoney || overallRating, comment || null],
+            bind: [orderId, null, foodQuality || overallRating, serviceSpeed || overallRating, overallExperience || overallRating, accuracy || overallRating, valueForMoney || overallRating, comment || null],
             type: sequelize.QueryTypes.INSERT 
         });
 

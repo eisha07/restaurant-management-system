@@ -10,6 +10,7 @@ import {
 } from '@/components/ui/dialog';
 import { Star, Loader2, Heart } from 'lucide-react';
 import { toast } from 'sonner';
+import { feedbackApi } from '@/services/api';
 
 interface FeedbackFormProps {
   orderId: number;
@@ -69,12 +70,32 @@ export function FeedbackForm({ orderId, orderNumber, open, onClose }: FeedbackFo
 
     setIsSubmitting(true);
     
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1500));
-    
-    setIsSubmitted(true);
-    setIsSubmitting(false);
-    toast.success('Thank you for your feedback!');
+    try {
+      const feedbackData = {
+        orderId: orderId,
+        rating: ratings.overallExperience,
+        foodQuality: ratings.foodQuality,
+        serviceSpeed: ratings.serviceSpeed,
+        accuracy: ratings.accuracy,
+        valueForMoney: ratings.valueForMoney,
+        overallExperience: ratings.overallExperience,
+        comment: comment || undefined
+      };
+
+      console.log('💬 Submitting feedback:', feedbackData);
+      
+      const response = await feedbackApi.submit(feedbackData);
+      
+      setIsSubmitted(true);
+      toast.success('Thank you for your feedback!');
+      console.log('✅ Feedback submitted:', response);
+    } catch (error) {
+      const errorMsg = error instanceof Error ? error.message : String(error);
+      console.error('❌ Failed to submit feedback:', errorMsg);
+      toast.error(`Failed to submit feedback: ${errorMsg}`);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleClose = () => {

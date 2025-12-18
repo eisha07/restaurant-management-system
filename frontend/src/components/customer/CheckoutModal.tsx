@@ -24,6 +24,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { PaymentMethod } from '@/types';
+import { orderApi } from '@/services/api';
 
 interface CheckoutModalProps {
   open: boolean;
@@ -51,18 +52,63 @@ export function CheckoutModal({ open, onClose }: CheckoutModalProps) {
       return;
     }
 
+    const tableNum = parseInt(tableNumber);
+    if (isNaN(tableNum) || tableNum < 1 || tableNum > 22) {
+      toast.error('Table number must be between 1 and 22');
+      return;
+    }
+
+    if (items.length === 0) {
+      toast.error('Your cart is empty');
+      return;
+    }
+
     setIsSubmitting(true);
     
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1500));
-    
-    const newOrderNumber = `ORD-${new Date().toISOString().slice(0,10).replace(/-/g,'')}-${String(Math.floor(Math.random() * 1000)).padStart(3, '0')}`;
-    setOrderNumber(newOrderNumber);
-    setStep('success');
-    setIsSubmitting(false);
-    clearCart();
-    
-    toast.success('Order placed successfully!');
+    try {
+      // Create unique session ID for this order
+      const sessionId = `customer-${Date.now()}-${Math.random().toString(36).slice(2, 11)}`;
+      
+      // Prepare order data
+      const orderData = {
+        customerSessionId: sessionId,
+        paymentMethod: paymentMethod,
+        tableNumber: tableNum,
+        items: items.map(item => ({
+          menuItemId: item.id,
+          quantity: item.quantity,
+          specialInstructions: item.specialInstructions || undefined
+        })),
+        specialInstructions: orderInstructions || undefined
+      };
+
+      console.log('📝 Submitting order:', orderData);
+      
+      // Call API to create order
+      const response = await orderApi.createOrder(orderData);
+      
+      // Set success state
+      setOrderNumber(response.order_number || response.orderNumber || `ORD-${response.id}`);
+      setStep('success');
+      clearCart();
+      
+      toast.success('Order placed successfully!');
+      console.log('✅ Order created:', response);
+    } catch (error) {
+      const errorMsg = error instanceof Error ? error.message : String(error);
+      console.error('❌ Failed to create order:', errorMsg);
+      
+      // Check for specific validation errors
+      if (errorMsg.includes('table') || errorMsg.includes('Table')) {
+        toast.error('Invalid table number. Please choose a valid table (1-22)');
+      } else if (errorMsg.includes('not found') || errorMsg.includes('not available')) {
+        toast.error('Some items are no longer available. Please update your cart.');
+      } else {
+        toast.error(`Failed to place order: ${errorMsg}`);
+      }
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleClose = () => {

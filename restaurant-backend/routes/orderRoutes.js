@@ -251,9 +251,10 @@ router.get('/kitchen/active', async (req, res) => {
 router.post('/', async (req, res) => {
     try {
         console.log('📝 POST /api/orders - Order creation attempt');
-        const { customerSessionId, paymentMethod, items } = req.body;
+        const { customerSessionId, paymentMethod, items, tableNumber } = req.body;
         console.log('   Session ID:', customerSessionId);
         console.log('   Payment Method:', paymentMethod);
+        console.log('   Table Number:', tableNumber);
         console.log('   Items:', JSON.stringify(items, null, 2));
 
         // Validation
@@ -264,6 +265,26 @@ router.post('/', async (req, res) => {
                 message: 'Missing required fields: customerSessionId, paymentMethod, items (non-empty array)'
             });
         }
+
+        // Validate table number (must be 1-22)
+        if (!tableNumber) {
+            console.log('❌ Table number is required');
+            return res.status(400).json({
+                success: false,
+                message: 'Table number is required'
+            });
+        }
+
+        const tableNum = parseInt(tableNumber);
+        if (isNaN(tableNum) || tableNum < 1 || tableNum > 22) {
+            console.log('❌ Invalid table number:', tableNumber);
+            return res.status(422).json({
+                success: false,
+                message: 'Invalid table number. Must be between 1 and 22'
+            });
+        }
+
+        console.log('✅ Table number validated:', tableNum);
 
         // Validate payment method
         const validPaymentMethods = ['cash', 'card', 'online'];
@@ -359,6 +380,23 @@ router.post('/', async (req, res) => {
             });
         }
 
+        // Get table ID from table number
+        console.log('🔍 Looking up table_id for table number:', tableNum);
+        const tableResult = await sequelize.query(`
+            SELECT table_id FROM restaurant_tables WHERE table_number = $1
+        `, { bind: [tableNum], type: sequelize.QueryTypes.SELECT });
+        
+        if (tableResult.length === 0) {
+            console.log('❌ Table not found in database');
+            return res.status(422).json({
+                success: false,
+                message: 'Table number does not exist'
+            });
+        }
+
+        const tableId = tableResult[0].table_id;
+        console.log('   ✅ Found table_id:', tableId);
+
         // Get status IDs
         console.log('🔍 Getting status IDs...');
         const pendingStatusResult = await sequelize.query(`
@@ -381,18 +419,20 @@ router.post('/', async (req, res) => {
         const newOrder = await sequelize.query(`
             INSERT INTO orders (
                 order_number,
-                customer_id, 
+                customer_id,
+                table_id,
                 payment_method_id,
                 order_status_id,
                 payment_status_id,
                 kitchen_status_id
             ) 
-            VALUES ($1, $2, $3, $4, $5, $6) 
+            VALUES ($1, $2, $3, $4, $5, $6, $7) 
             RETURNING order_id, order_number, customer_id
         `, { 
             bind: [
                 orderNumber, 
-                customerId, 
+                customerId,
+                tableId,
                 paymentMethodResult[0].method_id,
                 pendingStatusResult[0].status_id,
                 pendingPaymentStatusResult[0].status_id,
