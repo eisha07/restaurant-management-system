@@ -1,5 +1,8 @@
 -- Restaurant Management System Database Schema & Data
 -- This file creates all tables and inserts sample data
+-- Wrapped in transaction for atomicity
+
+BEGIN;
 
 -- =============================================
 -- CREATE TABLES
@@ -65,7 +68,7 @@ CREATE TABLE IF NOT EXISTS restaurant_tables (
     table_id SERIAL PRIMARY KEY,
     table_number VARCHAR(20) UNIQUE NOT NULL,
     table_type VARCHAR(50) DEFAULT 'standard',
-    capacity INTEGER NOT NULL,
+    capacity INTEGER NOT NULL CHECK (capacity > 0),
     location_zone VARCHAR(100),
     location_description TEXT,
     is_available BOOLEAN DEFAULT true,
@@ -86,35 +89,37 @@ CREATE TABLE IF NOT EXISTS customers (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Menu Items Table (Modified)
+-- Menu Items Table with enhanced constraints
 CREATE TABLE IF NOT EXISTS menu_items (
     item_id SERIAL PRIMARY KEY,
-    category_id INTEGER REFERENCES menu_categories(category_id),
+    category_id INTEGER NOT NULL REFERENCES menu_categories(category_id) ON UPDATE CASCADE,
     item_code VARCHAR(50) UNIQUE,
     name VARCHAR(255) NOT NULL,
     description TEXT,
-    price DECIMAL(10, 2) NOT NULL CHECK (price >= 0),
-    cost_price DECIMAL(10, 2),
+    price DECIMAL(10, 2) NOT NULL CHECK (price > 0),
+    cost_price DECIMAL(10, 2) CHECK (cost_price IS NULL OR cost_price >= 0),
     image_url TEXT,
     is_available BOOLEAN DEFAULT true,
     is_featured BOOLEAN DEFAULT false,
-    preparation_time_min INTEGER DEFAULT 15,
-    spicy_level INTEGER CHECK (spicy_level BETWEEN 0 AND 5),
-    calories INTEGER,
+    preparation_time_min INTEGER DEFAULT 15 CHECK (preparation_time_min IS NULL OR preparation_time_min > 0),
+    spicy_level INTEGER CHECK (spicy_level IS NULL OR spicy_level BETWEEN 0 AND 5),
+    calories INTEGER CHECK (calories IS NULL OR calories >= 0),
     dietary_tags VARCHAR(255),
     display_order INTEGER DEFAULT 0,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    -- Ensure cost_price doesn't exceed selling price
+    CONSTRAINT check_cost_less_than_price CHECK (cost_price IS NULL OR cost_price <= price)
 );
 
--- Managers Table (Modified)
+-- Managers Table
 CREATE TABLE IF NOT EXISTS managers (
     manager_id SERIAL PRIMARY KEY,
     username VARCHAR(100) UNIQUE NOT NULL,
     password_hash VARCHAR(255) NOT NULL,
     email VARCHAR(255) UNIQUE,
     full_name VARCHAR(200),
-    role VARCHAR(50) DEFAULT 'manager',
+    role VARCHAR(50) DEFAULT 'manager' CHECK (role IN ('admin', 'manager', 'staff')),
     phone_number VARCHAR(20),
     is_active BOOLEAN DEFAULT true,
     last_login_at TIMESTAMP,
@@ -122,18 +127,18 @@ CREATE TABLE IF NOT EXISTS managers (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Orders Table (Modified)
+-- Orders Table with enhanced constraints
 CREATE TABLE IF NOT EXISTS orders (
     order_id SERIAL PRIMARY KEY,
     order_number VARCHAR(50) UNIQUE NOT NULL,
-    customer_id INTEGER REFERENCES customers(customer_id),
-    table_id INTEGER REFERENCES restaurant_tables(table_id),
-    order_status_id INTEGER REFERENCES order_statuses(status_id) DEFAULT 1,
-    kitchen_status_id INTEGER REFERENCES kitchen_statuses(status_id) DEFAULT 1,
-    payment_status_id INTEGER REFERENCES payment_statuses(status_id) DEFAULT 1,
-    payment_method_id INTEGER REFERENCES payment_methods(method_id),
+    customer_id INTEGER REFERENCES customers(customer_id) ON DELETE SET NULL,
+    table_id INTEGER REFERENCES restaurant_tables(table_id) ON DELETE SET NULL,
+    order_status_id INTEGER NOT NULL REFERENCES order_statuses(status_id) ON UPDATE CASCADE DEFAULT 1,
+    kitchen_status_id INTEGER NOT NULL REFERENCES kitchen_statuses(status_id) ON UPDATE CASCADE DEFAULT 1,
+    payment_status_id INTEGER NOT NULL REFERENCES payment_statuses(status_id) ON UPDATE CASCADE DEFAULT 1,
+    payment_method_id INTEGER REFERENCES payment_methods(method_id) ON UPDATE CASCADE,
     special_instructions TEXT,
-    estimated_prep_time INTEGER,
+    estimated_prep_time INTEGER CHECK (estimated_prep_time IS NULL OR estimated_prep_time > 0),
     approved_at TIMESTAMP,
     expected_completion TIMESTAMP,
     completed_at TIMESTAMP,
@@ -141,73 +146,82 @@ CREATE TABLE IF NOT EXISTS orders (
     cancellation_reason TEXT,
     created_by VARCHAR(100) DEFAULT 'customer',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    -- Temporal constraints
+    CONSTRAINT check_approved_after_created CHECK (approved_at IS NULL OR approved_at >= created_at),
+    CONSTRAINT check_completed_after_created CHECK (completed_at IS NULL OR completed_at >= created_at),
+    CONSTRAINT check_cancelled_after_created CHECK (cancelled_at IS NULL OR cancelled_at >= created_at),
+    CONSTRAINT check_expected_after_approved CHECK (expected_completion IS NULL OR approved_at IS NULL OR expected_completion >= approved_at)
 );
 
--- Order Items Table (Modified)
+-- Order Items Table with CASCADE delete
 CREATE TABLE IF NOT EXISTS order_items (
     order_item_id SERIAL PRIMARY KEY,
-    order_id INTEGER REFERENCES orders(order_id) ON DELETE CASCADE,
-    menu_item_id INTEGER REFERENCES menu_items(item_id),
+    order_id INTEGER NOT NULL REFERENCES orders(order_id) ON DELETE CASCADE,
+    menu_item_id INTEGER REFERENCES menu_items(item_id) ON DELETE SET NULL,
     item_name VARCHAR(255) NOT NULL,
-    item_price DECIMAL(10, 2) NOT NULL,
+    item_price DECIMAL(10, 2) NOT NULL CHECK (item_price > 0),
     item_description TEXT,
     quantity INTEGER NOT NULL CHECK (quantity > 0),
     special_instructions TEXT,
-    item_status VARCHAR(50) DEFAULT 'pending',
+    item_status VARCHAR(50) DEFAULT 'pending' CHECK (item_status IN ('pending', 'preparing', 'ready', 'completed', 'cancelled')),
     completed_at TIMESTAMP,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Payment Transactions Table
+-- Payment Transactions Table with CASCADE delete and constraints
 CREATE TABLE IF NOT EXISTS payment_transactions (
     transaction_id SERIAL PRIMARY KEY,
-    order_id INTEGER REFERENCES orders(order_id),
-    payment_method_id INTEGER REFERENCES payment_methods(method_id),
+    order_id INTEGER NOT NULL REFERENCES orders(order_id) ON DELETE CASCADE,
+    payment_method_id INTEGER REFERENCES payment_methods(method_id) ON UPDATE CASCADE,
     transaction_reference VARCHAR(100) UNIQUE,
-    amount DECIMAL(10, 2) NOT NULL,
+    amount DECIMAL(10, 2) NOT NULL CHECK (amount > 0),
     currency VARCHAR(3) DEFAULT 'PKR',
-    status VARCHAR(50) DEFAULT 'pending',
+    status VARCHAR(50) DEFAULT 'pending' CHECK (status IN ('pending', 'processing', 'completed', 'failed', 'refunded')),
     gateway_name VARCHAR(100),
     gateway_response JSONB,
     gateway_transaction_id VARCHAR(100),
     initiated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     completed_at TIMESTAMP,
     refunded_at TIMESTAMP,
-    refund_amount DECIMAL(10, 2),
+    refund_amount DECIMAL(10, 2) CHECK (refund_amount IS NULL OR refund_amount >= 0),
     notes TEXT,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    -- Refund cannot exceed original amount
+    CONSTRAINT check_refund_not_exceed CHECK (refund_amount IS NULL OR refund_amount <= amount)
 );
 
--- Feedback Table (Modified)
+-- Feedback Table with CASCADE delete and unique constraint
 CREATE TABLE IF NOT EXISTS feedback (
     feedback_id SERIAL PRIMARY KEY,
-    order_id INTEGER REFERENCES orders(order_id),
-    customer_id INTEGER REFERENCES customers(customer_id),
+    order_id INTEGER REFERENCES orders(order_id) ON DELETE CASCADE,
+    customer_id INTEGER REFERENCES customers(customer_id) ON DELETE SET NULL,
     food_quality INTEGER CHECK (food_quality BETWEEN 1 AND 5),
     service_speed INTEGER CHECK (service_speed BETWEEN 1 AND 5),
     overall_experience INTEGER CHECK (overall_experience BETWEEN 1 AND 5),
     order_accuracy INTEGER CHECK (order_accuracy BETWEEN 1 AND 5),
     value_for_money INTEGER CHECK (value_for_money BETWEEN 1 AND 5),
     comment TEXT,
-    submitted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    submitted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    -- One feedback per order
+    CONSTRAINT unique_feedback_per_order UNIQUE (order_id)
 );
 
--- Kitchen Logs Table (Modified)
+-- Kitchen Logs Table with CASCADE delete
 CREATE TABLE IF NOT EXISTS kitchen_logs (
     log_id SERIAL PRIMARY KEY,
-    order_id INTEGER REFERENCES orders(order_id),
-    status_id INTEGER REFERENCES kitchen_statuses(status_id),
-    updated_by INTEGER REFERENCES managers(manager_id),
+    order_id INTEGER NOT NULL REFERENCES orders(order_id) ON DELETE CASCADE,
+    status_id INTEGER REFERENCES kitchen_statuses(status_id) ON UPDATE CASCADE,
+    updated_by INTEGER REFERENCES managers(manager_id) ON DELETE SET NULL,
     notes TEXT,
-    previous_status_id INTEGER REFERENCES kitchen_statuses(status_id),
+    previous_status_id INTEGER REFERENCES kitchen_statuses(status_id) ON UPDATE CASCADE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 -- System Logs Table
 CREATE TABLE IF NOT EXISTS system_logs (
     log_id SERIAL PRIMARY KEY,
-    log_level VARCHAR(20),
+    log_level VARCHAR(20) CHECK (log_level IN ('DEBUG', 'INFO', 'WARN', 'ERROR', 'FATAL')),
     module VARCHAR(100),
     message TEXT,
     user_id INTEGER,
@@ -221,9 +235,6 @@ CREATE TABLE IF NOT EXISTS system_logs (
 -- INSERT SAMPLE DATA
 -- =============================================
 
--- Clear existing data (optional)
--- TRUNCATE TABLE system_logs, kitchen_logs, payment_transactions, feedback, order_items, orders, kitchen_statuses, order_statuses, payment_statuses, payment_methods, menu_items, restaurant_tables, customers, menu_categories, managers RESTART IDENTITY CASCADE;
-
 -- Insert Menu Categories
 INSERT INTO menu_categories (name, description, display_order, is_active) VALUES
 ('Desi', 'Traditional Pakistani cuisine', 1, true),
@@ -231,7 +242,7 @@ INSERT INTO menu_categories (name, description, display_order, is_active) VALUES
 ('Continental', 'International cuisine', 3, true),
 ('Beverages', 'Drinks and refreshments', 4, true),
 ('Desserts', 'Sweet treats and desserts', 5, true)
-ON CONFLICT DO NOTHING;
+ON CONFLICT (name) DO NOTHING;
 
 -- Insert Order Statuses
 INSERT INTO order_statuses (code, name, description, display_order) VALUES
@@ -241,7 +252,7 @@ INSERT INTO order_statuses (code, name, description, display_order) VALUES
 ('ready', 'Ready', 'Order ready for pickup', 4),
 ('completed', 'Completed', 'Order completed and served', 5),
 ('cancelled', 'Cancelled', 'Order cancelled', 6)
-ON CONFLICT DO NOTHING;
+ON CONFLICT (code) DO NOTHING;
 
 -- Insert Kitchen Statuses
 INSERT INTO kitchen_statuses (code, name, description, display_order) VALUES
@@ -250,7 +261,7 @@ INSERT INTO kitchen_statuses (code, name, description, display_order) VALUES
 ('ready', 'Ready', 'Ready for pickup', 3),
 ('completed', 'Completed', 'Order completed', 4),
 ('cancelled', 'Cancelled', 'Order cancelled', 5)
-ON CONFLICT DO NOTHING;
+ON CONFLICT (code) DO NOTHING;
 
 -- Insert Payment Statuses
 INSERT INTO payment_statuses (code, name, description, display_order) VALUES
@@ -258,7 +269,7 @@ INSERT INTO payment_statuses (code, name, description, display_order) VALUES
 ('paid', 'Paid', 'Payment received', 2),
 ('failed', 'Failed', 'Payment failed', 3),
 ('refunded', 'Refunded', 'Payment refunded', 4)
-ON CONFLICT DO NOTHING;
+ON CONFLICT (code) DO NOTHING;
 
 -- Insert Payment Methods
 INSERT INTO payment_methods (code, name, description, requires_gateway) VALUES
@@ -266,7 +277,7 @@ INSERT INTO payment_methods (code, name, description, requires_gateway) VALUES
 ('card', 'Card Payment', 'Credit/Debit card', true),
 ('online', 'Online Payment', 'Online payment gateway', true),
 ('wallet', 'Digital Wallet', 'Mobile wallet payment', true)
-ON CONFLICT DO NOTHING;
+ON CONFLICT (code) DO NOTHING;
 
 -- Insert Restaurant Tables
 INSERT INTO restaurant_tables (table_number, table_type, capacity, location_zone, is_available, is_active) VALUES
@@ -282,7 +293,7 @@ INSERT INTO restaurant_tables (table_number, table_type, capacity, location_zone
 ('10', 'outdoor', 4, 'Patio', true, true),
 ('11', 'standard', 2, 'Bar', true, true),
 ('12', 'standard', 2, 'Bar', true, true)
-ON CONFLICT DO NOTHING;
+ON CONFLICT (table_number) DO NOTHING;
 
 -- Insert Customers
 INSERT INTO customers (session_id, name, phone_number, email) VALUES
@@ -291,7 +302,7 @@ INSERT INTO customers (session_id, name, phone_number, email) VALUES
 ('CUST-003', 'Ali Raza', '03031234567', 'ali@example.com'),
 ('CUST-004', 'Zainab Ali', '03041234567', 'zainab@example.com'),
 ('CUST-005', 'Muhammad Hasan', '03051234567', 'hasan@example.com')
-ON CONFLICT DO NOTHING;
+ON CONFLICT (session_id) DO NOTHING;
 
 -- Insert Menu Items
 INSERT INTO menu_items (category_id, item_code, name, description, price, cost_price, image_url, is_available, is_featured, preparation_time_min, dietary_tags, display_order) VALUES
@@ -328,7 +339,7 @@ INSERT INTO menu_items (category_id, item_code, name, description, price, cost_p
 (5, 'GULAB', 'Gulab Jamun', 'Sweet milk dumplings in sugar syrup', 5.99, 2.00, '/images/gulabjamun.jpg', true, false, 8, 'vegetarian', 3)
 ON CONFLICT (item_code) DO NOTHING;
 
--- Insert Managers
+-- Insert Managers (NOTE: In production, use properly hashed passwords!)
 INSERT INTO managers (username, password_hash, email, full_name, role, phone_number) VALUES
 ('admin', 'admin123', 'admin@restaurant.com', 'Administrator', 'admin', '03001111111'),
 ('manager1', 'manager123', 'manager1@restaurant.com', 'Manager One', 'manager', '03002222222')
@@ -374,7 +385,7 @@ INSERT INTO feedback (order_id, customer_id, food_quality, service_speed, overal
 (1, 1, 5, 4, 5, 5, 4, 'Excellent biryani! Will come again.', '2024-01-15 13:30:00'),
 (2, 2, 4, 5, 4, 5, 4, 'Burger was perfect, fries could be crispier', '2024-01-15 14:00:00'),
 (3, 3, 3, 3, 3, 4, 3, 'Pasta was okay, service was slow', '2024-01-15 15:00:00')
-ON CONFLICT DO NOTHING;
+ON CONFLICT (order_id) DO NOTHING;
 
 -- Insert Kitchen Logs
 INSERT INTO kitchen_logs (order_id, status_id, updated_by, notes, previous_status_id, created_at) VALUES
@@ -390,26 +401,51 @@ INSERT INTO kitchen_logs (order_id, status_id, updated_by, notes, previous_statu
 ON CONFLICT DO NOTHING;
 
 -- =============================================
--- CREATE INDEXES
+-- CREATE INDEXES FOR PERFORMANCE
 -- =============================================
 
+-- Orders indexes
 CREATE INDEX IF NOT EXISTS idx_orders_order_status_id ON orders(order_status_id);
 CREATE INDEX IF NOT EXISTS idx_orders_payment_status_id ON orders(payment_status_id);
 CREATE INDEX IF NOT EXISTS idx_orders_kitchen_status_id ON orders(kitchen_status_id);
 CREATE INDEX IF NOT EXISTS idx_orders_table_id ON orders(table_id);
+CREATE INDEX IF NOT EXISTS idx_orders_customer_id ON orders(customer_id);
+CREATE INDEX IF NOT EXISTS idx_orders_created_at ON orders(created_at);
+CREATE INDEX IF NOT EXISTS idx_orders_status_created ON orders(order_status_id, created_at);
+CREATE INDEX IF NOT EXISTS idx_orders_kitchen_created ON orders(kitchen_status_id, created_at);
+
+-- Menu items indexes
 CREATE INDEX IF NOT EXISTS idx_menu_items_category_id ON menu_items(category_id);
 CREATE INDEX IF NOT EXISTS idx_menu_items_available ON menu_items(is_available);
+CREATE INDEX IF NOT EXISTS idx_menu_items_featured ON menu_items(is_featured) WHERE is_featured = true;
+
+-- Order items indexes
 CREATE INDEX IF NOT EXISTS idx_order_items_order_id ON order_items(order_id);
 CREATE INDEX IF NOT EXISTS idx_order_items_menu_item_id ON order_items(menu_item_id);
+CREATE INDEX IF NOT EXISTS idx_order_items_status ON order_items(item_status);
+
+-- Feedback indexes
 CREATE INDEX IF NOT EXISTS idx_feedback_order_id ON feedback(order_id);
 CREATE INDEX IF NOT EXISTS idx_feedback_customer_id ON feedback(customer_id);
+CREATE INDEX IF NOT EXISTS idx_feedback_submitted_at ON feedback(submitted_at);
+
+-- Kitchen logs indexes
 CREATE INDEX IF NOT EXISTS idx_kitchen_logs_order_id ON kitchen_logs(order_id);
+CREATE INDEX IF NOT EXISTS idx_kitchen_logs_created_at ON kitchen_logs(created_at);
+
+-- Payment transactions indexes
 CREATE INDEX IF NOT EXISTS idx_payment_transactions_order_id ON payment_transactions(order_id);
+CREATE INDEX IF NOT EXISTS idx_payment_transactions_status ON payment_transactions(status);
+
+-- Other indexes
 CREATE INDEX IF NOT EXISTS idx_restaurant_tables_available ON restaurant_tables(is_available);
 CREATE INDEX IF NOT EXISTS idx_managers_username ON managers(username);
+CREATE INDEX IF NOT EXISTS idx_customers_session_id ON customers(session_id);
+
+COMMIT;
 
 -- =============================================
--- VERIFY DATA
+-- VERIFY DATA (outside transaction)
 -- =============================================
 
 SELECT 'Database initialization complete!' as status;

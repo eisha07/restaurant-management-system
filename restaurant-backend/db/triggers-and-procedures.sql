@@ -5,25 +5,61 @@
 -- 1. Triggers for automation and data consistency
 -- 2. Stored Procedures for complex operations
 -- 3. Additional constraints and validations
+-- 
+-- SCHEMA NOTES:
+-- - orders uses: order_id, order_status_id, kitchen_status_id, payment_status_id (FKs)
+-- - menu_items uses: item_id, category_id (FK)
+-- - order_items uses: order_item_id, item_price
 -- =====================================================
+
+BEGIN;
 
 -- =====================================================
 -- SECTION 1: ADDITIONAL CONSTRAINTS & VALIDATIONS
 -- =====================================================
 
--- Add constraints if not already present
-ALTER TABLE menu_items
-ADD CONSTRAINT check_price_positive CHECK (price > 0),
-ADD CONSTRAINT check_category_not_empty CHECK (category IS NOT NULL AND category != '');
+-- Add constraints if not already present (using correct column names)
+DO $$
+BEGIN
+    -- menu_items constraints
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'check_price_positive') THEN
+        ALTER TABLE menu_items ADD CONSTRAINT check_price_positive CHECK (price > 0);
+    END IF;
+    
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'check_category_id_not_null') THEN
+        ALTER TABLE menu_items ADD CONSTRAINT check_category_id_not_null CHECK (category_id IS NOT NULL);
+    END IF;
+    
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'check_cost_less_than_price') THEN
+        ALTER TABLE menu_items ADD CONSTRAINT check_cost_less_than_price CHECK (cost_price IS NULL OR cost_price <= price);
+    END IF;
+    
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'check_prep_time_positive') THEN
+        ALTER TABLE menu_items ADD CONSTRAINT check_prep_time_positive CHECK (preparation_time_min IS NULL OR preparation_time_min > 0);
+    END IF;
 
-ALTER TABLE orders
-ADD CONSTRAINT check_total_positive CHECK (total > 0),
-ADD CONSTRAINT check_tax_non_negative CHECK (tax >= 0),
-ADD CONSTRAINT check_subtotal_positive CHECK (subtotal > 0);
+    -- order_items constraints (using correct column: item_price)
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'check_item_price_positive') THEN
+        ALTER TABLE order_items ADD CONSTRAINT check_item_price_positive CHECK (item_price > 0);
+    END IF;
+    
+    -- orders temporal constraints
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'check_completed_after_created') THEN
+        ALTER TABLE orders ADD CONSTRAINT check_completed_after_created CHECK (completed_at IS NULL OR completed_at >= created_at);
+    END IF;
+    
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'check_approved_after_created') THEN
+        ALTER TABLE orders ADD CONSTRAINT check_approved_after_created CHECK (approved_at IS NULL OR approved_at >= created_at);
+    END IF;
+    
+    -- payment_transactions constraints
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'check_refund_not_exceed') THEN
+        ALTER TABLE payment_transactions ADD CONSTRAINT check_refund_not_exceed CHECK (refund_amount IS NULL OR refund_amount <= amount);
+    END IF;
 
-ALTER TABLE order_items
-ADD CONSTRAINT check_quantity_positive CHECK (quantity > 0),
-ADD CONSTRAINT check_item_price_positive CHECK (price > 0);
+EXCEPTION WHEN OTHERS THEN
+    RAISE NOTICE 'Some constraints may already exist: %', SQLERRM;
+END $$;
 
 -- =====================================================
 -- SECTION 2: TRIGGERS
@@ -59,14 +95,23 @@ BEFORE UPDATE ON orders
 FOR EACH ROW
 EXECUTE FUNCTION update_orders_timestamp();
 
--- TRIGGER 3: Auto-log kitchen status changes
+-- TRIGGER 3: Auto-log kitchen status changes (using correct FK: kitchen_status_id)
 CREATE OR REPLACE FUNCTION log_kitchen_status_change()
 RETURNS TRIGGER AS $$
+DECLARE
+    v_old_status_code VARCHAR;
+    v_new_status_code VARCHAR;
 BEGIN
-    -- Only log if kitchen_status actually changed
-    IF OLD.kitchen_status IS DISTINCT FROM NEW.kitchen_status THEN
-        INSERT INTO kitchen_logs (order_id, status, notes, created_at)
-        VALUES (NEW.id, NEW.kitchen_status, 'Status changed from ' || OLD.kitchen_status || ' to ' || NEW.kitchen_status, CURRENT_TIMESTAMP);
+    -- Only log if kitchen_status_id actually changed
+    IF OLD.kitchen_status_id IS DISTINCT FROM NEW.kitchen_status_id THEN
+        -- Get status codes for logging
+        SELECT code INTO v_old_status_code FROM kitchen_statuses WHERE status_id = OLD.kitchen_status_id;
+        SELECT code INTO v_new_status_code FROM kitchen_statuses WHERE status_id = NEW.kitchen_status_id;
+        
+        INSERT INTO kitchen_logs (order_id, status_id, previous_status_id, notes, created_at)
+        VALUES (NEW.order_id, NEW.kitchen_status_id, OLD.kitchen_status_id, 
+                'Status changed from ' || COALESCE(v_old_status_code, 'none') || ' to ' || COALESCE(v_new_status_code, 'none'), 
+                CURRENT_TIMESTAMP);
     END IF;
     RETURN NEW;
 END;
@@ -76,17 +121,21 @@ DROP TRIGGER IF EXISTS trigger_log_kitchen_status ON orders;
 CREATE TRIGGER trigger_log_kitchen_status
 AFTER UPDATE ON orders
 FOR EACH ROW
-WHEN (OLD.kitchen_status IS DISTINCT FROM NEW.kitchen_status)
+WHEN (OLD.kitchen_status_id IS DISTINCT FROM NEW.kitchen_status_id)
 EXECUTE FUNCTION log_kitchen_status_change();
 
--- TRIGGER 4: Auto-log order status changes
+-- TRIGGER 4: Auto-log order status changes (using correct FK: order_status_id)
 CREATE OR REPLACE FUNCTION log_order_status_change()
 RETURNS TRIGGER AS $$
+DECLARE
+    v_new_status_code VARCHAR;
 BEGIN
     -- Log to kitchen_logs when order status changes
-    IF OLD.status IS DISTINCT FROM NEW.status THEN
-        INSERT INTO kitchen_logs (order_id, status, notes, created_at)
-        VALUES (NEW.id, NEW.status, 'Order status: ' || NEW.status, CURRENT_TIMESTAMP);
+    IF OLD.order_status_id IS DISTINCT FROM NEW.order_status_id THEN
+        SELECT code INTO v_new_status_code FROM order_statuses WHERE status_id = NEW.order_status_id;
+        
+        INSERT INTO kitchen_logs (order_id, status_id, notes, created_at)
+        VALUES (NEW.order_id, NEW.kitchen_status_id, 'Order status changed to: ' || COALESCE(v_new_status_code, 'unknown'), CURRENT_TIMESTAMP);
     END IF;
     RETURN NEW;
 END;
@@ -96,35 +145,47 @@ DROP TRIGGER IF EXISTS trigger_log_order_status ON orders;
 CREATE TRIGGER trigger_log_order_status
 AFTER UPDATE ON orders
 FOR EACH ROW
-WHEN (OLD.status IS DISTINCT FROM NEW.status)
+WHEN (OLD.order_status_id IS DISTINCT FROM NEW.order_status_id)
 EXECUTE FUNCTION log_order_status_change();
 
 -- TRIGGER 5: Calculate average rating when feedback is inserted
+-- Note: feedback table uses order_accuracy not accuracy
 CREATE OR REPLACE FUNCTION calculate_feedback_average()
 RETURNS TRIGGER AS $$
 BEGIN
-    NEW.average_rating = (
-        (COALESCE(NEW.food_quality, 0) + 
-         COALESCE(NEW.service_speed, 0) + 
-         COALESCE(NEW.overall_experience, 0) + 
-         COALESCE(NEW.accuracy, 0) + 
-         COALESCE(NEW.value_for_money, 0)) / 5.0
-    )::DECIMAL(3, 2);
+    -- Calculate average from the 5 rating fields
+    -- Store in a computed manner (feedback table doesn't have average_rating column)
+    -- This trigger validates the ratings are within bounds
+    IF NEW.food_quality IS NOT NULL AND (NEW.food_quality < 1 OR NEW.food_quality > 5) THEN
+        RAISE EXCEPTION 'food_quality must be between 1 and 5';
+    END IF;
+    IF NEW.service_speed IS NOT NULL AND (NEW.service_speed < 1 OR NEW.service_speed > 5) THEN
+        RAISE EXCEPTION 'service_speed must be between 1 and 5';
+    END IF;
+    IF NEW.overall_experience IS NOT NULL AND (NEW.overall_experience < 1 OR NEW.overall_experience > 5) THEN
+        RAISE EXCEPTION 'overall_experience must be between 1 and 5';
+    END IF;
+    IF NEW.order_accuracy IS NOT NULL AND (NEW.order_accuracy < 1 OR NEW.order_accuracy > 5) THEN
+        RAISE EXCEPTION 'order_accuracy must be between 1 and 5';
+    END IF;
+    IF NEW.value_for_money IS NOT NULL AND (NEW.value_for_money < 1 OR NEW.value_for_money > 5) THEN
+        RAISE EXCEPTION 'value_for_money must be between 1 and 5';
+    END IF;
     RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
 
-DROP TRIGGER IF EXISTS trigger_calculate_feedback_average ON feedback;
-CREATE TRIGGER trigger_calculate_feedback_average
+DROP TRIGGER IF EXISTS trigger_validate_feedback_ratings ON feedback;
+CREATE TRIGGER trigger_validate_feedback_ratings
 BEFORE INSERT OR UPDATE ON feedback
 FOR EACH ROW
 EXECUTE FUNCTION calculate_feedback_average();
 
--- TRIGGER 6: Prevent duplicate order numbers
+-- TRIGGER 6: Prevent duplicate order numbers (using correct PK: order_id)
 CREATE OR REPLACE FUNCTION validate_unique_order_number()
 RETURNS TRIGGER AS $$
 BEGIN
-    IF EXISTS (SELECT 1 FROM orders WHERE order_number = NEW.order_number AND id != NEW.id) THEN
+    IF EXISTS (SELECT 1 FROM orders WHERE order_number = NEW.order_number AND order_id != COALESCE(NEW.order_id, 0)) THEN
         RAISE EXCEPTION 'Order number % already exists', NEW.order_number;
     END IF;
     RETURN NEW;
@@ -137,12 +198,14 @@ BEFORE INSERT OR UPDATE ON orders
 FOR EACH ROW
 EXECUTE FUNCTION validate_unique_order_number();
 
--- TRIGGER 7: Enforce valid payment status values
+-- TRIGGER 7: Validate payment_status_id references valid status (FK-based validation)
 CREATE OR REPLACE FUNCTION validate_payment_status()
 RETURNS TRIGGER AS $$
 BEGIN
-    IF NEW.payment_status NOT IN ('pending', 'paid', 'failed', 'refunded') THEN
-        RAISE EXCEPTION 'Invalid payment status: %', NEW.payment_status;
+    IF NEW.payment_status_id IS NOT NULL THEN
+        IF NOT EXISTS (SELECT 1 FROM payment_statuses WHERE status_id = NEW.payment_status_id AND is_active = true) THEN
+            RAISE EXCEPTION 'Invalid payment status ID: %', NEW.payment_status_id;
+        END IF;
     END IF;
     RETURN NEW;
 END;
@@ -154,12 +217,14 @@ BEFORE INSERT OR UPDATE ON orders
 FOR EACH ROW
 EXECUTE FUNCTION validate_payment_status();
 
--- TRIGGER 8: Enforce valid order status values
+-- TRIGGER 8: Validate order_status_id references valid status (FK-based validation)
 CREATE OR REPLACE FUNCTION validate_order_status()
 RETURNS TRIGGER AS $$
 BEGIN
-    IF NEW.status NOT IN ('pending_approval', 'approved', 'in_progress', 'ready', 'completed', 'cancelled') THEN
-        RAISE EXCEPTION 'Invalid order status: %', NEW.status;
+    IF NEW.order_status_id IS NOT NULL THEN
+        IF NOT EXISTS (SELECT 1 FROM order_statuses WHERE status_id = NEW.order_status_id AND is_active = true) THEN
+            RAISE EXCEPTION 'Invalid order status ID: %', NEW.order_status_id;
+        END IF;
     END IF;
     RETURN NEW;
 END;
@@ -171,13 +236,26 @@ BEFORE INSERT OR UPDATE ON orders
 FOR EACH ROW
 EXECUTE FUNCTION validate_order_status();
 
--- TRIGGER 9: Auto-generate kitchen logs on new orders
+-- TRIGGER 9: Auto-generate kitchen logs on new orders (using correct columns)
 CREATE OR REPLACE FUNCTION create_initial_kitchen_log()
 RETURNS TRIGGER AS $$
+DECLARE
+    v_pending_status_id INTEGER;
+    v_table_number VARCHAR;
 BEGIN
-    IF NEW.kitchen_status = 'pending' THEN
-        INSERT INTO kitchen_logs (order_id, status, notes, created_at)
-        VALUES (NEW.id, 'received', 'New order received. Table: ' || COALESCE(NEW.table_number, 'TAKEAWAY'), CURRENT_TIMESTAMP);
+    -- Get pending kitchen status ID
+    SELECT status_id INTO v_pending_status_id FROM kitchen_statuses WHERE code = 'pending';
+    
+    IF NEW.kitchen_status_id = v_pending_status_id THEN
+        -- Get table number if table_id is set
+        IF NEW.table_id IS NOT NULL THEN
+            SELECT table_number INTO v_table_number FROM restaurant_tables WHERE table_id = NEW.table_id;
+        END IF;
+        
+        INSERT INTO kitchen_logs (order_id, status_id, notes, created_at)
+        VALUES (NEW.order_id, v_pending_status_id, 
+                'New order received. Table: ' || COALESCE(v_table_number, 'TAKEAWAY'), 
+                CURRENT_TIMESTAMP);
     END IF;
     RETURN NEW;
 END;
@@ -189,203 +267,254 @@ AFTER INSERT ON orders
 FOR EACH ROW
 EXECUTE FUNCTION create_initial_kitchen_log();
 
+-- TRIGGER 10: Auto-update customers updated_at timestamp
+CREATE OR REPLACE FUNCTION update_customers_timestamp()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.updated_at = CURRENT_TIMESTAMP;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS trigger_update_customers_timestamp ON customers;
+CREATE TRIGGER trigger_update_customers_timestamp
+BEFORE UPDATE ON customers
+FOR EACH ROW
+EXECUTE FUNCTION update_customers_timestamp();
+
+-- TRIGGER 11: Auto-update restaurant_tables updated_at timestamp
+CREATE OR REPLACE FUNCTION update_tables_timestamp()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.updated_at = CURRENT_TIMESTAMP;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS trigger_update_tables_timestamp ON restaurant_tables;
+CREATE TRIGGER trigger_update_tables_timestamp
+BEFORE UPDATE ON restaurant_tables
+FOR EACH ROW
+EXECUTE FUNCTION update_tables_timestamp();
+
+-- TRIGGER 12: Auto-update managers updated_at timestamp
+CREATE OR REPLACE FUNCTION update_managers_timestamp()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.updated_at = CURRENT_TIMESTAMP;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS trigger_update_managers_timestamp ON managers;
+CREATE TRIGGER trigger_update_managers_timestamp
+BEFORE UPDATE ON managers
+FOR EACH ROW
+EXECUTE FUNCTION update_managers_timestamp();
+
 -- =====================================================
--- SECTION 3: STORED PROCEDURES
+-- SECTION 3: STORED PROCEDURES (Using correct schema)
 -- =====================================================
 
 -- PROCEDURE 1: Create new order with items (Transaction)
+-- Note: This procedure uses the normalized schema with FK references
 CREATE OR REPLACE FUNCTION create_order_with_items(
     p_order_number VARCHAR,
-    p_customer_id VARCHAR,
-    p_table_number VARCHAR,
-    p_payment_method VARCHAR,
+    p_customer_id INTEGER,
+    p_table_id INTEGER,
+    p_payment_method_id INTEGER,
     p_items JSON,
     p_special_instructions TEXT DEFAULT NULL
 )
 RETURNS TABLE(
     success BOOLEAN,
-    order_id INTEGER,
+    new_order_id INTEGER,
     message VARCHAR
 ) AS $$
 DECLARE
     v_order_id INTEGER;
-    v_subtotal DECIMAL(10, 2) := 0;
-    v_tax DECIMAL(10, 2);
-    v_total DECIMAL(10, 2);
     v_item JSON;
     v_menu_price DECIMAL(10, 2);
+    v_menu_name VARCHAR;
+    v_pending_order_status INTEGER;
+    v_pending_payment_status INTEGER;
+    v_pending_kitchen_status INTEGER;
 BEGIN
-    BEGIN
-        -- Start transaction
-        INSERT INTO orders (
-            order_number, customer_id, table_number, payment_method, 
-            payment_status, status, kitchen_status, special_instructions
+    -- Get status IDs
+    SELECT status_id INTO v_pending_order_status FROM order_statuses WHERE code = 'pending_approval';
+    SELECT status_id INTO v_pending_payment_status FROM payment_statuses WHERE code = 'pending';
+    SELECT status_id INTO v_pending_kitchen_status FROM kitchen_statuses WHERE code = 'pending';
+    
+    -- Create order
+    INSERT INTO orders (
+        order_number, customer_id, table_id, payment_method_id, 
+        payment_status_id, order_status_id, kitchen_status_id, special_instructions
+    ) VALUES (
+        p_order_number, p_customer_id, p_table_id, p_payment_method_id,
+        v_pending_payment_status, v_pending_order_status, v_pending_kitchen_status, p_special_instructions
+    ) RETURNING order_id INTO v_order_id;
+
+    -- Insert order items
+    FOR v_item IN SELECT * FROM json_array_elements(p_items)
+    LOOP
+        -- Get menu item details
+        SELECT price, name INTO v_menu_price, v_menu_name
+        FROM menu_items 
+        WHERE item_id = (v_item->>'menu_item_id')::INTEGER;
+
+        IF v_menu_price IS NULL THEN
+            RAISE EXCEPTION 'Menu item % not found', (v_item->>'menu_item_id');
+        END IF;
+        
+        INSERT INTO order_items (
+            order_id, menu_item_id, item_name, item_price, quantity, special_instructions
         ) VALUES (
-            p_order_number, p_customer_id, p_table_number, p_payment_method,
-            'pending', 'pending_approval', 'pending', p_special_instructions
-        ) RETURNING id INTO v_order_id;
+            v_order_id,
+            (v_item->>'menu_item_id')::INTEGER,
+            COALESCE(v_item->>'name', v_menu_name),
+            v_menu_price,
+            (v_item->>'quantity')::INTEGER,
+            v_item->>'special_instructions'
+        );
+    END LOOP;
 
-        -- Insert order items and calculate subtotal
-        FOR v_item IN SELECT * FROM json_array_elements(p_items)
-        LOOP
-            -- Get menu item price
-            SELECT price INTO v_menu_price 
-            FROM menu_items 
-            WHERE id = (v_item->>'menu_item_id')::INTEGER;
+    RETURN QUERY SELECT 
+        TRUE, 
+        v_order_id, 
+        ('Order created successfully with ID: ' || v_order_id)::VARCHAR;
 
-            IF v_menu_price IS NOT NULL THEN
-                INSERT INTO order_items (
-                    order_id, menu_item_id, name, price, quantity, special_instructions
-                ) VALUES (
-                    v_order_id,
-                    (v_item->>'menu_item_id')::INTEGER,
-                    v_item->>'name',
-                    v_menu_price,
-                    (v_item->>'quantity')::INTEGER,
-                    v_item->>'special_instructions'
-                );
-
-                v_subtotal := v_subtotal + (v_menu_price * (v_item->>'quantity')::INTEGER);
-            END IF;
-        END LOOP;
-
-        -- Calculate tax (assume 8% tax rate)
-        v_tax := ROUND((v_subtotal * 0.08)::NUMERIC, 2)::DECIMAL;
-        v_total := v_subtotal + v_tax;
-
-        -- Update order with totals
-        UPDATE orders SET 
-            subtotal = v_subtotal,
-            tax = v_tax,
-            total = v_total
-        WHERE id = v_order_id;
-
-        RETURN QUERY SELECT 
-            TRUE, 
-            v_order_id, 
-            'Order created successfully with ID: ' || v_order_id;
-
-    EXCEPTION WHEN OTHERS THEN
-        RETURN QUERY SELECT 
-            FALSE, 
-            NULL::INTEGER, 
-            'Error creating order: ' || SQLERRM;
-    END;
+EXCEPTION WHEN OTHERS THEN
+    RETURN QUERY SELECT 
+        FALSE, 
+        NULL::INTEGER, 
+        ('Error creating order: ' || SQLERRM)::VARCHAR;
 END;
 $$ LANGUAGE plpgsql;
 
--- PROCEDURE 2: Update order status with validation
-CREATE OR REPLACE FUNCTION update_order_status(
+-- PROCEDURE 2: Update order status with validation (using FK-based schema)
+CREATE OR REPLACE FUNCTION update_order_status_proc(
     p_order_id INTEGER,
-    p_new_status VARCHAR,
+    p_new_status_code VARCHAR,
     p_notes TEXT DEFAULT NULL
 )
 RETURNS TABLE(
     success BOOLEAN,
     message VARCHAR,
-    old_status VARCHAR,
-    new_status VARCHAR
+    old_status_code VARCHAR,
+    new_status_code VARCHAR
 ) AS $$
 DECLARE
-    v_old_status VARCHAR;
+    v_old_status_id INTEGER;
+    v_new_status_id INTEGER;
+    v_old_status_code VARCHAR;
     v_valid_transitions BOOLEAN;
 BEGIN
-    BEGIN
-        -- Get current status
-        SELECT status INTO v_old_status FROM orders WHERE id = p_order_id;
+    -- Get current status
+    SELECT os.code, o.order_status_id INTO v_old_status_code, v_old_status_id
+    FROM orders o
+    JOIN order_statuses os ON o.order_status_id = os.status_id
+    WHERE o.order_id = p_order_id;
 
-        IF v_old_status IS NULL THEN
-            RETURN QUERY SELECT FALSE, 'Order not found', NULL, NULL;
-            RETURN;
-        END IF;
+    IF v_old_status_code IS NULL THEN
+        RETURN QUERY SELECT FALSE::BOOLEAN, 'Order not found'::VARCHAR, NULL::VARCHAR, NULL::VARCHAR;
+        RETURN;
+    END IF;
 
-        -- Validate status transition (simple rules)
-        v_valid_transitions := CASE
-            WHEN v_old_status = 'pending_approval' THEN p_new_status IN ('approved', 'cancelled')
-            WHEN v_old_status = 'approved' THEN p_new_status IN ('in_progress', 'cancelled')
-            WHEN v_old_status = 'in_progress' THEN p_new_status IN ('ready', 'approved')
-            WHEN v_old_status = 'ready' THEN p_new_status IN ('completed', 'in_progress')
-            ELSE FALSE
-        END;
+    -- Get new status ID
+    SELECT status_id INTO v_new_status_id FROM order_statuses WHERE code = p_new_status_code;
+    
+    IF v_new_status_id IS NULL THEN
+        RETURN QUERY SELECT FALSE::BOOLEAN, ('Invalid status code: ' || p_new_status_code)::VARCHAR, v_old_status_code, NULL::VARCHAR;
+        RETURN;
+    END IF;
 
-        IF NOT v_valid_transitions THEN
-            RETURN QUERY SELECT 
-                FALSE, 
-                'Invalid status transition from ' || v_old_status || ' to ' || p_new_status,
-                v_old_status,
-                NULL;
-            RETURN;
-        END IF;
-
-        -- Update status
-        UPDATE orders SET status = p_new_status WHERE id = p_order_id;
-
-        -- Log if notes provided
-        IF p_notes IS NOT NULL THEN
-            INSERT INTO kitchen_logs (order_id, status, notes, created_at)
-            VALUES (p_order_id, p_new_status, p_notes, CURRENT_TIMESTAMP);
-        END IF;
-
-        RETURN QUERY SELECT 
-            TRUE,
-            'Order status updated successfully',
-            v_old_status,
-            p_new_status;
-
-    EXCEPTION WHEN OTHERS THEN
-        RETURN QUERY SELECT 
-            FALSE,
-            'Error updating status: ' || SQLERRM,
-            v_old_status,
-            NULL;
+    -- Validate status transition
+    v_valid_transitions := CASE
+        WHEN v_old_status_code = 'pending_approval' THEN p_new_status_code IN ('approved', 'cancelled')
+        WHEN v_old_status_code = 'approved' THEN p_new_status_code IN ('in_progress', 'cancelled')
+        WHEN v_old_status_code = 'in_progress' THEN p_new_status_code IN ('ready', 'approved')
+        WHEN v_old_status_code = 'ready' THEN p_new_status_code IN ('completed', 'in_progress')
+        ELSE FALSE
     END;
+
+    IF NOT v_valid_transitions THEN
+        RETURN QUERY SELECT 
+            FALSE::BOOLEAN, 
+            ('Invalid status transition from ' || v_old_status_code || ' to ' || p_new_status_code)::VARCHAR,
+            v_old_status_code,
+            NULL::VARCHAR;
+        RETURN;
+    END IF;
+
+    -- Update status
+    UPDATE orders SET order_status_id = v_new_status_id WHERE order_id = p_order_id;
+
+    -- Log if notes provided
+    IF p_notes IS NOT NULL THEN
+        INSERT INTO kitchen_logs (order_id, status_id, notes, created_at)
+        VALUES (p_order_id, (SELECT status_id FROM kitchen_statuses LIMIT 1), p_notes, CURRENT_TIMESTAMP);
+    END IF;
+
+    RETURN QUERY SELECT 
+        TRUE::BOOLEAN,
+        'Order status updated successfully'::VARCHAR,
+        v_old_status_code,
+        p_new_status_code;
+
+EXCEPTION WHEN OTHERS THEN
+    RETURN QUERY SELECT 
+        FALSE::BOOLEAN,
+        ('Error updating status: ' || SQLERRM)::VARCHAR,
+        v_old_status_code,
+        NULL::VARCHAR;
 END;
 $$ LANGUAGE plpgsql;
 
--- PROCEDURE 3: Get order details with items
+-- PROCEDURE 3: Get order details with items (using correct schema)
 CREATE OR REPLACE FUNCTION get_order_details(p_order_id INTEGER)
 RETURNS TABLE(
-    order_id INTEGER,
-    order_number VARCHAR,
-    customer_id VARCHAR,
-    table_number VARCHAR,
-    status VARCHAR,
-    kitchen_status VARCHAR,
-    total DECIMAL,
-    item_count INTEGER,
-    items_json JSON,
-    created_at TIMESTAMP
+    out_order_id INTEGER,
+    out_order_number VARCHAR,
+    out_customer_id INTEGER,
+    out_table_number VARCHAR,
+    out_status VARCHAR,
+    out_kitchen_status VARCHAR,
+    out_item_count INTEGER,
+    out_items_json JSON,
+    out_created_at TIMESTAMP
 ) AS $$
 BEGIN
     RETURN QUERY
     SELECT 
-        o.id,
+        o.order_id,
         o.order_number,
         o.customer_id,
-        o.table_number,
-        o.status,
-        o.kitchen_status,
-        o.total,
-        COUNT(oi.id)::INTEGER,
+        rt.table_number,
+        os.code,
+        ks.code,
+        COUNT(oi.order_item_id)::INTEGER,
         json_agg(
             json_build_object(
-                'id', oi.id,
-                'name', oi.name,
-                'price', oi.price,
+                'id', oi.order_item_id,
+                'name', oi.item_name,
+                'price', oi.item_price,
                 'quantity', oi.quantity,
                 'special_instructions', oi.special_instructions
             )
         ),
         o.created_at
     FROM orders o
-    LEFT JOIN order_items oi ON o.id = oi.order_id
-    WHERE o.id = p_order_id
-    GROUP BY o.id, o.order_number, o.customer_id, o.table_number, 
-             o.status, o.kitchen_status, o.total, o.created_at;
+    LEFT JOIN order_items oi ON o.order_id = oi.order_id
+    LEFT JOIN restaurant_tables rt ON o.table_id = rt.table_id
+    LEFT JOIN order_statuses os ON o.order_status_id = os.status_id
+    LEFT JOIN kitchen_statuses ks ON o.kitchen_status_id = ks.status_id
+    WHERE o.order_id = p_order_id
+    GROUP BY o.order_id, o.order_number, o.customer_id, rt.table_number, 
+             os.code, ks.code, o.created_at;
 END;
 $$ LANGUAGE plpgsql;
 
--- PROCEDURE 4: Get today's kitchen statistics
+-- PROCEDURE 4: Get today's kitchen statistics (using correct schema)
 CREATE OR REPLACE FUNCTION get_kitchen_statistics()
 RETURNS TABLE(
     total_orders INTEGER,
@@ -393,28 +522,28 @@ RETURNS TABLE(
     in_progress_orders INTEGER,
     pending_orders INTEGER,
     average_prep_time INTERVAL,
-    most_popular_item VARCHAR,
-    revenue DECIMAL
+    most_popular_item VARCHAR
 ) AS $$
 BEGIN
     RETURN QUERY
     SELECT 
-        COUNT(o.id)::INTEGER,
-        COUNT(CASE WHEN o.status = 'completed' THEN 1 END)::INTEGER,
-        COUNT(CASE WHEN o.status IN ('in_progress', 'approved') THEN 1 END)::INTEGER,
-        COUNT(CASE WHEN o.status = 'pending_approval' THEN 1 END)::INTEGER,
-        AVG(o.expected_completion - o.created_at) FILTER (WHERE o.status = 'completed'),
-        (SELECT oi.name FROM order_items oi 
-         WHERE oi.order_id IN (SELECT id FROM orders WHERE DATE(created_at) = CURRENT_DATE)
-         GROUP BY oi.name 
-         ORDER BY SUM(oi.quantity) DESC LIMIT 1),
-        COALESCE(SUM(o.total) FILTER (WHERE DATE(o.created_at) = CURRENT_DATE), 0)
+        COUNT(o.order_id)::INTEGER,
+        COUNT(CASE WHEN os.code = 'completed' THEN 1 END)::INTEGER,
+        COUNT(CASE WHEN os.code IN ('in_progress', 'approved') THEN 1 END)::INTEGER,
+        COUNT(CASE WHEN os.code = 'pending_approval' THEN 1 END)::INTEGER,
+        AVG(o.expected_completion - o.created_at) FILTER (WHERE os.code = 'completed'),
+        (SELECT oi.item_name FROM order_items oi 
+         JOIN orders ord ON oi.order_id = ord.order_id
+         WHERE DATE(ord.created_at) = CURRENT_DATE
+         GROUP BY oi.item_name 
+         ORDER BY SUM(oi.quantity) DESC LIMIT 1)
     FROM orders o
+    JOIN order_statuses os ON o.order_status_id = os.status_id
     WHERE DATE(o.created_at) = CURRENT_DATE;
 END;
 $$ LANGUAGE plpgsql;
 
--- PROCEDURE 5: Batch complete orders by status
+-- PROCEDURE 5: Batch complete orders by status (FIXED - correct syntax)
 CREATE OR REPLACE FUNCTION complete_ready_orders()
 RETURNS TABLE(
     completed_count INTEGER,
@@ -422,46 +551,54 @@ RETURNS TABLE(
 ) AS $$
 DECLARE
     v_count INTEGER;
+    v_ready_status_id INTEGER;
+    v_completed_status_id INTEGER;
 BEGIN
-    UPDATE orders 
-    SET status = 'completed' 
-    WHERE status = 'ready' AND expected_completion < CURRENT_TIMESTAMP
-    RETURNING id INTO TEMP temp_completed_ids;
-
-    SELECT COUNT(*) INTO v_count FROM TEMP temp_completed_ids;
+    -- Get status IDs
+    SELECT status_id INTO v_ready_status_id FROM order_statuses WHERE code = 'ready';
+    SELECT status_id INTO v_completed_status_id FROM order_statuses WHERE code = 'completed';
+    
+    -- Update and count in one operation
+    WITH updated AS (
+        UPDATE orders 
+        SET order_status_id = v_completed_status_id,
+            completed_at = CURRENT_TIMESTAMP
+        WHERE order_status_id = v_ready_status_id 
+          AND expected_completion < CURRENT_TIMESTAMP
+        RETURNING order_id
+    )
+    SELECT COUNT(*) INTO v_count FROM updated;
 
     RETURN QUERY SELECT 
         v_count,
-        'Completed ' || v_count || ' orders that exceeded expected time';
-
-    DROP TABLE TEMP temp_completed_ids;
+        ('Completed ' || v_count || ' orders that exceeded expected time')::VARCHAR;
 END;
 $$ LANGUAGE plpgsql;
 
--- PROCEDURE 6: Get feedback summary for a date range
+-- PROCEDURE 6: Get feedback summary for a date range (using correct schema)
 CREATE OR REPLACE FUNCTION get_feedback_summary(
     p_start_date DATE,
     p_end_date DATE
 )
 RETURNS TABLE(
     total_feedback_count INTEGER,
-    average_rating DECIMAL,
     food_quality_avg DECIMAL,
     service_speed_avg DECIMAL,
-    accuracy_avg DECIMAL,
-    value_for_money_avg DECIMAL
+    order_accuracy_avg DECIMAL,
+    value_for_money_avg DECIMAL,
+    overall_experience_avg DECIMAL
 ) AS $$
 BEGIN
     RETURN QUERY
     SELECT 
-        COUNT(f.id)::INTEGER,
-        ROUND(AVG(f.average_rating)::NUMERIC, 2)::DECIMAL,
+        COUNT(f.feedback_id)::INTEGER,
         ROUND(AVG(f.food_quality)::NUMERIC, 2)::DECIMAL,
         ROUND(AVG(f.service_speed)::NUMERIC, 2)::DECIMAL,
-        ROUND(AVG(f.accuracy)::NUMERIC, 2)::DECIMAL,
-        ROUND(AVG(f.value_for_money)::NUMERIC, 2)::DECIMAL
+        ROUND(AVG(f.order_accuracy)::NUMERIC, 2)::DECIMAL,
+        ROUND(AVG(f.value_for_money)::NUMERIC, 2)::DECIMAL,
+        ROUND(AVG(f.overall_experience)::NUMERIC, 2)::DECIMAL
     FROM feedback f
-    JOIN orders o ON f.order_id = o.id
+    JOIN orders o ON f.order_id = o.order_id
     WHERE DATE(o.created_at) BETWEEN p_start_date AND p_end_date;
 END;
 $$ LANGUAGE plpgsql;
@@ -475,58 +612,68 @@ RETURNS TABLE(
 DECLARE
     v_count INTEGER;
     v_cutoff_date TIMESTAMP;
+    v_completed_status_id INTEGER;
 BEGIN
     v_cutoff_date := CURRENT_TIMESTAMP - (p_days_old || ' days')::INTERVAL;
+    SELECT status_id INTO v_completed_status_id FROM order_statuses WHERE code = 'completed';
     
-    -- In a real system, you'd archive to another table
-    -- For now, we just count and report
+    -- Count orders that would be archived
     SELECT COUNT(*) INTO v_count 
     FROM orders 
-    WHERE created_at < v_cutoff_date AND status = 'completed';
+    WHERE created_at < v_cutoff_date AND order_status_id = v_completed_status_id;
 
     RETURN QUERY SELECT 
         v_count,
-        'Found ' || v_count || ' completed orders older than ' || p_days_old || ' days';
+        ('Found ' || v_count || ' completed orders older than ' || p_days_old || ' days')::VARCHAR;
 END;
 $$ LANGUAGE plpgsql;
 
 -- =====================================================
--- SECTION 4: VIEWS FOR COMMON QUERIES
+-- SECTION 4: VIEWS FOR COMMON QUERIES (Using correct schema)
 -- =====================================================
 
 -- VIEW 1: Active Orders Dashboard
 DROP VIEW IF EXISTS v_active_orders CASCADE;
 CREATE VIEW v_active_orders AS
 SELECT 
-    o.id,
+    o.order_id,
     o.order_number,
-    o.table_number,
-    o.status,
-    o.kitchen_status,
-    o.total,
-    COUNT(oi.id) as item_count,
+    rt.table_number,
+    os.code as status,
+    ks.code as kitchen_status,
+    COUNT(oi.order_item_id) as item_count,
     AGE(CURRENT_TIMESTAMP, o.created_at) as elapsed_time,
     o.expected_completion,
     o.created_at
 FROM orders o
-LEFT JOIN order_items oi ON o.id = oi.order_id
-WHERE o.status IN ('pending_approval', 'approved', 'in_progress', 'ready')
-GROUP BY o.id, o.order_number, o.table_number, o.status, o.kitchen_status, 
-         o.total, o.expected_completion, o.created_at
+LEFT JOIN order_items oi ON o.order_id = oi.order_id
+LEFT JOIN restaurant_tables rt ON o.table_id = rt.table_id
+LEFT JOIN order_statuses os ON o.order_status_id = os.status_id
+LEFT JOIN kitchen_statuses ks ON o.kitchen_status_id = ks.status_id
+WHERE os.code IN ('pending_approval', 'approved', 'in_progress', 'ready')
+GROUP BY o.order_id, o.order_number, rt.table_number, os.code, ks.code, 
+         o.expected_completion, o.created_at
 ORDER BY o.created_at ASC;
 
--- VIEW 2: Revenue Report
+-- VIEW 2: Revenue Report (calculated from order_items since orders doesn't have total)
 DROP VIEW IF EXISTS v_revenue_report CASCADE;
 CREATE VIEW v_revenue_report AS
 SELECT 
     DATE(o.created_at) as order_date,
-    COUNT(o.id) as order_count,
-    SUM(o.subtotal) as total_revenue,
-    SUM(o.tax) as total_tax,
-    SUM(o.total) as grand_total,
-    AVG(o.total) as average_order_value
+    COUNT(DISTINCT o.order_id) as order_count,
+    SUM(oi.item_price * oi.quantity) as total_revenue,
+    ROUND(SUM(oi.item_price * oi.quantity) * 0.1, 2) as estimated_tax,
+    ROUND(SUM(oi.item_price * oi.quantity) * 1.1, 2) as grand_total,
+    ROUND(AVG(order_totals.order_total), 2) as average_order_value
 FROM orders o
-WHERE o.status IN ('completed', 'ready')
+JOIN order_items oi ON o.order_id = oi.order_id
+JOIN order_statuses os ON o.order_status_id = os.status_id
+JOIN (
+    SELECT order_id, SUM(item_price * quantity) as order_total
+    FROM order_items
+    GROUP BY order_id
+) order_totals ON o.order_id = order_totals.order_id
+WHERE os.code IN ('completed', 'ready')
 GROUP BY DATE(o.created_at)
 ORDER BY order_date DESC;
 
@@ -534,35 +681,31 @@ ORDER BY order_date DESC;
 DROP VIEW IF EXISTS v_menu_performance CASCADE;
 CREATE VIEW v_menu_performance AS
 SELECT 
-    m.id,
+    m.item_id,
     m.name,
-    m.category,
+    mc.name as category,
     m.price,
-    COUNT(oi.id) as times_ordered,
-    SUM(oi.quantity) as total_quantity,
-    SUM(oi.price * oi.quantity) as revenue,
+    COUNT(oi.order_item_id) as times_ordered,
+    COALESCE(SUM(oi.quantity), 0) as total_quantity,
+    COALESCE(SUM(oi.item_price * oi.quantity), 0) as revenue,
     m.is_available
 FROM menu_items m
-LEFT JOIN order_items oi ON m.id = oi.menu_item_id
-GROUP BY m.id, m.name, m.category, m.price, m.is_available
+LEFT JOIN menu_categories mc ON m.category_id = mc.category_id
+LEFT JOIN order_items oi ON m.item_id = oi.menu_item_id
+GROUP BY m.item_id, m.name, mc.name, m.price, m.is_available
 ORDER BY times_ordered DESC;
 
 -- =====================================================
--- SECTION 5: SECURITY & PERMISSIONS (OPTIONAL)
+-- SECTION 5: ADDITIONAL INDEXES FOR PERFORMANCE
 -- =====================================================
 
--- Create a role for the application (optional)
--- DO $$
--- BEGIN
---     IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'app_user') THEN
---         CREATE ROLE app_user WITH LOGIN PASSWORD 'secure_password';
---     END IF;
--- END $$;
+CREATE INDEX IF NOT EXISTS idx_orders_status_created ON orders(order_status_id, created_at);
+CREATE INDEX IF NOT EXISTS idx_orders_kitchen_created ON orders(kitchen_status_id, created_at);
+CREATE INDEX IF NOT EXISTS idx_order_items_status ON order_items(item_status);
+CREATE INDEX IF NOT EXISTS idx_orders_customer_created ON orders(customer_id, created_at);
+CREATE INDEX IF NOT EXISTS idx_feedback_submitted ON feedback(submitted_at);
 
--- Grant appropriate permissions
--- GRANT SELECT, INSERT, UPDATE ON ALL TABLES IN SCHEMA public TO app_user;
--- GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO app_user;
--- GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA public TO app_user;
+COMMIT;
 
 -- =====================================================
 -- VERIFICATION & TESTING
