@@ -1,7 +1,7 @@
 ---
 title: Restaurant Management System
 emoji: 🍽️
-colorFrom: orange
+colorFrom: red
 colorTo: red
 sdk: docker
 sdk_version: "20.10.17"
