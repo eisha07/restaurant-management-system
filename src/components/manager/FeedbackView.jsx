@@ -1,0 +1,84 @@
+// Feedback view component for customer feedback display
+import React, { useState, useEffect } from 'react';
+import { managerApi } from '../../services/api';
+
+const FeedbackView = () => {
+    const [feedback, setFeedback] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
+
+    useEffect(() => {
+        const fetchFeedback = async () => {
+            try {
+                const response = await managerApi.getFeedback();
+                if (response.data.success) {
+                    setFeedback(response.data.feedback);
+                } else {
+                    setError(response.data.message);
+                }
+            } catch (err) {
+                setError('Failed to load feedback');
+                console.error(err);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchFeedback();
+    }, []);
+
+    const renderStars = (rating) => {
+        return '⭐'.repeat(Math.round(rating || 0));
+    };
+
+    if (loading) return <div>Loading feedback...</div>;
+    if (error) return <div className="error">{error}</div>;
+
+    return (
+        <div className="feedback-container">
+            <h2>Customer Feedback</h2>
+            
+            <div className="feedback-list">
+                {feedback.length === 0 ? (
+                    <p>No feedback available</p>
+                ) : (
+                    feedback.map(item => (
+                        <div key={item.id} className="feedback-card">
+                            <div className="feedback-header">
+                                <h4>Order #{item.order_number}</h4>
+                                <span className="rating">
+                                    {renderStars(item.average_rating)}
+                                </span>
+                            </div>
+                            <div className="feedback-body">
+                                {item.average_rating && (
+                                    <p className="overall-rating">
+                                        <strong>Overall:</strong> {Number(item.average_rating).toFixed(1)}/5
+                                    </p>
+                                )}
+                                {item.comment && (
+                                    <p className="comment">
+                                        <strong>Comment:</strong> {item.comment}
+                                    </p>
+                                )}
+                                {item.food_quality && (
+                                    <div className="detailed-ratings">
+                                        <p>Food Quality: {item.food_quality}/5</p>
+                                        <p>Service Speed: {item.service_speed}/5</p>
+                                        <p>Accuracy: {item.accuracy}/5</p>
+                                        <p>Value for Money: {item.value_for_money}/5</p>
+                                    </div>
+                                )}
+                            </div>
+                            <div className="feedback-date">
+                                {new Date(item.submitted_at).toLocaleDateString()}
+                            </div>
+                        </div>
+                    ))
+                )}
+            </div>
+        </div>
+    );
+};
+
+export default FeedbackView;
