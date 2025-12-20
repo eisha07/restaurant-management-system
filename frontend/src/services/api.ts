@@ -2,7 +2,16 @@ import axios, { AxiosError } from 'axios';
 import { MenuItem, Order, OrderItem, Feedback, OrderStatus, KitchenStatus, PaymentMethod, Statistics } from '@/types';
 
 // API base configuration
-const API_BASE_URL = import.meta.env.VITE_API_URL || '/api';
+// In production, we use relative paths. In development, we fallback to localhost:5000
+const getApiBaseUrl = () => {
+  if (import.meta.env.VITE_API_URL) return import.meta.env.VITE_API_URL;
+  if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+    return 'http://localhost:5000/api';
+  }
+  return '/api';
+};
+
+const API_BASE_URL = getApiBaseUrl();
 
 // Create axios instance
 const api = axios.create({
@@ -140,17 +149,15 @@ const menuApi = {
     } catch (error) {
       const axiosError = error as AxiosError;
       if (axiosError.code === 'ECONNABORTED' || axiosError.message.includes('timeout')) {
-        console.warn('Menu API timeout - backend may be slow or unavailable');
-        // Return empty array instead of throwing to allow UI to render
-        return [];
+        console.error('Menu API timeout - backend may be slow or unavailable');
+        throw new Error('The server is taking too long to respond. Please try again.');
       }
       if (axiosError.code === 'ECONNREFUSED' || axiosError.code === 'ERR_NETWORK') {
-        console.warn('Backend server not reachable - check if server is running on', API_BASE_URL);
-        return [];
+        console.error('Backend server not reachable - check if server is running on', API_BASE_URL);
+        throw new Error('Cannot connect to the server. Please check if the backend is running.');
       }
       console.error('Failed to fetch menu items:', error);
-      // Return empty array on error to prevent UI crash
-      return [];
+      throw error;
     }
   },
 

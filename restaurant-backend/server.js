@@ -4,7 +4,11 @@ const http = require('http');
 const net = require('net');
 const socketIO = require('socket.io');
 const path = require('path');
-require('dotenv').config();
+
+// Only load .env in development
+if (process.env.NODE_ENV !== 'production') {
+  require('dotenv').config();
+}
 
 const app = express();
 const server = http.createServer(app);
@@ -63,30 +67,39 @@ app.options('/', (req, res) => {
 });
 
 // Routes - with error handling
+console.log('📦 Loading routes...');
+
+const mountRoute = (path, modulePath) => {
+  try {
+    app.use(path, require(modulePath));
+    console.log(`   ✓ ${path} loaded`);
+  } catch (err) {
+    console.error(`   × Failed to load ${path}:`, err.message);
+  }
+};
+
+mountRoute('/api/menu', './routes/menuRoutes');
+mountRoute('/api/orders', './routes/orderRoutes');
+mountRoute('/api/feedback', './routes/feedbackRoutes');
+mountRoute('/api/qr', './routes/qrRoutes');
+mountRoute('/api/auth', './routes/authRoutes');
+mountRoute('/api/manager', './routes/managerDashboard');
+mountRoute('/api/kitchen', './routes/kitchenRoutes');
+
+// Try both possible names for database routes
 try {
-  console.log('📦 Loading routes...');
-  app.use('/api/menu', require('./routes/menuRoutes'));
-  console.log('   ✓ Menu routes loaded');
-  app.use('/api/orders', require('./routes/orderRoutes'));
-  console.log('   ✓ Order routes loaded');
-  app.use('/api/feedback', require('./routes/feedbackRoutes'));
-  console.log('   ✓ Feedback routes loaded');
-  app.use('/api/qr', require('./routes/qrRoutes'));
-  console.log('   ✓ QR routes loaded');
-  app.use('/api/db', require('./routes/databaseRoutes')); // Database admin routes
-  console.log('   ✓ Database routes loaded');
-  app.use('/api/auth', require('./routes/authRoutes')); // Auth routes for manager login
-  console.log('   ✓ Auth routes loaded');
-  app.use('/api/manager', require('./routes/managerDashboard')); // Manager dashboard routes
-  console.log('   ✓ Manager routes loaded');
-  app.use('/api/kitchen', require('./routes/kitchenRoutes')); // Kitchen display routes
-  console.log('   ✓ Kitchen routes loaded');
-  console.log('✅ All routes loaded successfully');
-} catch (err) {
-  console.error('❌ Error loading routes:', err.message);
-  console.error(err.stack);
-  console.warn('⚠️  Continuing despite route loading error...');
+  app.use('/api/db', require('./routes/databaseRoutes'));
+  console.log('   ✓ /api/db loaded');
+} catch (e) {
+  try {
+    app.use('/api/db', require('./routes/databaseRoutes-simple'));
+    console.log('   ✓ /api/db loaded (simple)');
+  } catch (e2) {
+    console.error('   × Failed to load /api/db');
+  }
 }
+
+console.log('✅ Route loading sequence complete');
 
 
 // Health check

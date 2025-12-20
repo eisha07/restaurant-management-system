@@ -11,7 +11,7 @@ interface ManagerLoginProps {
   onLogin: (token: string) => void;
 }
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+const API_BASE_URL = import.meta.env.VITE_API_URL || '/api';
 
 export function ManagerLoginDialog({ open, onLogin }: ManagerLoginProps) {
   const [password, setPassword] = useState('');
@@ -65,9 +65,9 @@ export function ManagerLoginDialog({ open, onLogin }: ManagerLoginProps) {
       
       if (axios.isAxiosError(err)) {
         if (err.code === 'ECONNABORTED' || err.message.includes('timeout')) {
-          message = 'Request timed out. Please check if the backend server is running on http://localhost:5000';
+          message = 'Request timed out. Please check if the backend server is running.';
         } else if (err.code === 'ECONNREFUSED' || err.code === 'ERR_NETWORK') {
-          message = 'Cannot connect to server. Please ensure the backend is running on http://localhost:5000';
+          message = 'Cannot connect to server. Please ensure the backend is running.';
         } else if (err.response) {
           // Server responded with error
           message = err.response.data?.message || err.response.data?.error || err.message;

@@ -107,13 +107,13 @@ router.get('/', async (req, res) => {
                 m.price,
                 m.image_url,
                 m.is_available,
-                c.name as category
+                COALESCE(c.name, 'General') as category
             FROM menu_items m
             LEFT JOIN menu_categories c ON m.category_id = c.category_id
-            ORDER BY c.name, m.name
+            ORDER BY m.item_id ASC
         `, { 
             type: sequelize.QueryTypes.SELECT,
-            timeout: 10000 // 10 second query timeout
+            timeout: 15000
         });
         
         console.log(`[MENU] Database query successful - ${items.length} items retrieved`);

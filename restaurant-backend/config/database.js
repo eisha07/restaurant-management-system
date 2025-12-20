@@ -1,6 +1,10 @@
 // config/database.js - CORRECTED VERSION
 const { Sequelize } = require('sequelize');
-require('dotenv').config();
+
+// Only load .env in development
+if (process.env.NODE_ENV !== 'production') {
+  require('dotenv').config();
+}
 
 console.log('Database configuration:');
 console.log('DATABASE_URL:', process.env.DATABASE_URL ? '*** (set)' : 'NOT SET');
@@ -13,22 +17,32 @@ console.log('DB_PASSWORD:', process.env.DB_PASSWORD ? '*** (set)' : 'NOT SET');
 let sequelize;
 
 try {
-  if (process.env.DATABASE_URL) {
-    // Option 1: Using connection string (standard for cloud DBs)
-    sequelize = new Sequelize(process.env.DATABASE_URL, {
+  const rawUrl = process.env.DATABASE_URL;
+  if (rawUrl && rawUrl.trim().length > 0) {
+    console.log('Attempting to connect using DATABASE_URL...');
+    let dbUrl = String(rawUrl).trim();
+    
+    // Fix for Sequelize "Cannot read properties of null (reading 'replace')"
+    // This happens if the URL is missing a trailing slash or database name
+    if (dbUrl.includes('://') && !dbUrl.split('://')[1].includes('/')) {
+      console.log('Adding missing trailing slash to DATABASE_URL');
+      dbUrl += '/';
+    }
+
+    sequelize = new Sequelize(dbUrl, {
       dialect: 'postgres',
       dialectOptions: {
         ssl: {
           require: true,
           rejectUnauthorized: false
         },
-        statement_timeout: 5000
+        statement_timeout: 15000
       },
-      logging: (msg) => console.log('[SQL]', msg),
+      logging: false,
       pool: {
         max: 5,
         min: 0,
-        acquire: 5000,
+        acquire: 30000,
         idle: 10000
       }
     });

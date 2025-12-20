@@ -2,7 +2,8 @@ import { io, Socket } from 'socket.io-client';
 import { Order } from '@/types';
 import { transformOrder } from './api';
 
-const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || window.location.origin;
+const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || 
+  (import.meta.env.DEV ? 'http://localhost:5000' : window.location.origin);
 
 let socket: Socket | null = null;
 
