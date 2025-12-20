@@ -89,17 +89,6 @@ try {
 }
 
 
-// The "catchall" handler: for any request that doesn't
-// match one above, send back React's index.html file.
-app.get('(.*)', (req, res) => {
-  if (!req.path.startsWith('/api')) {
-    res.sendFile(path.join(__dirname, 'public', 'index.html'));
-  } else {
-    res.status(404).json({ error: 'API endpoint not found' });
-  }
-});
-
-
 // Health check
 app.get('/api/health', (req, res) => {
   res.json({ 
@@ -147,6 +136,16 @@ app.get('/api/menu/test', (req, res) => {
       }
     ]
   });
+});
+
+// The "catchall" handler: for any request that doesn't
+// match one above, send back React's index.html file.
+app.use((req, res, next) => {
+  if (!req.path.startsWith('/api')) {
+    res.sendFile(path.join(__dirname, 'public', 'index.html'));
+  } else {
+    next(); // Pass to 404 handler
+  }
 });
 
 // Error handling middleware
