@@ -39,8 +39,12 @@ app.use(cors(corsOptions));
 // Middleware
 app.use(express.json());
 
+// Serve static files from the React app
+app.use(express.static(path.join(__dirname, 'public')));
+
 // Serve static images so DB values like "/images/whatever.jpg" resolve
 app.use('/images', express.static(path.join(__dirname, '..', 'public', 'images')));
+
 
 // Add request timeout to prevent hanging requests
 // app.use((req, res, next) => {
@@ -85,23 +89,16 @@ try {
 }
 
 
-// Basic route for testing
-app.get('/', (req, res) => {
-  res.json({ 
-    message: 'Restaurant Management System API',
-    version: '1.0',
-    endpoints: [
-      '/api/menu', 
-      '/api/orders', 
-      '/api/feedback', 
-      '/api/qr', 
-      '/api/db',
-      '/api/auth',
-      '/api/manager',
-      '/api/kitchen'
-    ]
-  });
+// The "catchall" handler: for any request that doesn't
+// match one above, send back React's index.html file.
+app.get('*', (req, res) => {
+  if (!req.path.startsWith('/api')) {
+    res.sendFile(path.join(__dirname, 'public', 'index.html'));
+  } else {
+    res.status(404).json({ error: 'API endpoint not found' });
+  }
 });
+
 
 // Health check
 app.get('/api/health', (req, res) => {

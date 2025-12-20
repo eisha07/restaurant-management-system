@@ -1,16 +1,34 @@
-# Read the doc: https://huggingface.co/docs/hub/spaces-sdks-docker
-# you will also find guides on how best to write your Dockerfile
+# Use Node.js for both building and running
+FROM node:18
 
-FROM python:3.9
-
-RUN useradd -m -u 1000 user
-USER user
-ENV PATH="/home/user/.local/bin:$PATH"
-
+# Set working directory
 WORKDIR /app
 
-COPY --chown=user ./requirements.txt requirements.txt
-RUN pip install --no-cache-dir --upgrade -r requirements.txt
+# Copy backend files and install dependencies
+COPY restaurant-backend/package*.json ./restaurant-backend/
+RUN cd restaurant-backend && npm install
 
-COPY --chown=user . /app
-CMD ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "7860"]
+# Copy frontend files and install dependencies
+COPY frontend/package*.json ./frontend/
+RUN cd frontend && npm install
+
+# Copy the rest of the code
+COPY . .
+
+# Build the frontend
+RUN cd frontend && npm run build
+
+# Move frontend build to backend public folder (so Express can serve it)
+RUN mkdir -p restaurant-backend/public
+RUN cp -r frontend/dist/* restaurant-backend/public/
+
+# Expose the port Hugging Face expects
+EXPOSE 7860
+
+# Set environment variables
+ENV PORT=7860
+ENV NODE_ENV=production
+
+# Start the backend
+CMD ["node", "restaurant-backend/server.js"]
+
