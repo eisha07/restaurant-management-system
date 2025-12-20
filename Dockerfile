@@ -27,6 +27,7 @@ EXPOSE 7860
 
 # Set environment variables
 ENV PORT=7860
+ENV BIND_ADDRESS=0.0.0.0
 ENV NODE_ENV=production
 
 # Start the backend
