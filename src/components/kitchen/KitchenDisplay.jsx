@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import '../../styles/KitchenDisplay.css';
 import { kitchenApi } from '../../services/api';
-import { joinKitchenRoom, onNewOrder, offNewOrder, onOrderUpdate, offOrderUpdate } from '../../services/socket';
+import { joinKitchenRoom, onNewOrder, offNewOrder, onOrderUpdate, offOrderUpdate, onOrderApproved, offOrderApproved } from '../../services/socket';
 
 const KitchenDisplay = () => {
     const [orders, setOrders] = useState({
@@ -156,9 +156,18 @@ const KitchenDisplay = () => {
             // Refresh orders when status changes
             fetchOrders();
         };
+
+        const handleOrderApproved = (data) => {
+            console.log('✅ Order approved by manager, refreshing kitchen:', data);
+            fetchOrders();
+            if (soundEnabled && audioRef.current) {
+                audioRef.current.play().catch(e => console.log('Audio play failed:', e));
+            }
+        };
         
         onNewOrder(handleNewOrder);
         onOrderUpdate(handleOrderUpdate);
+        onOrderApproved(handleOrderApproved);
         
         // Set up real-time updates (polling every 10 seconds as fallback, since Socket.IO is primary now)
         const interval = setInterval(fetchOrders, 10000);
@@ -167,6 +176,7 @@ const KitchenDisplay = () => {
             clearInterval(interval);
             offNewOrder(handleNewOrder);
             offOrderUpdate(handleOrderUpdate);
+            offOrderApproved(handleOrderApproved);
         };
     }, []);
 

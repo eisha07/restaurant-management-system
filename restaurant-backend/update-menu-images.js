@@ -1,34 +1,38 @@
 #!/usr/bin/env node
 
 /**
- * Update menu items with proper placeholder URLs
+ * Update menu items to use local /images assets instead of remote placeholders.
+ * Assumes the images live in /public/images and keeps URLs relative
+ * (e.g. /images/chicken%20biryani.jpg).
  */
 
 const db = require('./config/database');
 
+const imagePath = (filename) => `/images/${encodeURIComponent(filename)}`;
+
 const menuItemUpdates = [
-  { code: 'BIRYANI', url: 'https://via.placeholder.com/800x600/FF6B6B/FFFFFF?text=Chicken+Biryani' },
-  { code: 'KARAHI', url: 'https://via.placeholder.com/800x600/4ECDC4/FFFFFF?text=Chicken+Karahi' },
-  { code: 'TIKKA', url: 'https://via.placeholder.com/800x600/FFD93D/FFFFFF?text=Chicken+Tikka' },
-  { code: 'NIHARI', url: 'https://via.placeholder.com/800x600/F72585/FFFFFF?text=Beef+Nihari' },
-  { code: 'CHANA', url: 'https://via.placeholder.com/800x600/95E1D3/333333?text=Chana+Masala' },
-  { code: 'BURGER', url: 'https://via.placeholder.com/800x600/F38181/FFFFFF?text=Beef+Burger' },
-  { code: 'FRIES', url: 'https://via.placeholder.com/800x600/FCE38A/333333?text=French+Fries' },
-  { code: 'PIZZA', url: 'https://via.placeholder.com/800x600/95E1D3/FFFFFF?text=Pizza+Margherita' },
-  { code: 'WINGS', url: 'https://via.placeholder.com/800x600/E7717D/FFFFFF?text=Chicken+Wings' },
-  { code: 'SANDWICH', url: 'https://via.placeholder.com/800x600/C2BBF0/FFFFFF?text=Club+Sandwich' },
-  { code: 'PASTA', url: 'https://via.placeholder.com/800x600/FFC75F/FFFFFF?text=Pasta+Carbonara' },
-  { code: 'SALMON', url: 'https://via.placeholder.com/800x600/F08A5D/FFFFFF?text=Grilled+Salmon' },
-  { code: 'STEAK', url: 'https://via.placeholder.com/800x600/B83B5E/FFFFFF?text=Beef+Steak' },
-  { code: 'SALAD', url: 'https://via.placeholder.com/800x600/6A994E/FFFFFF?text=Caesar+Salad' },
-  { code: 'RISOTTO', url: 'https://via.placeholder.com/800x600/BC4749/FFFFFF?text=Mushroom+Risotto' },
-  { code: 'COLA', url: 'https://via.placeholder.com/800x600/D62828/FFFFFF?text=Coca-Cola' },
-  { code: 'LIME', url: 'https://via.placeholder.com/800x600/80ED99/333333?text=Fresh+Lime+Soda' },
-  { code: 'LASSI', url: 'https://via.placeholder.com/800x600/FAA307/FFFFFF?text=Mango+Lassi' },
-  { code: 'WATER', url: 'https://via.placeholder.com/800x600/06AED5/FFFFFF?text=Mineral+Water' },
-  { code: 'BROWNIE', url: 'https://via.placeholder.com/800x600/6F4C3E/FFFFFF?text=Chocolate+Brownie' },
-  { code: 'CHEESE', url: 'https://via.placeholder.com/800x600/FFE5B4/333333?text=Cheesecake' },
-  { code: 'GULAB', url: 'https://via.placeholder.com/800x600/FF8C42/FFFFFF?text=Gulab+Jamun' }
+  { code: 'BIRYANI', filename: 'chicken biryani.jpg' },
+  { code: 'KARAHI', filename: 'chicken karahi.jpg' },
+  { code: 'TIKKA', filename: 'chicken tikka.jpg' },
+  { code: 'NIHARI', filename: 'beef nihari.jpg' },
+  { code: 'CHANA', filename: 'chana masala.jpg' },
+  { code: 'BURGER', filename: 'beef burger.jpg' },
+  { code: 'FRIES', filename: 'french fries.jpg' },
+  { code: 'PIZZA', filename: 'pizza margherita.jpg' },
+  { code: 'WINGS', filename: 'chicken wings.jpg' },
+  { code: 'SANDWICH', filename: 'club sandwich.jpg' },
+  { code: 'PASTA', filename: 'pasta carbonara.jpg' },
+  { code: 'SALMON', filename: 'grilled salmon.jpg' },
+  { code: 'STEAK', filename: 'beef steak.jpg' },
+  { code: 'SALAD', filename: 'caesar salad.jpg' },
+  { code: 'RISOTTO', filename: 'mushroom risotto.jpg' },
+  { code: 'COLA', filename: 'coca cola.jpg' },
+  { code: 'LIME', filename: 'fresh lime soda.jpg' },
+  { code: 'LASSI', filename: 'mango lassi.jpg' },
+  { code: 'WATER', filename: 'mineral water.jpg' },
+  { code: 'BROWNIE', filename: 'chocolate brownie.jpg' },
+  { code: 'CHEESE', filename: 'cheesecake.jpg' },
+  { code: 'GULAB', filename: 'gulab jamun.jpg' }
 ];
 
 async function updateMenuImages() {
@@ -44,7 +48,7 @@ async function updateMenuImages() {
       `;
 
       const result = await db.sequelize.query(query, {
-        bind: [item.url, item.code],
+        bind: [imagePath(item.filename), item.code],
         type: db.sequelize.QueryTypes.UPDATE
       });
 
@@ -65,7 +69,7 @@ async function updateMenuImages() {
 
     console.log('Sample items after update:');
     verification.forEach(item => {
-      console.log(`  • ${item.name}: ${item.image_url.substring(0, 80)}...`);
+      console.log(`  • ${item.name}: ${item.image_url}`);
     });
 
     process.exit(0);

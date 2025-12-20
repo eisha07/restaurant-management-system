@@ -1,5 +1,6 @@
 import { io, Socket } from 'socket.io-client';
 import { Order } from '@/types';
+import { transformOrder } from './api';
 
 const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || 'http://localhost:5000';
 
@@ -44,6 +45,11 @@ export const getSocket = (): Socket => {
   if (!socket) {
     return initializeSocket();
   }
+  // If socket exists but is disconnected, try to reconnect
+  if (!socket.connected) {
+    console.log('🔄 Socket disconnected, attempting to reconnect...');
+    socket.connect();
+  }
   return socket;
 };
 
@@ -62,19 +68,22 @@ export const closeSocket = (): void => {
 /**
  * Listen for new orders (for manager)
  */
-export const onNewOrder = (callback: (order: any) => void): (() => void) => {
+export const onNewOrder = (callback: (order: Order) => void): (() => void) => {
   const socketInstance = getSocket();
-  socketInstance.on('new-order', (data) => {
+  
+  const handler = (data: any) => {
     // Backend sends { type, order, timestamp }, extract the order
     if (data.order) {
-      callback(data.order);
+      callback(transformOrder(data.order));
     } else {
-      callback(data);
+      callback(transformOrder(data));
     }
-  });
+  };
+  
+  socketInstance.on('new-order', handler);
   
   return () => {
-    socketInstance.off('new-order', callback);
+    socketInstance.off('new-order', handler);
   };
 };
 
@@ -85,10 +94,26 @@ export const onOrderStatusUpdate = (
   callback: (order: Order) => void
 ): (() => void) => {
   const socketInstance = getSocket();
-  socketInstance.on('order_status_updated', callback);
+  
+  const handler = (data: any) => {
+    console.log('📡 Socket: order status update received:', data);
+    // Backend sends orderId and status, construct a partial order update
+    const orderUpdate = {
+      id: data.orderId || data.id || data.order_id,
+      status: data.status,
+      kitchenStatus: data.status,
+      ...data
+    };
+    callback(transformOrder(orderUpdate));
+  };
+  
+  // Listen to both event names (backend uses 'order-update', legacy uses 'order_status_updated')
+  socketInstance.on('order_status_updated', handler);
+  socketInstance.on('order-update', handler);
   
   return () => {
-    socketInstance.off('order_status_updated', callback);
+    socketInstance.off('order_status_updated', handler);
+    socketInstance.off('order-update', handler);
   };
 };
 
@@ -221,8 +246,8 @@ export const onKitchenStatsUpdate = (
  */
 export const joinOrderRoom = (orderId: number): void => {
   const socketInstance = getSocket();
-  socketInstance.emit('join_order', { orderId });
-  console.log(`📡 Joined order room: ${orderId}`);
+  socketInstance.emit('join-customer', { orderId });
+  console.log(`📡 Joined order room: order_${orderId}`);
 };
 
 /**
@@ -230,8 +255,8 @@ export const joinOrderRoom = (orderId: number): void => {
  */
 export const leaveOrderRoom = (orderId: number): void => {
   const socketInstance = getSocket();
-  socketInstance.emit('leave_order', { orderId });
-  console.log(`📡 Left order room: ${orderId}`);
+  socketInstance.emit('leave-customer', { orderId });
+  console.log(`📡 Left order room: order_${orderId}`);
 };
 
 /**

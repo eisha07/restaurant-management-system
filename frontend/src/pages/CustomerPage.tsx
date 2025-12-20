@@ -1,5 +1,4 @@
-import { useState, useEffect } from 'react';
-import { mockOrders } from '@/data/mockData';
+import { useState, useEffect, useCallback } from 'react';
 import { Order, MenuItem } from '@/types';
 import { MenuBrowser } from '@/components/customer/MenuBrowser';
 import { CartModal } from '@/components/customer/CartModal';
@@ -10,7 +9,17 @@ import { Header } from '@/components/shared/Header';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Sparkles, ClipboardList, ChevronRight } from 'lucide-react';
-import { menuApi } from '@/services/api';
+import { menuApi, orderApi } from '@/services/api';
+import { 
+  initializeSocket, 
+  getSocket, 
+  joinOrderRoom, 
+  leaveOrderRoom,
+  onOrderStatusUpdate,
+  onOrderApprovalUpdate,
+  onOrderComplete
+} from '@/services/socket';
+import { toast } from 'sonner';
 
 export default function CustomerPage() {
   const [isCartOpen, setIsCartOpen] = useState(false);
@@ -20,6 +29,137 @@ export default function CustomerPage() {
   const [isFeedbackOpen, setIsFeedbackOpen] = useState(false);
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
   const [loadingMenu, setLoadingMenu] = useState(true);
+  const [customerOrders, setCustomerOrders] = useState<Order[]>([]);
+  const [feedbackDueOrders, setFeedbackDueOrders] = useState<Set<number>>(new Set());
+
+  // Get customer session ID
+  const getSessionId = useCallback(() => {
+    let sessionId = localStorage.getItem('customerSessionId');
+    if (!sessionId) {
+      sessionId = `customer-${Date.now()}-${Math.random().toString(36).slice(2, 11)}`;
+      localStorage.setItem('customerSessionId', sessionId);
+    }
+    return sessionId;
+  }, []);
+
+  // Fetch customer's orders from database
+  const fetchCustomerOrders = useCallback(async () => {
+    const sessionId = getSessionId();
+    try {
+      const orders = await orderApi.getByCustomerSession(sessionId);
+      setCustomerOrders(orders);
+      console.log('✅ Customer orders loaded:', orders.length, 'orders');
+      
+      // Join socket rooms for each active order
+      orders.forEach(order => {
+        if (order.status !== 'completed' && order.status !== 'cancelled') {
+          joinOrderRoom(order.id);
+        }
+      });
+    } catch (error) {
+      console.error('Failed to load customer orders:', error);
+    }
+  }, [getSessionId]);
+
+  // Initialize socket and fetch orders
+  useEffect(() => {
+    initializeSocket();
+    fetchCustomerOrders();
+
+    // Listen for new orders from this session
+    const handleOrderCreated = () => {
+      fetchCustomerOrders();
+    };
+    window.addEventListener('orderCreated', handleOrderCreated);
+
+    return () => {
+      window.removeEventListener('orderCreated', handleOrderCreated);
+    };
+  }, [fetchCustomerOrders]);
+
+  // Socket event handlers for real-time updates
+  useEffect(() => {
+    // Handle order status updates
+    const unsubStatus = onOrderStatusUpdate((updatedOrder) => {
+      console.log('📡 Real-time order status update:', updatedOrder);
+      setCustomerOrders(prev => 
+        prev.map(o => o.id === updatedOrder.id ? updatedOrder : o)
+      );
+      
+      // Update selected order if it matches
+      setSelectedOrder(prev => 
+        prev && prev.id === updatedOrder.id ? updatedOrder : prev
+      );
+      
+      // Show toast notification for status changes
+      const statusMessages: Record<string, string> = {
+        'approved': '✅ Your order has been approved!',
+        'in_progress': '👨‍🍳 Your order is being prepared!',
+        'ready': '🍽️ Your order is ready for pickup!',
+        'completed': '✓ Order completed. Thank you!'
+      };
+      if (statusMessages[updatedOrder.status]) {
+        toast.success(statusMessages[updatedOrder.status]);
+      }
+    });
+
+    // Handle order approval/rejection
+    const unsubApproval = onOrderApprovalUpdate((data) => {
+      console.log('📡 Order approval update:', data);
+      if (data.approved) {
+        toast.success('Your order has been approved by the manager!');
+      } else {
+        toast.error(`Order rejected: ${data.reason || 'Please contact staff'}`);
+      }
+      fetchCustomerOrders();
+    });
+
+    // Handle order completion
+    const unsubComplete = onOrderComplete((order) => {
+      console.log('📡 Order completed:', order);
+      toast.success('🎉 Your order is complete!');
+      setCustomerOrders(prev => 
+        prev.map(o => o.id === order.id ? order : o)
+      );
+      // Leave the order room
+      leaveOrderRoom(order.id);
+    });
+
+    return () => {
+      unsubStatus();
+      unsubApproval();
+      unsubComplete();
+    };
+  }, [fetchCustomerOrders]);
+
+  // Check for orders that are due for feedback (estimated time has passed)
+  useEffect(() => {
+    const checkFeedbackDue = () => {
+      const now = new Date();
+      customerOrders.forEach(order => {
+        if (order.expectedCompletion && order.status !== 'cancelled') {
+          const expectedTime = new Date(order.expectedCompletion);
+          if (now >= expectedTime && !feedbackDueOrders.has(order.id)) {
+            // Order is past its expected completion - prompt for feedback
+            setFeedbackDueOrders(prev => new Set(prev).add(order.id));
+            if (order.status === 'completed' || order.status === 'ready') {
+              // Auto-open feedback form for completed orders
+              setSelectedOrder(order);
+              setIsFeedbackOpen(true);
+              toast.info('Please rate your order experience!', {
+                duration: 5000,
+              });
+            }
+          }
+        }
+      });
+    };
+
+    // Check immediately and then every 30 seconds
+    checkFeedbackDue();
+    const interval = setInterval(checkFeedbackDue, 30000);
+    return () => clearInterval(interval);
+  }, [customerOrders, feedbackDueOrders]);
 
   // Fetch menu items from database
   useEffect(() => {
@@ -40,8 +180,8 @@ export default function CustomerPage() {
     fetchMenu();
   }, []);
 
-  // Simulate active orders (in real app, this would come from context/API)
-  const activeOrders = mockOrders.filter(o => 
+  // Filter active orders (not completed or cancelled)
+  const activeOrders = customerOrders.filter(o => 
     o.status !== 'completed' && o.status !== 'cancelled'
   );
 

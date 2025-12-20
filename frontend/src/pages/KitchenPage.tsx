@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
 import { mockOrders } from '@/data/mockData';
 import { Order, KitchenStatus } from '@/types';
 import { Badge } from '@/components/ui/badge';
@@ -19,6 +19,13 @@ import { Input } from '@/components/ui/input';
 import { formatDistanceToNow } from 'date-fns';
 import { kitchenApi } from '@/services/api';
 import { usePersistentState } from '@/hooks/usePersistentState';
+import { 
+  initializeSocket,
+  getSocket,
+  subscribeToKitchenDisplay,
+  unsubscribeFromKitchenDisplay
+} from '@/services/socket';
+import { toast } from 'sonner';
 
 interface KanbanColumnProps {
   title: string;
@@ -27,9 +34,10 @@ interface KanbanColumnProps {
   icon: React.ReactNode;
   color: string;
   onMoveOrder: (orderId: number, newStatus: KitchenStatus) => void;
+  onCompleteOrder?: (orderId: number) => void;
 }
 
-function KanbanColumn({ title, status, orders, icon, color, onMoveOrder }: KanbanColumnProps) {
+function KanbanColumn({ title, status, orders, icon, color, onMoveOrder, onCompleteOrder }: KanbanColumnProps) {
   const nextStatus: Record<KitchenStatus, KitchenStatus | null> = {
     pending: 'preparing',
     preparing: 'ready',
@@ -115,11 +123,12 @@ function KanbanColumn({ title, status, orders, icon, color, onMoveOrder }: Kanba
                     </Button>
                   )}
 
-                  {status === 'ready' && (
+                  {status === 'ready' && onCompleteOrder && (
                     <Button
                       size="sm"
                       variant="outline"
                       className="w-full border-success text-success hover:bg-success/10"
+                      onClick={() => onCompleteOrder(order.id)}
                     >
                       <CheckCircle2 className="w-4 h-4 mr-2" />
                       Complete Order
@@ -146,31 +155,73 @@ export default function KitchenPage() {
   const [loading, setLoading] = useState(true);
   const [hasFetched, setHasFetched] = useState(false);
 
-  // Fetch active kitchen orders on component mount (only once)
+  // Fetch orders from API
+  const fetchOrders = useCallback(async () => {
+    try {
+      setLoading(true);
+      const activeOrders = await kitchenApi.getActiveOrders();
+      setOrders(activeOrders.length > 0 ? activeOrders : mockOrders);
+      console.log('✅ Kitchen orders loaded:', activeOrders.length, 'orders');
+    } catch (error) {
+      console.error('Failed to load kitchen orders:', error);
+      // Fall back to mock data if fetch fails
+      setOrders(mockOrders);
+    } finally {
+      setLoading(false);
+      setHasFetched(true);
+    }
+  }, [setOrders]);
+
+  // Initialize socket and fetch orders
   useEffect(() => {
-    const fetchOrders = async () => {
-      if (hasFetched) {
-        setLoading(false);
-        return;
-      }
-
-      try {
-        setLoading(true);
-        const activeOrders = await kitchenApi.getActiveOrders();
-        setOrders(activeOrders.length > 0 ? activeOrders : mockOrders);
-        console.log('✅ Kitchen orders loaded:', activeOrders.length, 'orders');
-      } catch (error) {
-        console.error('Failed to load kitchen orders:', error);
-        // Fall back to mock data if fetch fails
-        setOrders(mockOrders);
-      } finally {
-        setLoading(false);
-        setHasFetched(true);
-      }
+    initializeSocket();
+    subscribeToKitchenDisplay();
+    
+    if (!hasFetched) {
+      fetchOrders();
+    } else {
+      setLoading(false);
+    }
+    
+    return () => {
+      unsubscribeFromKitchenDisplay();
     };
+  }, [hasFetched, fetchOrders]);
 
-    fetchOrders();
-  }, []);
+  // Socket event listeners for real-time updates
+  useEffect(() => {
+    const socket = getSocket();
+    
+    // Listen for new approved orders
+    const handleOrderApproved = (data: any) => {
+      console.log('📡 Kitchen: Order approved received:', data);
+      toast.success(`New order #${data.orderId} received!`);
+      // Refetch orders to get the new approved order
+      fetchOrders();
+    };
+    
+    // Listen for order updates
+    const handleOrderUpdate = (data: any) => {
+      console.log('📡 Kitchen: Order update received:', data);
+      setOrders(prev => 
+        prev.map(order => 
+          order.id === data.orderId 
+            ? { ...order, kitchenStatus: data.status }
+            : order
+        )
+      );
+    };
+    
+    socket.on('order-approved', handleOrderApproved);
+    socket.on('order-update', handleOrderUpdate);
+    socket.on('kitchen_order_updated', handleOrderUpdate);
+    
+    return () => {
+      socket.off('order-approved', handleOrderApproved);
+      socket.off('order-update', handleOrderUpdate);
+      socket.off('kitchen_order_updated', handleOrderUpdate);
+    };
+  }, [fetchOrders, setOrders]);
 
   const filteredOrders = useMemo(() => {
     if (!searchQuery) return orders;
@@ -186,7 +237,7 @@ export default function KitchenPage() {
   const preparingOrders = filteredOrders.filter(o => o.kitchenStatus === 'preparing');
   const readyOrders = filteredOrders.filter(o => o.kitchenStatus === 'ready');
 
-  const handleMoveOrder = (orderId: number, newStatus: KitchenStatus) => {
+  const handleMoveOrder = async (orderId: number, newStatus: KitchenStatus) => {
     // Update local state immediately for UI feedback
     setOrders(prev =>
       prev.map(order =>
@@ -194,8 +245,42 @@ export default function KitchenPage() {
       )
     );
     
-    // TODO: Call backend API to persist status change
-    // await kitchenApi.updateOrderStatus(orderId, newStatus);
+    try {
+      // Call backend API to persist status change
+      await kitchenApi.updateOrderStatus(orderId, newStatus);
+      
+      // Show success toast
+      const statusMessages: Record<KitchenStatus, string> = {
+        pending: 'Order moved to pending',
+        preparing: '👨‍🍳 Started preparing order',
+        ready: '✅ Order is ready for pickup!'
+      };
+      toast.success(statusMessages[newStatus]);
+      
+      console.log(`✅ Order ${orderId} status updated to ${newStatus}`);
+    } catch (error) {
+      console.error('Failed to update order status:', error);
+      toast.error('Failed to update order status');
+      // Revert local state on error by refetching
+      fetchOrders();
+    }
+  };
+
+  const handleCompleteOrder = async (orderId: number) => {
+    // Remove from local state immediately for UI feedback
+    setOrders(prev => prev.filter(order => order.id !== orderId));
+    
+    try {
+      // Call backend API to mark as completed
+      await kitchenApi.updateOrderStatus(orderId, 'completed');
+      toast.success('🎉 Order completed! Customer has been notified.');
+      console.log(`✅ Order ${orderId} completed`);
+    } catch (error) {
+      console.error('Failed to complete order:', error);
+      toast.error('Failed to complete order');
+      // Revert local state on error by refetching
+      fetchOrders();
+    }
   };
 
   return (
@@ -277,6 +362,7 @@ export default function KitchenPage() {
             icon={<CheckCircle2 className="w-5 h-5 text-white" />}
             color="bg-success"
             onMoveOrder={handleMoveOrder}
+            onCompleteOrder={handleCompleteOrder}
           />
         </div>
       </main>

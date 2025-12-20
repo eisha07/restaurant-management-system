@@ -1,5 +1,5 @@
 import axios, { AxiosError } from 'axios';
-import { MenuItem, Order, OrderItem, Feedback } from '@/types';
+import { MenuItem, Order, OrderItem, Feedback, OrderStatus, KitchenStatus, PaymentMethod, Statistics } from '@/types';
 
 // API base configuration
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
@@ -7,7 +7,7 @@ const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api'
 // Create axios instance
 const api = axios.create({
   baseURL: API_BASE_URL,
-  timeout: 10000,
+  timeout: 30000, // Increased to 30 seconds to handle slow DB queries
   headers: {
     'Content-Type': 'application/json',
   },
@@ -39,18 +39,118 @@ api.interceptors.response.use(
   }
 );
 
+// Helper to transform backend menu item to frontend format
+export const transformMenuItem = (item: any): MenuItem => {
+  return {
+    id: item.id || item.item_id,
+    name: item.name,
+    description: item.description,
+    price: parseFloat(item.price || 0),
+    category: item.category || 'Uncategorized',
+    image: item.image_url || item.image || 'https://via.placeholder.com/150',
+    rating: parseFloat(item.rating || 4.5),
+    available: item.is_available !== undefined ? item.is_available : (item.available !== undefined ? item.available : true),
+    preparationTime: item.preparation_time_min || item.preparationTime || 15,
+    spicyLevel: item.spicy_level || item.spicyLevel,
+    tags: item.dietary_tags ? item.dietary_tags.split(',') : (item.tags || [])
+  };
+};
+
+// Helper to transform backend feedback to frontend format
+export const transformFeedback = (feedback: any): Feedback => {
+  return {
+    id: feedback.feedback_id || feedback.id,
+    orderId: feedback.order_id || feedback.orderId,
+    foodQuality: feedback.food_quality || feedback.foodQuality || 5,
+    serviceSpeed: feedback.service_speed || feedback.serviceSpeed || 5,
+    overallExperience: feedback.overall_experience || feedback.overallExperience || 5,
+    accuracy: feedback.order_accuracy || feedback.accuracy || 5,
+    valueForMoney: feedback.value_for_money || feedback.valueForMoney || 5,
+    comment: feedback.comment || '',
+    submittedAt: feedback.submitted_at || feedback.submittedAt || new Date().toISOString()
+  };
+};
+
+// Helper to transform backend order to frontend format
+export const transformOrder = (order: any): Order => {
+  // Map backend status names to frontend status codes
+  const statusMap: Record<string, OrderStatus> = {
+    'Pending Approval': 'pending_approval',
+    'Approved': 'approved',
+    'In Progress': 'in_progress',
+    'Ready': 'ready',
+    'Completed': 'completed',
+    'Cancelled': 'cancelled',
+    'pending_approval': 'pending_approval',
+    'approved': 'approved',
+    'in_progress': 'in_progress',
+    'ready': 'ready',
+    'completed': 'completed',
+    'cancelled': 'cancelled'
+  };
+
+  const kitchenStatusMap: Record<string, KitchenStatus> = {
+    'Pending': 'pending',
+    'Preparing': 'preparing',
+    'Ready': 'ready',
+    'pending': 'pending',
+    'preparing': 'preparing',
+    'ready': 'ready'
+  };
+
+  return {
+    id: order.id || order.order_id,
+    orderNumber: order.order_number || `ORD-${order.id}`,
+    status: statusMap[order.status] || order.status || 'pending_approval',
+    kitchenStatus: kitchenStatusMap[order.kitchen_status] || order.kitchen_status || 'pending',
+    paymentMethod: (order.payment_method?.toLowerCase() as PaymentMethod) || 'cash',
+    tableNumber: order.table_number?.toString(),
+    items: (order.items || []).map((item: any) => ({
+      menuItemId: item.menu_item_id,
+      name: item.name || item.item_name,
+      price: parseFloat(item.price || item.item_price || 0),
+      quantity: item.quantity,
+      specialInstructions: item.special_instructions,
+      status: item.status || item.item_status
+    })),
+    totalAmount: parseFloat(order.total || order.total_amount || 0),
+    createdAt: order.created_at || new Date().toISOString(),
+    expectedCompletion: order.expected_completion,
+    completedAt: order.completed_at,
+    customerSessionId: order.customer_id?.toString() || ''
+  };
+};
+
 // ==================== MENU API ====================
-export const menuApi = {
+const menuApi = {
   /**
    * Get all menu items from database
    */
   getAllItems: async (): Promise<MenuItem[]> => {
     try {
-      const response = await api.get<MenuItem[]>('/menu');
-      return response.data;
+      const response = await api.get<any[]>('/menu', {
+        timeout: 30000, // 30 second timeout for menu loading
+      });
+      
+      if (Array.isArray(response.data)) {
+        return response.data.map(transformMenuItem);
+      }
+      
+      return [];
     } catch (error) {
+      const axiosError = error as AxiosError;
+      if (axiosError.code === 'ECONNABORTED' || axiosError.message.includes('timeout')) {
+        console.warn('Menu API timeout - backend may be slow or unavailable');
+        // Return empty array instead of throwing to allow UI to render
+        return [];
+      }
+      if (axiosError.code === 'ECONNREFUSED' || axiosError.code === 'ERR_NETWORK') {
+        console.warn('Backend server not reachable - check if server is running on', API_BASE_URL);
+        return [];
+      }
       console.error('Failed to fetch menu items:', error);
-      throw error;
+      // Return empty array on error to prevent UI crash
+      return [];
     }
   },
 
@@ -97,22 +197,33 @@ export const menuApi = {
 };
 
 // ==================== ORDER API ====================
-export const orderApi = {
+const orderApi = {
   /**
    * Create new order
    */
   create: async (orderData: {
     customerSessionId: string;
     paymentMethod: string;
+    tableNumber?: number;
     items: Array<{
       menuItemId: number;
       quantity: number;
       specialInstructions?: string;
     }>;
+    specialInstructions?: string;
   }): Promise<Order> => {
     try {
-      const response = await api.post<Order>('/orders', orderData);
-      return response.data;
+      const response = await api.post<{
+        success: boolean;
+        message: string;
+        data: any;
+      }>('/orders', orderData);
+      
+      if (response.data.data) {
+        return transformOrder(response.data.data);
+      }
+      
+      return transformOrder(response.data);
     } catch (error) {
       console.error('Failed to create order:', error);
       throw error;
@@ -120,12 +231,29 @@ export const orderApi = {
   },
 
   /**
+   * Create new order (alias for create)
+   */
+  createOrder: async (orderData: {
+    customerSessionId: string;
+    paymentMethod: string;
+    tableNumber?: number;
+    items: Array<{
+      menuItemId: number;
+      quantity: number;
+      specialInstructions?: string;
+    }>;
+    specialInstructions?: string;
+  }): Promise<Order> => {
+    return orderApi.create(orderData);
+  },
+
+  /**
    * Get order by ID
    */
   getById: async (orderId: number): Promise<Order> => {
     try {
-      const response = await api.get<Order>(`/orders/${orderId}`);
-      return response.data;
+      const response = await api.get<any>(`/orders/${orderId}`);
+      return transformOrder(response.data);
     } catch (error) {
       console.error(`Failed to fetch order ${orderId}:`, error);
       throw error;
@@ -137,10 +265,21 @@ export const orderApi = {
    */
   getByCustomerSession: async (sessionId: string): Promise<Order[]> => {
     try {
-      const response = await api.get<Order[]>('/orders/customer', {
-        params: { sessionId },
-      });
-      return response.data;
+      const response = await api.get<{
+        success: boolean;
+        data: any[];
+      }>(`/orders/session/${sessionId}`);
+      
+      if (response.data.data) {
+        return response.data.data.map(transformOrder);
+      }
+      
+      // Fallback if response is direct array
+      if (Array.isArray(response.data)) {
+        return (response.data as any[]).map(transformOrder);
+      }
+      
+      return [];
     } catch (error) {
       console.error(`Failed to fetch customer orders:`, error);
       throw error;
@@ -180,14 +319,27 @@ export const orderApi = {
 };
 
 // ==================== MANAGER API ====================
-export const managerApi = {
+const managerApi = {
   /**
    * Get all pending orders
    */
   getPendingOrders: async (): Promise<Order[]> => {
     try {
-      const response = await api.get<Order[]>('/manager/orders/pending');
-      return response.data;
+      const response = await api.get<{
+        success: boolean;
+        orders: any[];
+      }>('/manager/orders/pending');
+      
+      if (response.data.orders) {
+        return response.data.orders.map(transformOrder);
+      }
+      
+      // Fallback if response is direct array
+      if (Array.isArray(response.data)) {
+        return (response.data as any[]).map(transformOrder);
+      }
+      
+      return [];
     } catch (error) {
       console.error('Failed to fetch pending orders:', error);
       throw error;
@@ -205,11 +357,27 @@ export const managerApi = {
     limit?: number;
   }): Promise<{ orders: Order[]; total: number }> => {
     try {
+      // Use /manager/orders/all to match backend route
       const response = await api.get<{
-        orders: Order[];
+        orders: any[];
         total: number;
-      }>('/manager/orders', { params: filters });
-      return response.data;
+        success?: boolean;
+      }>('/manager/orders/all', { params: filters });
+      
+      // Handle different response formats
+      if (response.data.orders) {
+        return {
+          orders: response.data.orders.map(transformOrder),
+          total: response.data.total || response.data.orders.length
+        };
+      } else if (Array.isArray(response.data)) {
+        return {
+          orders: (response.data as any[]).map(transformOrder),
+          total: response.data.length
+        };
+      }
+      
+      return { orders: [], total: 0 };
     } catch (error) {
       console.error('Failed to fetch orders:', error);
       throw error;
@@ -219,14 +387,9 @@ export const managerApi = {
   /**
    * Get manager statistics
    */
-  getStatistics: async (): Promise<{
-    totalOrders: number;
-    totalRevenue: number;
-    averageOrderValue: number;
-    pendingOrders: number;
-  }> => {
+  getStatistics: async (): Promise<Statistics> => {
     try {
-      const response = await api.get('/manager/statistics');
+      const response = await api.get<Statistics>('/manager/statistics');
       return response.data;
     } catch (error) {
       console.error('Failed to fetch statistics:', error);
@@ -248,12 +411,13 @@ export const managerApi = {
   },
 
   /**
-   * Approve order
+   * Approve order with estimated completion time
    */
-  approveOrder: async (orderId: number): Promise<Order> => {
+  approveOrder: async (orderId: number, expectedCompletion?: number): Promise<Order> => {
     try {
       const response = await api.put<Order>(
-        `/manager/orders/${orderId}/approve`
+        `/manager/orders/${orderId}/approve`,
+        { expectedCompletion }
       );
       return response.data;
     } catch (error) {
@@ -286,11 +450,28 @@ export const managerApi = {
    */
   getMenuItems: async (): Promise<MenuItem[]> => {
     try {
-      const response = await api.get<MenuItem[]>('/menu');
-      return response.data;
+      // Use /manager/menu to get manager-specific menu data
+      const response = await api.get<{
+        success: boolean;
+        items: any[];
+      }>('/manager/menu');
+      
+      if (response.data.items) {
+        return response.data.items.map(transformMenuItem);
+      }
+      
+      // Fallback to /menu if /manager/menu fails or returns different format
+      const fallbackResponse = await api.get<any[]>('/menu');
+      return fallbackResponse.data.map(transformMenuItem);
     } catch (error) {
       console.error('Failed to fetch menu items:', error);
-      throw error;
+      // Try fallback
+      try {
+        const fallbackResponse = await api.get<any[]>('/menu');
+        return fallbackResponse.data.map(transformMenuItem);
+      } catch (fallbackError) {
+        throw error;
+      }
     }
   },
 
@@ -306,8 +487,17 @@ export const managerApi = {
     is_available?: boolean;
   }): Promise<MenuItem> => {
     try {
-      const response = await api.post<MenuItem>('/menu/items', itemData);
-      return response.data;
+      const response = await api.post<{
+        success: boolean;
+        item: any;
+      }>('/manager/menu', itemData);
+      
+      if (response.data.item) {
+        return transformMenuItem(response.data.item);
+      }
+      
+      // Fallback if response is direct item
+      return transformMenuItem(response.data);
     } catch (error) {
       console.error('Failed to create menu item:', error);
       throw error;
@@ -329,8 +519,17 @@ export const managerApi = {
     }>
   ): Promise<MenuItem> => {
     try {
-      const response = await api.put<MenuItem>(`/menu/items/${itemId}`, itemData);
-      return response.data;
+      const response = await api.put<{
+        success: boolean;
+        item: any;
+      }>(`/manager/menu/${itemId}`, itemData);
+      
+      if (response.data.item) {
+        return transformMenuItem(response.data.item);
+      }
+      
+      // Fallback if response is direct item
+      return transformMenuItem(response.data);
     } catch (error) {
       console.error(`Failed to update menu item ${itemId}:`, error);
       throw error;
@@ -342,7 +541,7 @@ export const managerApi = {
    */
   deleteMenuItem: async (itemId: number): Promise<void> => {
     try {
-      await api.delete(`/menu/items/${itemId}`);
+      await api.delete(`/manager/menu/${itemId}`);
     } catch (error) {
       console.error(`Failed to delete menu item ${itemId}:`, error);
       throw error;
@@ -352,21 +551,24 @@ export const managerApi = {
   /**
    * Get customer feedback for manager
    */
-  getFeedback: async (page = 1, limit = 10): Promise<{
+  getFeedback: async (page = 1, limit = 50): Promise<{
     feedback: Feedback[];
     total: number;
     page: number;
   }> => {
     try {
-      const response = await api.get('/feedback', {
+      const response = await api.get('/manager/feedback', {
         params: { page, limit },
       });
       // Handle both response formats
       const data = response.data;
+      const rawFeedback = data.feedback || data.data || [];
+      // Transform feedback data
+      const feedback = rawFeedback.map(transformFeedback);
       return {
-        feedback: data.data || data.feedback || [],
-        total: data.pagination?.totalCount || data.total || 0,
-        page: data.pagination?.page || page || 1,
+        feedback: feedback,
+        total: feedback.length, // Backend doesn't support totalCount yet
+        page: page,
       };
     } catch (error) {
       console.error('Failed to fetch feedback:', error);
@@ -376,16 +578,40 @@ export const managerApi = {
 };
 
 // ==================== KITCHEN API ====================
-export const kitchenApi = {
+const kitchenApi = {
   /**
    * Get active kitchen orders
    */
   getActiveOrders: async (): Promise<Order[]> => {
     try {
-      const response = await api.get<Order[]>('/kitchen/orders/active');
-      return response.data;
+      const response = await api.get<any>('/kitchen/orders/active');
+      // Handle both { orders: [...] } and direct array responses
+      const ordersData = response.data.orders || response.data;
+      if (Array.isArray(ordersData)) {
+        return ordersData.map(transformOrder);
+      }
+      return [];
     } catch (error) {
       console.error('Failed to fetch active orders:', error);
+      throw error;
+    }
+  },
+
+  /**
+   * Update order kitchen status
+   */
+  updateOrderStatus: async (
+    orderId: number,
+    statusCode: 'pending' | 'preparing' | 'ready' | 'completed'
+  ): Promise<Order> => {
+    try {
+      const response = await api.put<{success: boolean; data: any}>(
+        `/kitchen/orders/${orderId}/status`,
+        { status_code: statusCode }
+      );
+      return transformOrder(response.data.data || response.data);
+    } catch (error) {
+      console.error(`Failed to update order status ${orderId}:`, error);
       throw error;
     }
   },
@@ -447,7 +673,7 @@ export const kitchenApi = {
 };
 
 // ==================== FEEDBACK API ====================
-export const feedbackApi = {
+const feedbackApi = {
   /**
    * Submit order feedback
    */
@@ -474,10 +700,24 @@ export const feedbackApi = {
     page: number;
   }> => {
     try {
-      const response = await api.get('/feedback', {
+      // Use /manager/feedback to match backend route
+      const response = await api.get<{
+        success: boolean;
+        feedback: Feedback[];
+        total?: number;
+      }>('/manager/feedback', {
         params: { page, limit },
       });
-      return response.data;
+      
+      if (response.data.feedback) {
+        return {
+          feedback: response.data.feedback,
+          total: response.data.total || response.data.feedback.length,
+          page: page
+        };
+      }
+      
+      return { feedback: [], total: 0, page: page };
     } catch (error) {
       console.error('Failed to fetch feedback:', error);
       throw error;
@@ -492,8 +732,25 @@ export const feedbackApi = {
     totalFeedback: number;
   }> => {
     try {
-      const response = await api.get('/feedback/average');
-      return response.data;
+      const response = await api.get<{
+        success: boolean;
+        data: {
+          summary: {
+            averageRating: number;
+            totalFeedback: number;
+          }
+        }
+      }>('/feedback/stats');
+      
+      if (response.data.data?.summary) {
+        return {
+          averageRating: response.data.data.summary.averageRating,
+          totalFeedback: response.data.data.summary.totalFeedback
+        };
+      }
+      
+      // Fallback
+      return { averageRating: 0, totalFeedback: 0 };
     } catch (error) {
       console.error('Failed to fetch average rating:', error);
       throw error;
@@ -502,14 +759,14 @@ export const feedbackApi = {
 };
 
 // ==================== QR CODE API ====================
-export const qrApi = {
+const qrApi = {
   /**
    * Generate QR code for table
    */
   generateTableQR: async (tableNumber: number): Promise<string> => {
     try {
-      const response = await api.get(`/qr/table/${tableNumber}`);
-      return response.data.qrCode;
+      const response = await api.get<{ qrCode?: string; qr_url?: string }>(`/qr/table/${tableNumber}`);
+      return response.data.qrCode || response.data.qr_url || '';
     } catch (error) {
       console.error(`Failed to generate QR code for table ${tableNumber}:`, error);
       throw error;
@@ -521,8 +778,8 @@ export const qrApi = {
    */
   generateOrderQR: async (orderId: number): Promise<string> => {
     try {
-      const response = await api.get(`/qr/order/${orderId}`);
-      return response.data.qrCode;
+      const response = await api.get<{ qrCode?: string; qr_url?: string }>(`/qr/order/${orderId}`);
+      return response.data.qrCode || response.data.qr_url || '';
     } catch (error) {
       console.error(`Failed to generate QR code for order ${orderId}:`, error);
       throw error;
@@ -530,8 +787,62 @@ export const qrApi = {
   },
 };
 
+// ==================== AUTH API ====================
+const authApi = {
+  /**
+   * Manager login
+   */
+  login: async (credentials: {
+    username: string;
+    password: string;
+  }): Promise<{ token: string; manager: { id: number; username: string; role: string } }> => {
+    try {
+      // Try the more robust login first
+      const response = await api.post('/auth/manager/login', credentials);
+      if (response.data.token) {
+        localStorage.setItem('managerToken', response.data.token);
+      }
+      return response.data;
+    } catch (error) {
+      console.warn('Standard login failed, trying simple login...');
+      try {
+        // Fallback to simple password-only login for dev
+        const response = await api.post('/auth/manager-login', { password: credentials.password });
+        if (response.data.token) {
+          localStorage.setItem('managerToken', response.data.token);
+        }
+        return response.data;
+      } catch (fallbackError) {
+        console.error('All login methods failed:', fallbackError);
+        throw error;
+      }
+    }
+  },
+
+  /**
+   * Manager logout
+   */
+  logout: () => {
+    localStorage.removeItem('managerToken');
+  },
+
+  /**
+   * Check if user is authenticated
+   */
+  isAuthenticated: (): boolean => {
+    return !!localStorage.getItem('managerToken');
+  },
+
+  /**
+   * Get stored token
+   */
+  getToken: (): string | null => {
+    return localStorage.getItem('managerToken');
+  },
+};
+
 // ==================== HEALTH CHECK API ====================
-export const healthApi = {
+const healthApi = {
   /**
    * Check backend health status
    */
@@ -551,6 +862,19 @@ export const healthApi = {
 };
 
 // ==================== EXPORT MAIN API OBJECT ====================
+// Named exports (preferred)
+export {
+  menuApi,
+  orderApi,
+  managerApi,
+  kitchenApi,
+  feedbackApi,
+  qrApi,
+  authApi,
+  healthApi,
+};
+
+// Default export for convenience (also includes createOrder alias)
 export default {
   menuApi,
   orderApi,
@@ -558,5 +882,9 @@ export default {
   kitchenApi,
   feedbackApi,
   qrApi,
+  authApi,
   healthApi,
+  // Convenience aliases
+  createOrder: orderApi.createOrder,
+  create: orderApi.create,
 };

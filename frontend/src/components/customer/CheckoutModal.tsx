@@ -45,6 +45,8 @@ export function CheckoutModal({ open, onClose }: CheckoutModalProps) {
   const [orderInstructions, setOrderInstructions] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [orderNumber, setOrderNumber] = useState('');
+  const [estimatedTime, setEstimatedTime] = useState<number>(25);
+  const [createdOrderId, setCreatedOrderId] = useState<number | null>(null);
 
   const handleSubmit = async () => {
     if (!tableNumber.trim()) {
@@ -53,8 +55,8 @@ export function CheckoutModal({ open, onClose }: CheckoutModalProps) {
     }
 
     const tableNum = parseInt(tableNumber);
-    if (isNaN(tableNum) || tableNum < 1 || tableNum > 22) {
-      toast.error('Table number must be between 1 and 22');
+    if (isNaN(tableNum) || tableNum < 1 || tableNum > 30) {
+      toast.error('Table number must be between 1 and 30');
       return;
     }
 
@@ -66,8 +68,12 @@ export function CheckoutModal({ open, onClose }: CheckoutModalProps) {
     setIsSubmitting(true);
     
     try {
-      // Create unique session ID for this order
-      const sessionId = `customer-${Date.now()}-${Math.random().toString(36).slice(2, 11)}`;
+      // Get or create persistent session ID for this customer
+      let sessionId = localStorage.getItem('customerSessionId');
+      if (!sessionId) {
+        sessionId = `customer-${Date.now()}-${Math.random().toString(36).slice(2, 11)}`;
+        localStorage.setItem('customerSessionId', sessionId);
+      }
       
       // Prepare order data
       const orderData = {
@@ -87,10 +93,28 @@ export function CheckoutModal({ open, onClose }: CheckoutModalProps) {
       // Call API to create order
       const response = await orderApi.createOrder(orderData);
       
+      // Get order ID from response
+      const newOrderId = response.id || response.order_id;
+      
       // Set success state
-      setOrderNumber(response.order_number || response.orderNumber || `ORD-${response.id}`);
+      setOrderNumber(response.order_number || response.orderNumber || `ORD-${newOrderId}`);
+      setCreatedOrderId(newOrderId);
+      setEstimatedTime(response.estimated_time || response.estimatedTime || 25);
       setStep('success');
       clearCart();
+      
+      // Store order info for tracking
+      const existingOrders = JSON.parse(localStorage.getItem('customerOrders') || '[]');
+      existingOrders.push({
+        id: newOrderId,
+        orderNumber: response.order_number || response.orderNumber || `ORD-${newOrderId}`,
+        estimatedTime: response.estimated_time || response.estimatedTime || 25,
+        createdAt: new Date().toISOString()
+      });
+      localStorage.setItem('customerOrders', JSON.stringify(existingOrders));
+      
+      // Dispatch custom event to notify CustomerPage
+      window.dispatchEvent(new CustomEvent('orderCreated', { detail: { orderId: newOrderId } }));
       
       toast.success('Order placed successfully!');
       console.log('✅ Order created:', response);
@@ -100,7 +124,7 @@ export function CheckoutModal({ open, onClose }: CheckoutModalProps) {
       
       // Check for specific validation errors
       if (errorMsg.includes('table') || errorMsg.includes('Table')) {
-        toast.error('Invalid table number. Please choose a valid table (1-22)');
+        toast.error('Invalid table number. Please choose a valid table (1-30)');
       } else if (errorMsg.includes('not found') || errorMsg.includes('not available')) {
         toast.error('Some items are no longer available. Please update your cart.');
       } else {
@@ -269,6 +293,8 @@ export function CheckoutModal({ open, onClose }: CheckoutModalProps) {
               <p className="font-medium capitalize">{paymentMethod}</p>
               <p className="text-muted-foreground mt-3 mb-1">Table Number</p>
               <p className="font-medium">{tableNumber}</p>
+              <p className="text-muted-foreground mt-3 mb-1">Estimated Completion Time</p>
+              <p className="font-medium text-primary">{estimatedTime} minutes</p>
             </div>
 
             <p className="text-muted-foreground text-sm">

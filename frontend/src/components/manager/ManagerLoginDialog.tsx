@@ -25,6 +25,19 @@ export function ManagerLoginDialog({ open, onLogin }: ManagerLoginProps) {
       setLoading(true);
       setError('');
 
+      // First check if backend is reachable (optional - don't block if it fails)
+      try {
+        const healthUrl = API_BASE_URL.includes('/api') 
+          ? API_BASE_URL.replace('/api', '') + '/api/health'
+          : API_BASE_URL + '/health';
+        await axios.get(healthUrl, {
+          timeout: 5000,
+        });
+      } catch (healthError) {
+        // Don't throw - just log a warning, continue with login attempt
+        console.warn('Backend health check failed, but continuing with login attempt:', healthError);
+      }
+
       // Call backend to authenticate using axios
       const response = await axios.post(
         `${API_BASE_URL}/auth/manager-login`,
@@ -33,7 +46,7 @@ export function ManagerLoginDialog({ open, onLogin }: ManagerLoginProps) {
           headers: {
             'Content-Type': 'application/json',
           },
-          timeout: 10000,
+          timeout: 30000, // Increased to 30 seconds
         }
       );
 
@@ -48,11 +61,23 @@ export function ManagerLoginDialog({ open, onLogin }: ManagerLoginProps) {
         throw new Error('No token received');
       }
     } catch (err) {
-      const message = axios.isAxiosError(err)
-        ? err.response?.data?.message || err.message
-        : err instanceof Error
-        ? err.message
-        : 'Authentication failed';
+      let message = 'Authentication failed';
+      
+      if (axios.isAxiosError(err)) {
+        if (err.code === 'ECONNABORTED' || err.message.includes('timeout')) {
+          message = 'Request timed out. Please check if the backend server is running on http://localhost:5000';
+        } else if (err.code === 'ECONNREFUSED' || err.code === 'ERR_NETWORK') {
+          message = 'Cannot connect to server. Please ensure the backend is running on http://localhost:5000';
+        } else if (err.response) {
+          // Server responded with error
+          message = err.response.data?.message || err.response.data?.error || err.message;
+        } else {
+          message = err.message || 'Network error occurred';
+        }
+      } else if (err instanceof Error) {
+        message = err.message;
+      }
+      
       setError(message);
       console.error('Login error:', err);
     } finally {

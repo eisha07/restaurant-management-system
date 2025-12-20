@@ -266,7 +266,7 @@ router.post('/', async (req, res) => {
             });
         }
 
-        // Validate table number (must be 1-22)
+        // Validate table number (must be integer 1-25)
         if (!tableNumber) {
             console.log('❌ Table number is required');
             return res.status(400).json({
@@ -275,12 +275,12 @@ router.post('/', async (req, res) => {
             });
         }
 
-        const tableNum = parseInt(tableNumber);
-        if (isNaN(tableNum) || tableNum < 1 || tableNum > 22) {
+        const tableNum = parseInt(tableNumber, 10);
+        if (isNaN(tableNum) || tableNum < 1 || tableNum > 25) {
             console.log('❌ Invalid table number:', tableNumber);
             return res.status(422).json({
                 success: false,
-                message: 'Invalid table number. Must be between 1 and 22'
+                message: 'Invalid table number. Must be between 1 and 25'
             });
         }
 
@@ -380,22 +380,23 @@ router.post('/', async (req, res) => {
             });
         }
 
-        // Get table ID from table number
+        // Get table ID from table number (optional - may not exist in restaurant_tables yet)
         console.log('🔍 Looking up table_id for table number:', tableNum);
-        const tableResult = await sequelize.query(`
-            SELECT table_id FROM restaurant_tables WHERE table_number = $1
-        `, { bind: [tableNum], type: sequelize.QueryTypes.SELECT });
-        
-        if (tableResult.length === 0) {
-            console.log('❌ Table not found in database');
-            return res.status(422).json({
-                success: false,
-                message: 'Table number does not exist'
-            });
+        let tableId = null;
+        try {
+            const tableResult = await sequelize.query(`
+                SELECT table_id FROM restaurant_tables WHERE table_number = $1
+            `, { bind: [tableNum], type: sequelize.QueryTypes.SELECT });
+            
+            if (tableResult.length > 0) {
+                tableId = tableResult[0].table_id;
+                console.log('   ✅ Found table_id:', tableId);
+            } else {
+                console.log('   ⚠️  Table not in restaurant_tables, will store table_number only');
+            }
+        } catch (error) {
+            console.log('   ⚠️  Could not lookup table:', error.message);
         }
-
-        const tableId = tableResult[0].table_id;
-        console.log('   ✅ Found table_id:', tableId);
 
         // Get status IDs
         console.log('🔍 Getting status IDs...');
@@ -524,24 +525,35 @@ router.post('/', async (req, res) => {
         
         // Emit Socket.io event to notify managers of new order
         if (global.io) {
+            const managersRoom = global.io.sockets.adapter.rooms.get('managers');
+            const managersCount = managersRoom ? managersRoom.size : 0;
+            
             console.log('📡 Broadcasting new order to managers via Socket.io');
+            console.log('   Managers in room:', managersCount);
+            
+            // Emit new order event
             global.io.to('managers').emit('new-order', {
                 type: 'NEW_ORDER',
                 order: responseOrder,
                 timestamp: new Date().toISOString()
             });
+            console.log('   ✅ Emitted "new-order" event');
             
             // Also emit a general update event so managers refresh their pending orders list
             global.io.to('managers').emit('pending-orders-updated', {
                 type: 'ORDERS_UPDATED',
                 timestamp: new Date().toISOString()
             });
+            console.log('   ✅ Emitted "pending-orders-updated" event');
             
             // Emit to customer session for order confirmation
             global.io.to('session_' + customerSessionId).emit('order-created', {
                 order: responseOrder,
                 timestamp: new Date().toISOString()
             });
+            console.log('   ✅ Emitted "order-created" to customer session');
+        } else {
+            console.warn('⚠️  Socket.IO not available - real-time updates disabled');
         }
         
         res.status(201).json(responseOrder);

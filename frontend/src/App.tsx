@@ -8,6 +8,7 @@ import { ErrorBoundary } from "@/components/ErrorBoundary";
 import CustomerPage from "./pages/CustomerPage";
 import KitchenPage from "./pages/KitchenPage";
 import ManagerPage from "./pages/ManagerPage";
+import ManagerLogin from "./pages/ManagerLogin";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -24,6 +25,7 @@ const App = () => (
               <Route path="/" element={<CustomerPage />} />
               <Route path="/customer" element={<Navigate to="/" replace />} />
               <Route path="/kitchen" element={<KitchenPage />} />
+              <Route path="/manager-login" element={<ManagerLogin />} />
               <Route path="/manager" element={<ManagerPage />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />

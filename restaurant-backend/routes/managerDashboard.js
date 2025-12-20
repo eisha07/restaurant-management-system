@@ -709,19 +709,21 @@ router.patch('/orders/:id/reject', authenticateManager, authorizeManager, async 
 router.get('/menu', authenticateManager, authorizeManager, async (req, res) => {
     try {
         const query = `
-            SELECT id, name, description, price, category, image_url, is_available, created_at
-            FROM menu_items 
-            ORDER BY category, name
+            SELECT mi.item_id AS id, mi.name, mi.description, mi.price, mc.name as category, mi.image_url, mi.is_available, mi.created_at
+            FROM menu_items mi
+            LEFT JOIN menu_categories mc ON mi.category_id = mc.category_id
+            ORDER BY mc.name, mi.name
         `;
         
         const items = await db.sequelize.query(query, { type: db.sequelize.QueryTypes.SELECT });
         
         // Group by category for frontend
         const menuByCategory = items.reduce((acc, item) => {
-            if (!acc[item.category]) {
-                acc[item.category] = [];
+            const categoryName = item.category || 'Uncategorized';
+            if (!acc[categoryName]) {
+                acc[categoryName] = [];
             }
-            acc[item.category].push(item);
+            acc[categoryName].push(item);
             return acc;
         }, {});
         
@@ -750,60 +752,108 @@ router.post('/menu', authenticateManager, authorizeManager, async (req, res) => 
     const { name, description, price, category, image_url, is_available } = req.body;
     
     try {
+        // Find category ID by name
+        const categoryResult = await db.sequelize.query(
+            'SELECT category_id FROM menu_categories WHERE name = $1',
+            { bind: [category], type: db.sequelize.QueryTypes.SELECT }
+        );
+        
+        const categoryId = categoryResult.length > 0 ? categoryResult[0].category_id : null;
+
         const query = `
             INSERT INTO menu_items 
-            (name, description, price, category, image_url, is_available, created_at)
+            (name, description, price, category_id, image_url, is_available, created_at)
             VALUES ($1, $2, $3, $4, $5, $6, NOW())
-            RETURNING *
+            RETURNING item_id AS id, name, description, price, image_url, is_available
         `;
         
         const result = await db.sequelize.query(query, {
-            replacements: [name, description, price, category, image_url, is_available !== false],
-            type: db.sequelize.QueryTypes.INSERT
+            bind: [name, description || '', price, categoryId, image_url || null, is_available !== false],
+            type: db.sequelize.QueryTypes.SELECT
         });
         
         res.json({
             success: true,
             message: 'Menu item added successfully',
-            item: result[0]
+            item: { ...result[0], category: category }
         });
     } catch (error) {
         console.error('Error adding menu item:', error);
-        res.status(500).json({ success: false, message: 'Server error' });
+        res.status(500).json({ success: false, message: 'Server error: ' + error.message });
     }
 });
 
 // Update menu item
 router.put('/menu/:id', authenticateManager, authorizeManager, async (req, res) => {
     const { id } = req.params;
-    const { name, description, price, category, image_url, is_available } = req.body;
+    const updates = req.body;
     
     try {
+        // Build dynamic UPDATE query based on provided fields
+        const allowedFields = ['name', 'description', 'price', 'category_id', 'image_url', 'is_available'];
+        const updateFields = [];
+        const values = [];
+        
+        // Handle 'category' alias for 'category_id'
+        if (updates.category && !updates.category_id) {
+            // Find category ID by name
+            const categoryResult = await db.sequelize.query(
+                'SELECT category_id FROM menu_categories WHERE name = $1',
+                { bind: [updates.category], type: db.sequelize.QueryTypes.SELECT }
+            );
+            if (categoryResult.length > 0) {
+                updates.category_id = categoryResult[0].category_id;
+            }
+        }
+        
+        for (const field of allowedFields) {
+            if (updates[field] !== undefined) {
+                updateFields.push(`${field} = ?`);
+                values.push(updates[field]);
+            }
+        }
+        
+        if (updateFields.length === 0) {
+            return res.status(400).json({ 
+                success: false, 
+                message: 'No valid fields to update' 
+            });
+        }
+        
+        values.push(id); // Add ID as last parameter
+        
         const query = `
             UPDATE menu_items 
-            SET name = $1, description = $2, price = $3, 
-                category = $4, image_url = $5, is_available = $6
-            WHERE id = $7
-            RETURNING *
+            SET ${updateFields.join(', ')}
+            WHERE item_id = ?
         `;
         
-        const result = await db.sequelize.query(query, {
-            replacements: [name, description, price, category, image_url, is_available, id],
+        await db.sequelize.query(query, {
+            replacements: values,
             type: db.sequelize.QueryTypes.UPDATE
         });
         
-        if (!result || result.length === 0) {
+        // Get the updated row
+        const selectQuery = `SELECT item_id AS id, name, description, price, category_id, image_url, is_available FROM menu_items WHERE item_id = ?`;
+        const updated = await db.sequelize.query(selectQuery, {
+            replacements: [id],
+            type: db.sequelize.QueryTypes.SELECT
+        });
+        
+        if (!updated || updated.length === 0) {
             return res.status(404).json({ success: false, message: 'Menu item not found' });
         }
+        
+        console.log('✅ Menu item updated:', updated[0].name);
         
         res.json({
             success: true,
             message: 'Menu item updated successfully',
-            item: result[0]
+            item: updated[0]
         });
     } catch (error) {
         console.error('Error updating menu item:', error);
-        res.status(500).json({ success: false, message: 'Server error' });
+        res.status(500).json({ success: false, message: 'Server error', error: error.message });
     }
 });
 
@@ -826,7 +876,7 @@ router.delete('/menu/:id', authenticateManager, authorizeManager, async (req, re
             });
         }
         
-        const query = 'DELETE FROM menu_items WHERE id = ? RETURNING *';
+        const query = 'DELETE FROM menu_items WHERE item_id = ? RETURNING item_id AS id';
         const result = await db.sequelize.query(query, {
             replacements: [id],
             type: db.sequelize.QueryTypes.DELETE
@@ -849,17 +899,33 @@ router.delete('/menu/:id', authenticateManager, authorizeManager, async (req, re
 // Get statistics
 router.get('/statistics', authenticateManager, authorizeManager, async (req, res) => {
     try {
-        // Get orders count and revenue
-        const ordersQuery = `
+        // Get today's stats
+        const todayQuery = `
             SELECT 
-                COUNT(*) as total_orders,
-                COALESCE(SUM(o.total), 0) as total_revenue,
-                COALESCE(AVG(o.total), 0) as avg_order_value
+                COUNT(DISTINCT o.order_id) as today_orders,
+                COALESCE(SUM(oi.item_price * oi.quantity), 0) as today_revenue
             FROM orders o
+            LEFT JOIN order_items oi ON o.order_id = oi.order_id
             WHERE DATE(o.created_at) = CURRENT_DATE
+            AND o.order_status_id != 6
         `;
         
-        const ordersResult = await db.sequelize.query(ordersQuery, { 
+        const todayResult = await db.sequelize.query(todayQuery, { 
+            type: db.sequelize.QueryTypes.SELECT 
+        });
+
+        // Get all-time stats
+        const allTimeQuery = `
+            SELECT 
+                COUNT(DISTINCT o.order_id) as total_orders,
+                COALESCE(SUM(oi.item_price * oi.quantity), 0) as total_revenue,
+                COALESCE(SUM(oi.item_price * oi.quantity) / NULLIF(COUNT(DISTINCT o.order_id), 0), 0) as avg_order_value
+            FROM orders o
+            LEFT JOIN order_items oi ON o.order_id = oi.order_id
+            WHERE o.order_status_id != 6
+        `;
+        
+        const allTimeResult = await db.sequelize.query(allTimeQuery, { 
             type: db.sequelize.QueryTypes.SELECT 
         });
         
@@ -874,24 +940,57 @@ router.get('/statistics', authenticateManager, authorizeManager, async (req, res
         const pendingResult = await db.sequelize.query(pendingQuery, { 
             type: db.sequelize.QueryTypes.SELECT 
         });
+
+        // Get average rating
+        const ratingQuery = `
+            SELECT AVG((food_quality + service_speed + overall_experience + order_accuracy + value_for_money) / 5.0) as avg_rating
+            FROM feedback
+        `;
+        const ratingResult = await db.sequelize.query(ratingQuery, { 
+            type: db.sequelize.QueryTypes.SELECT 
+        });
+
+        // Get top items
+        const topItemsQuery = `
+            SELECT item_name as name, SUM(quantity) as count
+            FROM order_items
+            GROUP BY item_name
+            ORDER BY count DESC
+            LIMIT 5
+        `;
+        const topItemsResult = await db.sequelize.query(topItemsQuery, { 
+            type: db.sequelize.QueryTypes.SELECT 
+        });
         
-        const stats = ordersResult[0] || { total_orders: 0, total_revenue: 0, avg_order_value: 0 };
+        const today = todayResult[0] || { today_orders: 0, today_revenue: 0 };
+        const allTime = allTimeResult[0] || { total_orders: 0, total_revenue: 0, avg_order_value: 0 };
         const pending = pendingResult[0]?.pending_count || 0;
+        const avgRating = ratingResult[0]?.avg_rating || 0;
         
         res.json({
-            totalOrders: parseInt(stats.total_orders) || 0,
-            totalRevenue: parseFloat(stats.total_revenue) || 0,
-            averageOrderValue: parseFloat(stats.avg_order_value) || 0,
-            pendingOrders: parseInt(pending) || 0
+            totalOrders: parseInt(allTime.total_orders) || 0,
+            todayOrders: parseInt(today.today_orders) || 0,
+            revenue: parseFloat(allTime.total_revenue) || 0,
+            todayRevenue: parseFloat(today.today_revenue) || 0,
+            averageOrderValue: parseFloat(allTime.avg_order_value) || 0,
+            averageRating: parseFloat(avgRating) || 0,
+            pendingOrders: parseInt(pending) || 0,
+            topItems: topItemsResult.map(item => ({
+                name: item.name,
+                count: parseInt(item.count)
+            }))
         });
     } catch (error) {
         console.error('❌ Error fetching statistics:', error.message);
-        // Return defaults on error instead of failing
         res.json({
             totalOrders: 0,
-            totalRevenue: 0,
+            todayOrders: 0,
+            revenue: 0,
+            todayRevenue: 0,
             averageOrderValue: 0,
-            pendingOrders: 0
+            averageRating: 0,
+            pendingOrders: 0,
+            topItems: []
         });
     }
 });
@@ -900,9 +999,10 @@ router.get('/statistics', authenticateManager, authorizeManager, async (req, res
 router.get('/feedback', authenticateManager, authorizeManager, async (req, res) => {
     try {
         const query = `
-            SELECT f.*, o.order_number, o.total
+            SELECT f.*, o.order_number, 
+                   (SELECT SUM(item_price * quantity) FROM order_items WHERE order_id = o.order_id) as total
             FROM feedback f
-            JOIN orders o ON f.order_id = o.id
+            JOIN orders o ON f.order_id = o.order_id
             ORDER BY f.submitted_at DESC
             LIMIT 50
         `;
@@ -915,7 +1015,7 @@ router.get('/feedback', authenticateManager, authorizeManager, async (req, res) 
         });
     } catch (error) {
         console.error('Error fetching feedback:', error);
-        res.status(500).json({ success: false, message: 'Server error' });
+        res.status(500).json({ success: false, message: 'Failed to fetch feedback' });
     }
 });
 

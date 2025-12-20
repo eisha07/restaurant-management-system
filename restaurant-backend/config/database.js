@@ -44,10 +44,16 @@ try {
   throw error;
 }
 
-// Test connection function
+// Test connection function with timeout
 const testConnection = async () => {
   try {
-    await sequelize.authenticate();
+    // Create a timeout promise that rejects after 10 seconds
+    const timeoutPromise = new Promise((_, reject) =>
+      setTimeout(() => reject(new Error('Database connection timeout (10s)')), 10000)
+    );
+    
+    // Race between the connection attempt and timeout
+    await Promise.race([sequelize.authenticate(), timeoutPromise]);
     console.log('✅ Database connection established successfully.');
     return true;
   } catch (error) {

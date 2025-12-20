@@ -4,32 +4,72 @@ const { sequelize } = require('../config/database');
 const { QueryTypes } = require('sequelize');
 const { authenticateManager, authorizeManager } = require('../middleware/auth');
 
+// Normalize image URLs coming from DB (absolute or relative) and provide a local fallback
+const buildImageUrl = (req, rawUrl) => {
+    if (rawUrl) {
+        // Use absolute URLs as-is
+        if (/^https?:\/\//i.test(rawUrl)) {
+            return rawUrl;
+        }
+        // Prefix relative paths with the current host
+        const normalized = rawUrl.startsWith('/') ? rawUrl : `/${rawUrl}`;
+        return `${req.protocol}://${req.get('host')}${normalized}`;
+    }
+    // Default placeholder lives in /public/images on the server
+    return `${req.protocol}://${req.get('host')}/images/default-food.jpg`;
+};
+
+// Transform DB/mock rows into the frontend shape while preserving DB image URLs
+const toFrontendItem = (req, item, categoryOverride) => {
+    const itemId = item.id || item.item_id;
+    const itemName = item.name || 'Unknown Item';
+    const itemDesc = item.description || '';
+    const itemPrice = parseFloat(item.price) || 0;
+    const itemCategory = categoryOverride || item.category || 'Uncategorized';
+    const itemImage = buildImageUrl(req, item.image_url || item.image);
+    const itemAvailable = item.is_available === true || item.is_available === 1 || item.is_available === 'true';
+
+    return {
+        id: itemId,
+        name: itemName,
+        description: itemDesc,
+        price: itemPrice,
+        category: itemCategory,
+        image: itemImage,
+        available: itemAvailable,
+        rating: 4.5,
+        preparationTime: 25,
+        spicyLevel: 'none',
+        tags: []
+    };
+};
+
 // =============================================
 // MOCK/CACHE DATA (for offline or DB failures)
 // =============================================
 const mockMenuItems = [
-  { id: 1, name: 'Chicken Biryani', description: 'Aromatic basmati rice cooked with tender chicken pieces, herbs, and spices', price: 12.99, category: 'Desi', image_url: 'https://via.placeholder.com/800x600/FF6B6B/FFFFFF?text=Chicken+Biryani', is_available: true },
-  { id: 2, name: 'Chicken Karahi', description: 'Traditional Pakistani curry cooked in wok with tomatoes and ginger', price: 13.99, category: 'Desi', image_url: 'https://via.placeholder.com/800x600/4ECDC4/FFFFFF?text=Chicken+Karahi', is_available: true },
-  { id: 3, name: 'Chicken Tikka', description: 'Marinated chicken pieces grilled in clay oven with spices', price: 11.99, category: 'Desi', image_url: 'https://via.placeholder.com/800x600/FFD93D/FFFFFF?text=Chicken+Tikka', is_available: false },
-  { id: 4, name: 'Beef Nihari', description: 'Slow-cooked beef shank in rich, spicy gravy', price: 15.99, category: 'Desi', image_url: 'https://via.placeholder.com/800x600/F72585/FFFFFF?text=Beef+Nihari', is_available: true },
-  { id: 5, name: 'Chana Masala', description: 'Chickpeas cooked in flavorful tomato gravy', price: 8.99, category: 'Desi', image_url: 'https://via.placeholder.com/800x600/95E1D3/333333?text=Chana+Masala', is_available: true },
-  { id: 6, name: 'Beef Burger', description: 'Juicy beef patty with cheese, lettuce, tomato, and special sauce', price: 9.99, category: 'Fast Food', image_url: 'https://via.placeholder.com/800x600/F38181/FFFFFF?text=Beef+Burger', is_available: true },
-  { id: 7, name: 'French Fries', description: 'Crispy golden fries served with ketchup', price: 4.99, category: 'Fast Food', image_url: 'https://via.placeholder.com/800x600/FCE38A/333333?text=French+Fries', is_available: true },
-  { id: 8, name: 'Pizza Margherita', description: 'Classic pizza with tomato sauce, mozzarella, and fresh basil', price: 16.99, category: 'Fast Food', image_url: 'https://via.placeholder.com/800x600/95E1D3/FFFFFF?text=Pizza+Margherita', is_available: true },
-  { id: 9, name: 'Chicken Wings', description: 'Crispy chicken wings with choice of sauce', price: 10.99, category: 'Fast Food', image_url: 'https://via.placeholder.com/800x600/E7717D/FFFFFF?text=Chicken+Wings', is_available: true },
-  { id: 10, name: 'Club Sandwich', description: 'Triple-decker sandwich with chicken, bacon, and veggies', price: 8.99, category: 'Fast Food', image_url: 'https://via.placeholder.com/800x600/C2BBF0/FFFFFF?text=Club+Sandwich', is_available: true },
-  { id: 11, name: 'Pasta Carbonara', description: 'Creamy pasta with eggs, cheese, pancetta, and black pepper', price: 14.99, category: 'Continental', image_url: 'https://via.placeholder.com/800x600/FFC75F/FFFFFF?text=Pasta+Carbonara', is_available: true },
-  { id: 12, name: 'Grilled Salmon', description: 'Atlantic salmon with lemon butter sauce and seasonal vegetables', price: 22.99, category: 'Continental', image_url: 'https://via.placeholder.com/800x600/F08A5D/FFFFFF?text=Grilled+Salmon', is_available: true },
-  { id: 13, name: 'Beef Steak', description: 'Grilled ribeye steak with mashed potatoes', price: 24.99, category: 'Continental', image_url: 'https://via.placeholder.com/800x600/B83B5E/FFFFFF?text=Beef+Steak', is_available: true },
-  { id: 14, name: 'Caesar Salad', description: 'Fresh romaine lettuce with croutons, parmesan, and Caesar dressing', price: 9.99, category: 'Continental', image_url: 'https://via.placeholder.com/800x600/6A994E/FFFFFF?text=Caesar+Salad', is_available: true },
-  { id: 15, name: 'Mushroom Risotto', description: 'Creamy arborio rice with mushrooms and parmesan', price: 13.99, category: 'Continental', image_url: 'https://via.placeholder.com/800x600/BC4749/FFFFFF?text=Mushroom+Risotto', is_available: true },
-  { id: 16, name: 'Coca-Cola', description: 'Classic cola drink', price: 2.99, category: 'Beverages', image_url: 'https://via.placeholder.com/800x600/D62828/FFFFFF?text=Coca-Cola', is_available: true },
-  { id: 17, name: 'Fresh Lime Soda', description: 'Refreshing lime soda with mint', price: 3.99, category: 'Beverages', image_url: 'https://via.placeholder.com/800x600/80ED99/333333?text=Fresh+Lime+Soda', is_available: true },
-  { id: 18, name: 'Mango Lassi', description: 'Sweet yogurt-based mango drink', price: 4.99, category: 'Beverages', image_url: 'https://via.placeholder.com/800x600/FAA307/FFFFFF?text=Mango+Lassi', is_available: true },
-  { id: 19, name: 'Mineral Water', description: '500ml bottled water', price: 1.99, category: 'Beverages', image_url: 'https://via.placeholder.com/800x600/06AED5/FFFFFF?text=Mineral+Water', is_available: true },
-  { id: 20, name: 'Chocolate Brownie', description: 'Warm chocolate brownie with vanilla ice cream', price: 6.99, category: 'Desserts', image_url: 'https://via.placeholder.com/800x600/6F4C3E/FFFFFF?text=Chocolate+Brownie', is_available: true },
-  { id: 21, name: 'Cheesecake', description: 'New York style cheesecake with berry compote', price: 7.99, category: 'Desserts', image_url: 'https://via.placeholder.com/800x600/FFE5B4/333333?text=Cheesecake', is_available: true },
-  { id: 22, name: 'Gulab Jamun', description: 'Sweet milk dumplings in sugar syrup', price: 5.99, category: 'Desserts', image_url: 'https://via.placeholder.com/800x600/FF8C42/FFFFFF?text=Gulab+Jamun', is_available: true }
+    { id: 1, name: 'Chicken Biryani', description: 'Aromatic basmati rice cooked with tender chicken pieces, herbs, and spices', price: 12.99, category: 'Desi', image_url: '/images/chicken%20biryani.jpg', is_available: true },
+    { id: 2, name: 'Chicken Karahi', description: 'Traditional Pakistani curry cooked in wok with tomatoes and ginger', price: 13.99, category: 'Desi', image_url: '/images/chicken%20karahi.jpg', is_available: true },
+    { id: 3, name: 'Chicken Tikka', description: 'Marinated chicken pieces grilled in clay oven with spices', price: 11.99, category: 'Desi', image_url: '/images/chicken%20tikka.jpg', is_available: false },
+    { id: 4, name: 'Beef Nihari', description: 'Slow-cooked beef shank in rich, spicy gravy', price: 15.99, category: 'Desi', image_url: '/images/beef%20nihari.jpg', is_available: true },
+    { id: 5, name: 'Chana Masala', description: 'Chickpeas cooked in flavorful tomato gravy', price: 8.99, category: 'Desi', image_url: '/images/chana%20masala.jpg', is_available: true },
+    { id: 6, name: 'Beef Burger', description: 'Juicy beef patty with cheese, lettuce, tomato, and special sauce', price: 9.99, category: 'Fast Food', image_url: '/images/beef%20burger.jpg', is_available: true },
+    { id: 7, name: 'French Fries', description: 'Crispy golden fries served with ketchup', price: 4.99, category: 'Fast Food', image_url: '/images/french%20fries.jpg', is_available: true },
+    { id: 8, name: 'Pizza Margherita', description: 'Classic pizza with tomato sauce, mozzarella, and fresh basil', price: 16.99, category: 'Fast Food', image_url: '/images/pizza%20margherita.jpg', is_available: true },
+    { id: 9, name: 'Chicken Wings', description: 'Crispy chicken wings with choice of sauce', price: 10.99, category: 'Fast Food', image_url: '/images/chicken%20wings.jpg', is_available: true },
+    { id: 10, name: 'Club Sandwich', description: 'Triple-decker sandwich with chicken, bacon, and veggies', price: 8.99, category: 'Fast Food', image_url: '/images/club%20sandwich.jpg', is_available: true },
+    { id: 11, name: 'Pasta Carbonara', description: 'Creamy pasta with eggs, cheese, pancetta, and black pepper', price: 14.99, category: 'Continental', image_url: '/images/pasta%20carbonara.jpg', is_available: true },
+    { id: 12, name: 'Grilled Salmon', description: 'Atlantic salmon with lemon butter sauce and seasonal vegetables', price: 22.99, category: 'Continental', image_url: '/images/grilled%20salmon.jpg', is_available: true },
+    { id: 13, name: 'Beef Steak', description: 'Grilled ribeye steak with mashed potatoes', price: 24.99, category: 'Continental', image_url: '/images/beef%20steak.jpg', is_available: true },
+    { id: 14, name: 'Caesar Salad', description: 'Fresh romaine lettuce with croutons, parmesan, and Caesar dressing', price: 9.99, category: 'Continental', image_url: '/images/caesar%20salad.jpg', is_available: true },
+    { id: 15, name: 'Mushroom Risotto', description: 'Creamy arborio rice with mushrooms and parmesan', price: 13.99, category: 'Continental', image_url: '/images/mushroom%20risotto.jpg', is_available: true },
+    { id: 16, name: 'Coca-Cola', description: 'Classic cola drink', price: 2.99, category: 'Beverages', image_url: '/images/coca%20cola.jpg', is_available: true },
+    { id: 17, name: 'Fresh Lime Soda', description: 'Refreshing lime soda with mint', price: 3.99, category: 'Beverages', image_url: '/images/fresh%20lime%20soda.jpg', is_available: true },
+    { id: 18, name: 'Mango Lassi', description: 'Sweet yogurt-based mango drink', price: 4.99, category: 'Beverages', image_url: '/images/mango%20lassi.jpg', is_available: true },
+    { id: 19, name: 'Mineral Water', description: '500ml bottled water', price: 1.99, category: 'Beverages', image_url: '/images/mineral%20water.jpg', is_available: true },
+    { id: 20, name: 'Chocolate Brownie', description: 'Warm chocolate brownie with vanilla ice cream', price: 6.99, category: 'Desserts', image_url: '/images/chocolate%20brownie.jpg', is_available: true },
+    { id: 21, name: 'Cheesecake', description: 'New York style cheesecake with berry compote', price: 7.99, category: 'Desserts', image_url: '/images/cheesecake.jpg', is_available: true },
+    { id: 22, name: 'Gulab Jamun', description: 'Sweet milk dumplings in sugar syrup', price: 5.99, category: 'Desserts', image_url: '/images/gulab%20jamun.jpg', is_available: true }
 ];
 
 // =============================================
@@ -37,78 +77,80 @@ const mockMenuItems = [
 // =============================================
 
 // GET /api/menu - Complete menu with categories and items
+// ALWAYS uses database - no mock data fallback
 router.get('/', async (req, res) => {
+    // Set response timeout to prevent hanging
+    req.setTimeout(30000); // 30 second timeout for database queries
+    
     try {
         const { search } = req.query;
-        let items = [];
         
+        // Ensure database connection is established
         try {
-            // Query menu items from database with timeout
-            items = await Promise.race([
-                sequelize.query(`
-                    SELECT 
-                        m.item_id as id,
-                        m.name,
-                        m.description,
-                        m.price,
-                        m.image_url,
-                        m.is_available,
-                        c.name as category
-                    FROM menu_items m
-                    LEFT JOIN menu_categories c ON m.category_id = c.category_id
-                    ORDER BY m.name
-                `, { type: sequelize.QueryTypes.SELECT }),
-                new Promise((_, reject) => setTimeout(() => reject(new Error('DB_TIMEOUT')), 3000))
-            ]);
-            console.log('[MENU] Database query successful');
-        } catch (dbError) {
-            console.warn('[MENU] Database query failed, using fallback:', dbError.message);
-            items = mockMenuItems;
+            await sequelize.authenticate();
+        } catch (authError) {
+            console.error('[MENU] Database authentication failed:', authError.message);
+            return res.status(503).json({
+                success: false,
+                error: 'Database connection failed',
+                message: 'Unable to connect to database. Please check database configuration.'
+            });
+        }
+        
+        // Query menu items from database - always use database
+        console.log('[MENU] Querying database for menu items...');
+        const items = await sequelize.query(`
+            SELECT 
+                m.item_id as id,
+                m.name,
+                m.description,
+                m.price,
+                m.image_url,
+                m.is_available,
+                c.name as category
+            FROM menu_items m
+            LEFT JOIN menu_categories c ON m.category_id = c.category_id
+            ORDER BY c.name, m.name
+        `, { 
+            type: sequelize.QueryTypes.SELECT,
+            timeout: 10000 // 10 second query timeout
+        });
+        
+        console.log(`[MENU] Database query successful - ${items.length} items retrieved`);
+        
+        if (!items || items.length === 0) {
+            console.warn('[MENU] No menu items found in database');
+            return res.json([]); // Return empty array if no items
         }
 
         // Apply search filter if provided
         let filteredItems = items;
-        if (search && filteredItems.length > 0) {
-            const searchLower = search.toLowerCase();
+        if (search && search.trim()) {
+            const searchLower = search.toLowerCase().trim();
             filteredItems = items.filter(item =>
-                item.name.toLowerCase().includes(searchLower) ||
-                item.description.toLowerCase().includes(searchLower)
+                item.name?.toLowerCase().includes(searchLower) ||
+                item.description?.toLowerCase().includes(searchLower) ||
+                item.category?.toLowerCase().includes(searchLower)
             );
+            console.log(`[MENU] Search filter "${search}" applied - ${filteredItems.length} items match`);
         }
 
         // Transform to frontend format (matching MenuItem interface)
-        const transformed = filteredItems.map(item => {
-            // Handle both DB structure (item_id) and mock structure (id)
-            const itemId = item.id || item.item_id;
-            const itemName = item.name || 'Unknown Item';
-            const itemDesc = item.description || '';
-            const itemPrice = parseFloat(item.price) || 0;
-            const itemCategory = item.category || 'Uncategorized';
-            const itemImage = item.image_url || '/images/default-food.jpg';
-            const itemAvailable = item.is_available === true || item.is_available === 1 || item.is_available === 'true';
-            
-            return {
-                id: itemId,
-                name: itemName,
-                description: itemDesc,
-                price: itemPrice,
-                category: itemCategory,
-                image: itemImage,
-                available: itemAvailable,
-                rating: 4.5,
-                preparationTime: 25,
-                spicyLevel: 'none',
-                tags: []
-            };
-        });
+        const transformed = filteredItems.map(item => toFrontendItem(req, item));
 
-        console.log(`✓ Returning ${transformed.length} menu items`);
+        console.log(`[MENU] Returning ${transformed.length} menu items`);
         res.json(transformed);
         
     } catch (error) {
-        console.error('Error fetching menu:', error);
-        // Fallback to mock data if DB is down
-        res.json(mockMenuItems);
+        console.error('[MENU] Error fetching menu from database:', error.message);
+        console.error('[MENU] Stack:', error.stack);
+        
+        // Return error response instead of mock data
+        res.status(500).json({
+            success: false,
+            error: 'Database query failed',
+            message: error.message || 'Failed to fetch menu items from database'
+        });
     }
 });
 
@@ -131,37 +173,25 @@ router.get('/items/:id', async (req, res) => {
         `, { bind: [id], type: sequelize.QueryTypes.SELECT });
 
         if (items.length === 0) {
+            console.warn('[MENU] Item not found in DB for id:', id);
             return res.status(404).json({ 
                 error: 'Menu item not found' 
             });
         }
 
         const item = items[0];
-        
-        // Transform to frontend format (matching MenuItem interface)
-        const frontendItem = {
-            id: item.id,
-            name: item.name,
-            description: item.description || '',
-            price: parseFloat(item.price),
-            category: item.category || 'Uncategorized',
-            image: item.image_url || '/images/default-food.jpg',
-            available: item.is_available === true || item.is_available === 1 || item.is_available === 'true',
-            rating: 4.5,
-            preparationTime: 25,
-            spicyLevel: 'none',
-            tags: []
-        };
+        const frontendItem = toFrontendItem(req, item);
 
         res.json(frontendItem);
 
     } catch (error) {
-        console.error('Error fetching menu item:', error);
+        console.error('[MENU] Error fetching menu item:', error.message);
+        console.error('[MENU] Stack:', error.stack);
         
         // Try to find in mock data
         const mockItem = mockMenuItems.find(item => item.id == req.params.id);
         if (mockItem) {
-            res.json(mockItem);
+            res.json(toFrontendItem(req, mockItem));
         } else {
             res.status(404).json({ error: 'Menu item not found' });
         }
@@ -188,31 +218,20 @@ router.get('/categories/:category/items', async (req, res) => {
         `, { bind: [category], type: sequelize.QueryTypes.SELECT });
 
         // Transform to frontend format (matching MenuItem interface)
-        const frontendItems = items.map(item => ({
-            id: item.id,
-            name: item.name,
-            description: item.description || '',
-            price: parseFloat(item.price),
-            category: category,
-            image: item.image_url || '/images/default-food.jpg',
-            available: item.is_available === true || item.is_available === 1 || item.is_available === 'true',
-            rating: 4.5,
-            preparationTime: 25,
-            spicyLevel: 'none',
-            tags: []
-        }));
+        const frontendItems = items.map(item => toFrontendItem(req, item, category));
 
         res.json(frontendItems);
 
     } catch (error) {
-        console.error('Error fetching category items:', error);
+        console.error('[MENU] Error fetching category items:', error.message);
+        console.error('[MENU] Stack:', error.stack);
         
         // Filter mock data by category
         const filteredItems = mockMenuItems.filter(item => 
             item.category.toLowerCase() === req.params.category.toLowerCase()
         );
-        
-        res.json(filteredItems);
+        const fallback = filteredItems.map(item => toFrontendItem(req, item, category));
+        res.json(fallback);
     }
 });
 

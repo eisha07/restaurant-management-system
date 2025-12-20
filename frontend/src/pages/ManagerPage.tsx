@@ -3,15 +3,17 @@ import { useNavigate } from 'react-router-dom';
 import { mockOrders, mockStatistics, mockFeedback, menuItems } from '@/data/mockData';
 import { StatisticsCharts } from '@/components/manager/StatisticsCharts';
 import { ManagerLoginDialog } from '@/components/manager/ManagerLoginDialog';
+import { MenuItemDialog } from '@/components/manager/MenuItemDialog';
+import { ApproveOrderDialog, RejectOrderDialog } from '@/components/manager/OrderActionDialogs';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { managerApi } from '@/services/api';
+import { managerApi, transformOrder } from '@/services/api';
 import { useToast } from '@/hooks/use-toast';
-import { onNewOrder, subscribeToManagerDashboard, getSocket } from '@/services/socket';
+import { onNewOrder, subscribeToManagerDashboard, getSocket, unsubscribeFromManagerDashboard } from '@/services/socket';
 import { usePersistentState } from '@/hooks/usePersistentState';
 import {
   LayoutDashboard,
@@ -45,6 +47,13 @@ export default function ManagerPage() {
   const [stats, setStats] = useState(mockStatistics);
   const [menuItemsList, setMenuItemsList] = useState(menuItems);
   const [feedbackList, setFeedbackList] = useState([]);
+  const [isMenuItemDialogOpen, setIsMenuItemDialogOpen] = useState(false);
+  const [editingMenuItem, setEditingMenuItem] = useState<MenuItem | null>(null);
+  
+  // Order action dialogs state
+  const [approveDialogOpen, setApproveDialogOpen] = useState(false);
+  const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
+  const [selectedOrderForAction, setSelectedOrderForAction] = useState<{id: number, orderNumber: string} | null>(null);
 
   const pendingOrders = orders.filter(o => o.status === 'pending_approval');
 
@@ -53,8 +62,10 @@ export default function ManagerPage() {
     const token = localStorage.getItem('managerToken');
     if (!token) {
       setShowLoginDialog(true);
+      setIsAuthenticated(false);
     } else {
       setIsAuthenticated(true);
+      setShowLoginDialog(false);
       
       // Fetch pending orders on mount
       const fetchPendingOrders = async () => {
@@ -78,14 +89,7 @@ export default function ManagerPage() {
         try {
           const statsData = await managerApi.getStatistics();
           if (statsData) {
-            setStats({
-              todayOrders: statsData.totalOrders,
-              todayRevenue: statsData.totalRevenue,
-              averageOrderValue: statsData.averageOrderValue,
-              averageRating: 4.5, // Will be updated from feedback
-              totalOrders: statsData.totalOrders,
-              topItems: mockStatistics.topItems // Keep mock for now
-            });
+            setStats(statsData);
             console.log('✅ Loaded statistics from API');
           }
         } catch (error) {
@@ -136,22 +140,35 @@ export default function ManagerPage() {
   useEffect(() => {
     if (!isAuthenticated) return;
 
+    // Initialize socket connection
     const socket = getSocket();
+    
+    // Ensure we're subscribed to manager dashboard
+    subscribeToManagerDashboard();
 
     // Listen for new orders
-    const unsubscribeNewOrder = onNewOrder((newOrder) => {
-      console.log('📬 New order received:', newOrder);
-      setOrders(prevOrders => [newOrder, ...prevOrders]);
+    const unsubscribeNewOrder = onNewOrder((newOrder: Order) => {
+      console.log('📬 New order received via Socket.IO:', newOrder);
+      // Add new order to the list if it doesn't already exist
+      setOrders(prevOrders => {
+        const exists = prevOrders.find(o => o.id === newOrder.id || o.orderNumber === newOrder.orderNumber);
+        if (exists) {
+          return prevOrders.map(o => 
+            (o.id === newOrder.id || o.orderNumber === newOrder.orderNumber) ? newOrder : o
+          );
+        }
+        return [newOrder, ...prevOrders];
+      });
       toast({
         title: 'New Order! 🔔',
-        description: `Order #${newOrder.order_number} received`,
+        description: `Order #${newOrder.orderNumber || newOrder.id} received`,
       });
     });
 
     // Listen for pending orders updates (approvals, rejections, etc.)
     const handleOrdersUpdate = (data: any) => {
-      console.log('🔄 Orders updated:', data);
-      // Refetch pending orders
+      console.log('🔄 Pending orders updated via Socket.IO:', data);
+      // Refetch pending orders to get the latest state
       managerApi.getPendingOrders().then(data => {
         if (data && Array.isArray(data)) {
           setOrders(data);
@@ -159,11 +176,39 @@ export default function ManagerPage() {
       }).catch(err => console.error('Failed to fetch pending orders:', err));
     };
 
+    // Listen for order status updates
+    const handleOrderStatusUpdate = (data: any) => {
+      console.log('📊 Order status updated via Socket.IO:', data);
+      const updatedOrder = transformOrder(data);
+      setOrders(prevOrders =>
+        prevOrders.map(order =>
+          order.id === updatedOrder.id || order.orderNumber === updatedOrder.orderNumber
+            ? { ...order, ...updatedOrder }
+            : order
+        )
+      );
+    };
+
     socket.on('pending-orders-updated', handleOrdersUpdate);
+    socket.on('order_status_updated', handleOrderStatusUpdate);
+    socket.on('order-update', handleOrderStatusUpdate);
+
+    // Log socket connection status
+    if (socket.connected) {
+      console.log('✅ Socket.IO connected for manager dashboard');
+    } else {
+      console.warn('⚠️ Socket.IO not connected, waiting for connection...');
+      socket.on('connect', () => {
+        console.log('✅ Socket.IO connected, resubscribing to manager dashboard');
+        subscribeToManagerDashboard();
+      });
+    }
 
     return () => {
       unsubscribeNewOrder();
       socket.off('pending-orders-updated', handleOrdersUpdate);
+      socket.off('order_status_updated', handleOrderStatusUpdate);
+      socket.off('order-update', handleOrderStatusUpdate);
     };
   }, [isAuthenticated, toast]);
 
@@ -179,20 +224,36 @@ export default function ManagerPage() {
   const handleLogout = () => {
     localStorage.removeItem('managerToken');
     setIsAuthenticated(false);
-    navigate('/');
+    setShowLoginDialog(true);
+    toast({
+      title: 'Logged out',
+      description: 'You have been successfully logged out',
+    });
   };
 
-  const handleApproveOrder = async (orderId: number) => {
+  // Open approve dialog
+  const openApproveDialog = (order: any) => {
+    setSelectedOrderForAction({ id: order.id, orderNumber: order.orderNumber || `ORD-${order.id}` });
+    setApproveDialogOpen(true);
+  };
+
+  // Open reject dialog
+  const openRejectDialog = (order: any) => {
+    setSelectedOrderForAction({ id: order.id, orderNumber: order.orderNumber || `ORD-${order.id}` });
+    setRejectDialogOpen(true);
+  };
+
+  const handleApproveOrder = async (orderId: number, estimatedTime: number) => {
     try {
       setLoading(true);
-      await managerApi.approveOrder(orderId);
+      await managerApi.approveOrder(orderId, estimatedTime);
       // Update local state
       setOrders(orders.map(o => 
         o.id === orderId ? { ...o, status: 'approved' } : o
       ));
       toast({
         title: 'Order approved',
-        description: `Order #${orderId} has been sent to kitchen`,
+        description: `Order #${orderId} has been sent to kitchen with ${estimatedTime} min estimated time`,
       });
     } catch (err) {
       console.error('Failed to approve order:', err);
@@ -202,22 +263,23 @@ export default function ManagerPage() {
         description: `Failed to approve order: ${errorMsg}`,
         variant: 'destructive',
       });
+      throw err; // Re-throw so dialog can handle it
     } finally {
       setLoading(false);
     }
   };
 
-  const handleRejectOrder = async (orderId: number) => {
+  const handleRejectOrder = async (orderId: number, reason: string) => {
     try {
       setLoading(true);
-      await managerApi.rejectOrder(orderId, 'Rejected by manager');
+      await managerApi.rejectOrder(orderId, reason);
       // Update local state
       setOrders(orders.map(o => 
         o.id === orderId ? { ...o, status: 'cancelled' } : o
       ));
       toast({
         title: 'Order rejected',
-        description: 'Customer has been notified',
+        description: 'Customer has been notified with the reason',
       });
     } catch (err) {
       console.error('Failed to reject order:', err);
@@ -227,6 +289,7 @@ export default function ManagerPage() {
         description: `Failed to reject order: ${errorMsg}`,
         variant: 'destructive',
       });
+      throw err; // Re-throw so dialog can handle it
     } finally {
       setLoading(false);
     }
@@ -248,6 +311,36 @@ export default function ManagerPage() {
       toast({
         title: 'Error',
         description: `Failed to delete item: ${errorMsg}`,
+        variant: 'destructive',
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSaveMenuItem = async (itemData: any) => {
+    try {
+      setLoading(true);
+      if (editingMenuItem) {
+        const updatedItem = await managerApi.updateMenuItem(editingMenuItem.id, itemData);
+        setMenuItemsList(prev => prev.map(item => item.id === updatedItem.id ? updatedItem : item));
+        toast({
+          title: 'Item updated',
+          description: `${updatedItem.name} has been updated`,
+        });
+      } else {
+        const newItem = await managerApi.createMenuItem(itemData);
+        setMenuItemsList(prev => [...prev, newItem]);
+        toast({
+          title: 'Item added',
+          description: `${newItem.name} has been added to the menu`,
+        });
+      }
+    } catch (err) {
+      console.error('Failed to save menu item:', err);
+      toast({
+        title: 'Error',
+        description: 'Failed to save menu item',
         variant: 'destructive',
       });
     } finally {
@@ -449,7 +542,7 @@ export default function ManagerPage() {
                             <Button 
                               size="sm" 
                               className="bg-success hover:bg-success/90"
-                              onClick={() => handleApproveOrder(order.id)}
+                              onClick={() => openApproveDialog(order)}
                               disabled={loading}
                             >
                               <Check className="w-4 h-4" />
@@ -457,7 +550,7 @@ export default function ManagerPage() {
                             <Button 
                               size="sm" 
                               variant="destructive"
-                              onClick={() => handleRejectOrder(order.id)}
+                              onClick={() => openRejectDialog(order)}
                               disabled={loading}
                             >
                               <X className="w-4 h-4" />
@@ -486,7 +579,9 @@ export default function ManagerPage() {
                           <p className="font-medium">{item.name}</p>
                           <div className="w-full bg-muted rounded-full h-2 mt-1">
                             <div
-                              className="bg-gradient-primary h-2 rounded-full"
+                              className="bg-gradient-primary h-2 rounded-full transition-all"
+                              data-width={Math.round((item.count / stats.topItems[0].count) * 100)}
+                              // @ts-ignore - Dynamic width requires inline style
                               style={{ width: `${(item.count / stats.topItems[0].count) * 100}%` }}
                             />
                           </div>
@@ -549,7 +644,7 @@ export default function ManagerPage() {
                       <div className="flex gap-3">
                         <Button 
                           className="flex-1 bg-success hover:bg-success/90"
-                          onClick={() => handleApproveOrder(order.id)}
+                          onClick={() => openApproveDialog(order)}
                           disabled={loading}
                         >
                           <Check className="w-4 h-4 mr-2" />
@@ -558,7 +653,7 @@ export default function ManagerPage() {
                         <Button 
                           variant="destructive" 
                           className="flex-1"
-                          onClick={() => handleRejectOrder(order.id)}
+                          onClick={() => openRejectDialog(order)}
                           disabled={loading}
                         >
                           <X className="w-4 h-4 mr-2" />
@@ -578,7 +673,15 @@ export default function ManagerPage() {
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between">
                   <CardTitle>Menu Items ({menuItemsList.length})</CardTitle>
-                  <Button className="bg-gradient-primary">+ Add Item</Button>
+                  <Button 
+                    className="bg-gradient-primary"
+                    onClick={() => {
+                      setEditingMenuItem(null);
+                      setIsMenuItemDialogOpen(true);
+                    }}
+                  >
+                    + Add Item
+                  </Button>
                 </CardHeader>
                 <CardContent>
                   <ScrollArea className="h-[600px]">
@@ -603,7 +706,16 @@ export default function ManagerPage() {
                               {item.available ? 'Available' : 'Unavailable'}
                             </Badge>
                           </div>
-                          <Button variant="ghost" size="sm">Edit</Button>
+                          <Button 
+                            variant="ghost" 
+                            size="sm"
+                            onClick={() => {
+                              setEditingMenuItem(item);
+                              setIsMenuItemDialogOpen(true);
+                            }}
+                          >
+                            Edit
+                          </Button>
                           <Button 
                             variant="ghost" 
                             size="sm" 
@@ -695,6 +807,36 @@ export default function ManagerPage() {
           )}
         </div>
       </main>
+
+      <MenuItemDialog
+        open={isMenuItemDialogOpen}
+        onOpenChange={setIsMenuItemDialogOpen}
+        item={editingMenuItem}
+        onSave={handleSaveMenuItem}
+      />
+      
+      {/* Order Action Dialogs */}
+      <ApproveOrderDialog
+        open={approveDialogOpen}
+        orderId={selectedOrderForAction?.id || null}
+        orderNumber={selectedOrderForAction?.orderNumber || ''}
+        onClose={() => {
+          setApproveDialogOpen(false);
+          setSelectedOrderForAction(null);
+        }}
+        onConfirm={handleApproveOrder}
+      />
+      
+      <RejectOrderDialog
+        open={rejectDialogOpen}
+        orderId={selectedOrderForAction?.id || null}
+        orderNumber={selectedOrderForAction?.orderNumber || ''}
+        onClose={() => {
+          setRejectDialogOpen(false);
+          setSelectedOrderForAction(null);
+        }}
+        onConfirm={handleRejectOrder}
+      />
     </div>
   );
 }

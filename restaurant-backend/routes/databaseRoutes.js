@@ -86,13 +86,12 @@ router.get('/test-db', basicAuth, async (req, res) => {
         );
         
         const [categories] = await sequelize.query(
-            'SELECT id, name FROM categories ORDER BY name;'
+            'SELECT category_id as id, name FROM menu_categories ORDER BY name;'
         );
         
         const [menuItems] = await sequelize.query(
-            `SELECT m.id, m.name, m.price, c.name as category_name 
+            `SELECT m.item_id as id, m.name, m.price, m.category 
              FROM menu_items m
-             LEFT JOIN categories c ON m.category_id = c.id
              WHERE m.is_available = true
              ORDER BY m.name;`
         );
@@ -164,7 +163,7 @@ router.get('/stats', basicAuth, async (req, res) => {
         );
         
         const [rowCounts] = await sequelize.query(`
-            SELECT 'categories' as table_name, (SELECT COUNT(*) FROM categories) as row_count
+            SELECT 'menu_categories' as table_name, (SELECT COUNT(*) FROM menu_categories) as row_count
             UNION ALL SELECT 'menu_items', (SELECT COUNT(*) FROM menu_items)
             UNION ALL SELECT 'orders', (SELECT COUNT(*) FROM orders)
             UNION ALL SELECT 'order_items', (SELECT COUNT(*) FROM order_items)
@@ -174,7 +173,7 @@ router.get('/stats', basicAuth, async (req, res) => {
         const [sizeInfo] = await sequelize.query(`
             SELECT 
                 pg_size_pretty(pg_database_size(current_database())) as total_database_size,
-                (SELECT COUNT(*) FROM categories) as total_categories,
+                (SELECT COUNT(*) FROM menu_categories) as total_categories,
                 (SELECT COUNT(*) FROM menu_items) as total_menu_items,
                 (SELECT COUNT(*) FROM orders) as total_orders,
                 (SELECT COUNT(*) FROM order_items) as total_order_items;`
@@ -227,7 +226,7 @@ router.get('/health', async (req, res) => {
         }
 
         // CHECK 2: Required Tables Exist
-        const requiredTables = ['categories', 'menu_items', 'orders', 'order_items', 'feedback'];
+        const requiredTables = ['menu_categories', 'menu_items', 'orders', 'order_items', 'feedback'];
         const [existingTables] = await sequelize.query(`
             SELECT table_name 
             FROM information_schema.tables 
@@ -253,7 +252,7 @@ router.get('/health', async (req, res) => {
 
         // CHECK 3: Sample Data Availability
         try {
-            const [categoryCount] = await sequelize.query('SELECT COUNT(*) as count FROM categories');
+            const [categoryCount] = await sequelize.query('SELECT COUNT(*) as count FROM menu_categories');
             const [menuItemCount] = await sequelize.query('SELECT COUNT(*) as count FROM menu_items');
 
             const hasCategories = parseInt(categoryCount[0].count) > 0;

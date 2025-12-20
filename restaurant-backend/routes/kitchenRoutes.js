@@ -96,7 +96,7 @@ router.put('/orders/:id/status', authenticateKitchen, async (req, res) => {
     
     try {
         // Get status ID from code
-        const statusQuery = `SELECT status_id FROM kitchen_statuses WHERE code = $1`;
+        const statusQuery = `SELECT status_id FROM kitchen_statuses WHERE code = ?`;
         const statusResult = await db.sequelize.query(statusQuery, { 
             replacements: [status_code],
             type: db.sequelize.QueryTypes.SELECT 
@@ -108,36 +108,47 @@ router.put('/orders/:id/status', authenticateKitchen, async (req, res) => {
         
         const statusId = statusResult[0].status_id;
         
-        // Update order kitchen status
-        const updateOrderQuery = `
-            UPDATE orders 
-            SET kitchen_status_id = $1,
-                expected_completion = COALESCE($2, expected_completion),
-                updated_at = NOW()
-            WHERE order_id = $3 
-            RETURNING order_id
-        `;
+        // Update order kitchen status (only update expected_completion if provided)
+        let updateOrderQuery, replacements;
+        if (expected_completion) {
+            updateOrderQuery = `
+                UPDATE orders 
+                SET kitchen_status_id = ?,
+                    expected_completion = ?,
+                    updated_at = NOW()
+                WHERE order_id = ?
+            `;
+            replacements = [statusId, expected_completion, id];
+        } else {
+            updateOrderQuery = `
+                UPDATE orders 
+                SET kitchen_status_id = ?,
+                    updated_at = NOW()
+                WHERE order_id = ?
+            `;
+            replacements = [statusId, id];
+        }
         
-        const orderResult = await db.sequelize.query(updateOrderQuery, { 
-            replacements: [statusId, expected_completion, id],
+        await db.sequelize.query(updateOrderQuery, { 
+            replacements,
             type: db.sequelize.QueryTypes.UPDATE 
         });
         
-        if (orderResult.length === 0) {
-            return res.status(404).json({ success: false, message: 'Order not found' });
+        // Create kitchen log (optional, ignore if fails)
+        try {
+            const logQuery = `
+                INSERT INTO kitchen_logs 
+                (order_id, status_id, updated_by, notes, created_at)
+                VALUES (?, ?, ?, ?, NOW())
+            `;
+            
+            await db.sequelize.query(logQuery, { 
+                replacements: [id, statusId, 1, notes || `Status changed to ${status_code}`],
+                type: db.sequelize.QueryTypes.INSERT 
+            });
+        } catch (logError) {
+            console.warn('Failed to create kitchen log:', logError.message);
         }
-        
-        // Create kitchen log
-        const logQuery = `
-            INSERT INTO kitchen_logs 
-            (order_id, status_id, updated_by, notes, created_at)
-            VALUES ($1, $2, $3, $4, NOW())
-        `;
-        
-        await db.sequelize.query(logQuery, { 
-            replacements: [id, statusId, 1, notes || `Status changed to ${status_code}`],
-            type: db.sequelize.QueryTypes.INSERT 
-        });
         
         // 📡 Broadcast order update via Socket.IO
         if (global.io) {
