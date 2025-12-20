@@ -1,29 +1,2 @@
-# FastAPI and ASGI server
 fastapi
 uvicorn[standard]
-
-# Data validation and serialization
-pydantic
-pydantic-settings
-
-# Database
-sqlalchemy
-asyncpg
-psycopg2-binary
-
-# Authentication
-python-jose[cryptography]
-passlib[bcrypt]
-python-multipart
-
-# HTTP client
-httpx
-
-# Environment variables
-python-dotenv
-
-# CORS
-# (included in FastAPI)
-
-# Utilities
-typing-extensions
