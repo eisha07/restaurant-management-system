@@ -3,6 +3,7 @@ const { Sequelize } = require('sequelize');
 require('dotenv').config();
 
 console.log('Database configuration:');
+console.log('DATABASE_URL:', process.env.DATABASE_URL ? '*** (set)' : 'NOT SET');
 console.log('DB_HOST:', process.env.DB_HOST);
 console.log('DB_NAME:', process.env.DB_NAME);
 console.log('DB_USER:', process.env.DB_USER);
@@ -12,31 +13,52 @@ console.log('DB_PASSWORD:', process.env.DB_PASSWORD ? '*** (set)' : 'NOT SET');
 let sequelize;
 
 try {
-  // Option 1: Using separate variables (more reliable)
-  sequelize = new Sequelize(
-    process.env.DB_NAME,
-    process.env.DB_USER,
-    process.env.DB_PASSWORD,
-    {
-      host: process.env.DB_HOST,
-      port: process.env.DB_PORT || 5432,
+  if (process.env.DATABASE_URL) {
+    // Option 1: Using connection string (standard for cloud DBs)
+    sequelize = new Sequelize(process.env.DATABASE_URL, {
       dialect: 'postgres',
       dialectOptions: {
-        ssl: process.env.DB_HOST === 'localhost' ? false : {
+        ssl: {
           require: true,
           rejectUnauthorized: false
         },
-        statement_timeout: 5000 // 5 second query timeout
+        statement_timeout: 5000
       },
-      logging: (msg) => console.log('[SQL]', msg), // Log queries for debugging
+      logging: (msg) => console.log('[SQL]', msg),
       pool: {
         max: 5,
         min: 0,
         acquire: 5000,
         idle: 10000
       }
-    }
-  );
+    });
+  } else {
+    // Option 2: Using separate variables
+    sequelize = new Sequelize(
+      process.env.DB_NAME,
+      process.env.DB_USER,
+      process.env.DB_PASSWORD,
+      {
+        host: process.env.DB_HOST,
+        port: process.env.DB_PORT || 5432,
+        dialect: 'postgres',
+        dialectOptions: {
+          ssl: (process.env.DB_HOST === 'localhost' || !process.env.DB_HOST) ? false : {
+            require: true,
+            rejectUnauthorized: false
+          },
+          statement_timeout: 5000
+        },
+        logging: (msg) => console.log('[SQL]', msg),
+        pool: {
+          max: 5,
+          min: 0,
+          acquire: 5000,
+          idle: 10000
+        }
+      }
+    );
+  }
   
   console.log('✅ Sequelize instance created successfully');
 } catch (error) {
