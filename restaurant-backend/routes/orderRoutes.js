@@ -14,11 +14,12 @@ router.get('/', async (req, res) => {
                 o.order_id as id,
                 o.order_number,
                 c.customer_id,
+                c.name as customer_name,
                 rt.table_number,
                 os.name as status,
                 pm.name as payment_method,
                 ps.name as payment_status,
-                o.created_at,
+                TO_CHAR(o.created_at, 'YYYY-MM-DD"T"HH24:MI:SS"Z"') as created_at,
                 o.approved_at,
                 o.expected_completion
             FROM orders o
@@ -54,6 +55,7 @@ router.get('/:id', async (req, res) => {
                 o.order_id as id,
                 o.order_number,
                 c.customer_id,
+                c.name as customer_name,
                 rt.table_number,
                 os.code as status,
                 os.name as status_name,
@@ -61,7 +63,7 @@ router.get('/:id', async (req, res) => {
                 ps.name as payment_status,
                 ks.code as kitchen_status,
                 ks.name as kitchen_status_name,
-                o.created_at,
+                TO_CHAR(o.created_at, 'YYYY-MM-DD"T"HH24:MI:SS"Z"') as created_at,
                 o.approved_at,
                 o.expected_completion
             FROM orders o
@@ -148,15 +150,17 @@ router.get('/session/:sessionId', async (req, res) => {
             SELECT 
                 o.order_id as id,
                 o.order_number,
+                c.name as customer_name,
                 os.code as status,
                 os.name as status_name,
                 pm.name as payment_method,
                 ps.name as payment_status,
                 ks.code as kitchen_status,
-                o.created_at,
+                TO_CHAR(o.created_at, 'YYYY-MM-DD"T"HH24:MI:SS"Z"') as created_at,
                 o.approved_at,
                 o.expected_completion
             FROM orders o
+            LEFT JOIN customers c ON o.customer_id = c.customer_id
             LEFT JOIN order_statuses os ON o.order_status_id = os.status_id
             LEFT JOIN payment_methods pm ON o.payment_method_id = pm.method_id
             LEFT JOIN payment_statuses ps ON o.payment_status_id = ps.status_id
@@ -603,14 +607,14 @@ router.patch('/:id/status', async (req, res) => {
 
         // Get status ID
         const statusResult = await sequelize.query(
-            'SELECT status_id FROM order_statuses WHERE name = $1',
+            'SELECT status_id FROM order_statuses WHERE code = $1',
             { bind: [status], type: sequelize.QueryTypes.SELECT }
         );
 
         if (statusResult.length === 0) {
             return res.status(400).json({
                 success: false,
-                message: 'Invalid status'
+                message: 'Invalid status code'
             });
         }
 
@@ -619,6 +623,15 @@ router.patch('/:id/status', async (req, res) => {
             'UPDATE orders SET order_status_id = $1 WHERE order_id = $2',
             { bind: [statusResult[0].status_id, id] }
         );
+
+        // 📡 Broadcast update to customer
+        if (global.io) {
+            global.io.to('order_' + id).emit('order-update', {
+                orderId: parseInt(id),
+                status: status,
+                timestamp: new Date().toISOString()
+            });
+        }
 
         res.json({
             success: true,

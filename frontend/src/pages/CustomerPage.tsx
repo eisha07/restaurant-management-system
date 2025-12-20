@@ -8,16 +8,24 @@ import { FeedbackForm } from '@/components/customer/FeedbackForm';
 import { Header } from '@/components/shared/Header';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Sparkles, ClipboardList, ChevronRight } from 'lucide-react';
+import { 
+  DropdownMenu, 
+  DropdownMenuContent, 
+  DropdownMenuItem, 
+  DropdownMenuTrigger 
+} from '@/components/ui/dropdown-menu';
+import { Sparkles, ClipboardList, ChevronRight, ChevronDown } from 'lucide-react';
 import { menuApi, orderApi } from '@/services/api';
 import { 
   initializeSocket, 
   getSocket, 
   joinOrderRoom, 
+  joinSessionRoom,
   leaveOrderRoom,
   onOrderStatusUpdate,
   onOrderApprovalUpdate,
-  onOrderComplete
+  onOrderComplete,
+  onOrderCreated
 } from '@/services/socket';
 import { toast } from 'sonner';
 
@@ -64,18 +72,27 @@ export default function CustomerPage() {
   // Initialize socket and fetch orders
   useEffect(() => {
     initializeSocket();
+    const sessionId = getSessionId();
+    joinSessionRoom(sessionId);
     fetchCustomerOrders();
 
-    // Listen for new orders from this session
+    // Listen for new orders from this session via Socket.IO
+    const unsubCreated = onOrderCreated((data) => {
+      console.log('📡 Order created confirmation received:', data);
+      fetchCustomerOrders();
+    });
+
+    // Also keep the window event for local updates
     const handleOrderCreated = () => {
       fetchCustomerOrders();
     };
     window.addEventListener('orderCreated', handleOrderCreated);
 
     return () => {
+      unsubCreated();
       window.removeEventListener('orderCreated', handleOrderCreated);
     };
-  }, [fetchCustomerOrders]);
+  }, [fetchCustomerOrders, getSessionId]);
 
   // Socket event handlers for real-time updates
   useEffect(() => {
@@ -83,12 +100,12 @@ export default function CustomerPage() {
     const unsubStatus = onOrderStatusUpdate((updatedOrder) => {
       console.log('📡 Real-time order status update:', updatedOrder);
       setCustomerOrders(prev => 
-        prev.map(o => o.id === updatedOrder.id ? updatedOrder : o)
+        prev.map(o => o.id === updatedOrder.id ? { ...o, ...updatedOrder } : o)
       );
       
       // Update selected order if it matches
       setSelectedOrder(prev => 
-        prev && prev.id === updatedOrder.id ? updatedOrder : prev
+        prev && prev.id === updatedOrder.id ? { ...prev, ...updatedOrder } : prev
       );
       
       // Show toast notification for status changes
@@ -106,11 +123,26 @@ export default function CustomerPage() {
     // Handle order approval/rejection
     const unsubApproval = onOrderApprovalUpdate((data) => {
       console.log('📡 Order approval update:', data);
+      
+      const orderId = typeof data.orderId === 'string' ? parseInt(data.orderId, 10) : data.orderId;
+      
       if (data.approved) {
         toast.success('Your order has been approved by the manager!');
+        // Update local state immediately for better UX
+        setCustomerOrders(prev => 
+          prev.map(o => o.id === orderId ? { ...o, status: 'approved' as const } : o)
+        );
+        setSelectedOrder(prev => 
+          prev && prev.id === orderId ? { ...prev, status: 'approved' as const } : prev
+        );
       } else {
         toast.error(`Order rejected: ${data.reason || 'Please contact staff'}`);
+        setCustomerOrders(prev => 
+          prev.map(o => o.id === orderId ? { ...o, status: 'cancelled' as const } : o)
+        );
       }
+      
+      // Still fetch to get full updated data (like expected completion time)
       fetchCustomerOrders();
     });
 
@@ -280,6 +312,30 @@ export default function CustomerPage() {
                     <ChevronRight className="w-4 h-4 ml-1" />
                   </Button>
                 ))}
+                
+                {activeOrders.length > 2 && (
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="outline" size="sm" className="border-primary/30">
+                        +{activeOrders.length - 2} More <ChevronDown className="w-4 h-4 ml-1" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-56">
+                      {activeOrders.slice(2).map(order => (
+                        <DropdownMenuItem 
+                          key={order.id} 
+                          onClick={() => handleTrackOrder(order)}
+                          className="flex items-center justify-between cursor-pointer"
+                        >
+                          <span className="font-medium">{order.orderNumber.slice(-7)}</span>
+                          <Badge variant="outline" className="text-[10px] capitalize">
+                            {order.status.replace('_', ' ')}
+                          </Badge>
+                        </DropdownMenuItem>
+                      ))}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                )}
               </div>
             </div>
           </div>

@@ -26,6 +26,7 @@ export interface Order {
   kitchenStatus: KitchenStatus;
   paymentMethod: PaymentMethod;
   tableNumber?: string;
+  customerName?: string;
   items: OrderItem[];
   totalAmount: number;
   createdAt: string;

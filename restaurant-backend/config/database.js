@@ -29,10 +29,13 @@ try {
       dbUrl += '/';
     }
 
+    // Determine if SSL is needed (disable for localhost)
+    const isLocal = dbUrl.includes('localhost') || dbUrl.includes('127.0.0.1');
+
     sequelize = new Sequelize(dbUrl, {
       dialect: 'postgres',
       dialectOptions: {
-        ssl: {
+        ssl: isLocal ? false : {
           require: true,
           rejectUnauthorized: false
         },

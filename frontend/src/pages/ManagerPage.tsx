@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Navigate } from 'react-router-dom';
 import { mockOrders, mockStatistics, mockFeedback, menuItems } from '@/data/mockData';
 import { StatisticsCharts } from '@/components/manager/StatisticsCharts';
 import { ManagerLoginDialog } from '@/components/manager/ManagerLoginDialog';
@@ -31,6 +31,7 @@ import {
   X,
   ChevronRight,
   Utensils,
+  List,
 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { Link } from 'react-router-dom';
@@ -39,8 +40,8 @@ export default function ManagerPage() {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState('overview');
-  const [showLoginDialog, setShowLoginDialog] = useState(false);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [showLoginDialog, setShowLoginDialog] = useState(!localStorage.getItem('managerToken'));
+  const [isAuthenticated, setIsAuthenticated] = useState(() => !!localStorage.getItem('managerToken'));
   // Use persistent state for orders - survives navigation and tab switches
   const [orders, setOrders] = usePersistentState('managerOrders', mockOrders, sessionStorage);
   const [loading, setLoading] = useState(false);
@@ -49,6 +50,7 @@ export default function ManagerPage() {
   const [feedbackList, setFeedbackList] = useState([]);
   const [isMenuItemDialogOpen, setIsMenuItemDialogOpen] = useState(false);
   const [editingMenuItem, setEditingMenuItem] = useState<MenuItem | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
   
   // Order action dialogs state
   const [approveDialogOpen, setApproveDialogOpen] = useState(false);
@@ -56,6 +58,30 @@ export default function ManagerPage() {
   const [selectedOrderForAction, setSelectedOrderForAction] = useState<{id: number, orderNumber: string} | null>(null);
 
   const pendingOrders = orders.filter(o => o.status === 'pending_approval');
+
+  const filteredOrders = pendingOrders.filter(order => 
+    order.orderNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    order.tableNumber?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    order.customerName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    order.items.some(item => item.name.toLowerCase().includes(searchQuery.toLowerCase()))
+  );
+
+  const filteredAllOrders = orders.filter(order => 
+    order.orderNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    order.tableNumber?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    order.customerName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    order.status.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    order.items.some(item => item.name.toLowerCase().includes(searchQuery.toLowerCase()))
+  );
+
+  const filteredMenuItems = menuItemsList.filter(item =>
+    item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    item.category.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  const filteredFeedback = feedbackList.filter(feedback =>
+    feedback.comment?.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   // Check if already authenticated on mount and fetch pending orders
   useEffect(() => {
@@ -67,18 +93,26 @@ export default function ManagerPage() {
       setIsAuthenticated(true);
       setShowLoginDialog(false);
       
-      // Fetch pending orders on mount
-      const fetchPendingOrders = async () => {
+      // Fetch all orders on mount
+      const fetchAllOrders = async () => {
         try {
           setLoading(true);
-          const data = await managerApi.getPendingOrders();
-          if (data && Array.isArray(data)) {
+          const data = await managerApi.getAllOrders();
+          if (data && data.orders && Array.isArray(data.orders)) {
+            setOrders(data.orders);
+            console.log('✅ Loaded', data.orders.length, 'orders from API');
+          } else if (Array.isArray(data)) {
             setOrders(data);
-            console.log('✅ Loaded', data.length, 'pending orders from API');
           }
         } catch (error) {
-          console.error('Failed to fetch pending orders on mount:', error);
-          // Keep mock orders as fallback if API fails
+          console.error('Failed to fetch orders on mount:', error);
+          // Try to fetch pending orders as fallback
+          try {
+            const pendingData = await managerApi.getPendingOrders();
+            if (pendingData) setOrders(pendingData);
+          } catch (e) {
+            console.error('Fallback fetch failed too');
+          }
         } finally {
           setLoading(false);
         }
@@ -126,7 +160,7 @@ export default function ManagerPage() {
         }
       };
 
-      fetchPendingOrders();
+      fetchAllOrders();
       fetchStatistics();
       fetchMenu();
       fetchFeedback();
@@ -348,9 +382,9 @@ export default function ManagerPage() {
     }
   };
 
-  // Show login dialog if not authenticated
+  // Show login page if not authenticated
   if (!isAuthenticated) {
-    return <ManagerLoginDialog open={showLoginDialog} onLogin={handleLogin} />;
+    return <Navigate to="/manager-login" replace />;
   }
 
   return (
@@ -370,6 +404,7 @@ export default function ManagerPage() {
           {[
             { id: 'overview', label: 'Overview', icon: LayoutDashboard },
             { id: 'orders', label: 'Pending Orders', icon: ClipboardList, badge: pendingOrders.length },
+            { id: 'all_orders', label: 'All Orders', icon: List },
             { id: 'menu', label: 'Menu Management', icon: MenuIcon },
             { id: 'statistics', label: 'Statistics', icon: BarChart3 },
             { id: 'feedback', label: 'Feedback', icon: MessageSquare },
@@ -415,6 +450,7 @@ export default function ManagerPage() {
               <h1 className="font-serif text-2xl font-bold">
                 {activeTab === 'overview' && 'Dashboard'}
                 {activeTab === 'orders' && 'Pending Orders'}
+                {activeTab === 'all_orders' && 'All Orders'}
                 {activeTab === 'menu' && 'Menu Management'}
                 {activeTab === 'statistics' && 'Statistics'}
                 {activeTab === 'feedback' && 'Customer Feedback'}
@@ -423,7 +459,12 @@ export default function ManagerPage() {
             <div className="flex items-center gap-4">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                <Input placeholder="Search..." className="pl-9 w-64" />
+                <Input 
+                  placeholder="Search..." 
+                  className="pl-9 w-64" 
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                />
               </div>
               <div className="flex items-center gap-2">
                 <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center text-primary-foreground font-semibold">
@@ -598,16 +639,18 @@ export default function ManagerPage() {
           {/* Orders Tab */}
           {activeTab === 'orders' && (
             <div className="space-y-4 animate-fade-in">
-              {pendingOrders.length === 0 ? (
+              {filteredOrders.length === 0 ? (
                 <Card>
                   <CardContent className="py-12 text-center">
                     <ClipboardList className="w-12 h-12 text-muted-foreground/30 mx-auto mb-4" />
-                    <p className="text-lg font-medium">No pending orders</p>
-                    <p className="text-muted-foreground">All orders have been processed</p>
+                    <p className="text-lg font-medium">No orders found</p>
+                    <p className="text-muted-foreground">
+                      {searchQuery ? `No orders matching "${searchQuery}"` : 'All orders have been processed'}
+                    </p>
                   </CardContent>
                 </Card>
               ) : (
-                pendingOrders.map(order => (
+                filteredOrders.map(order => (
                   <Card key={order.id}>
                     <CardContent className="p-6">
                       <div className="flex items-start justify-between mb-4">
@@ -667,12 +710,83 @@ export default function ManagerPage() {
             </div>
           )}
 
+          {/* All Orders Tab */}
+          {activeTab === 'all_orders' && (
+            <div className="space-y-4 animate-fade-in">
+              {filteredAllOrders.length === 0 ? (
+                <Card>
+                  <CardContent className="py-12 text-center">
+                    <List className="w-12 h-12 text-muted-foreground/30 mx-auto mb-4" />
+                    <p className="text-lg font-medium">No orders found</p>
+                    <p className="text-muted-foreground">
+                      {searchQuery ? `No orders matching "${searchQuery}"` : 'No orders in the system'}
+                    </p>
+                  </CardContent>
+                </Card>
+              ) : (
+                <div className="grid grid-cols-1 gap-4">
+                  {filteredAllOrders.map(order => (
+                    <Card key={order.id} className="overflow-hidden">
+                      <CardContent className="p-0">
+                        <div className="flex items-center justify-between p-4 border-b border-border bg-muted/30">
+                          <div className="flex items-center gap-4">
+                            <div className="p-2 bg-background rounded-lg border border-border">
+                              <ClipboardList className="w-5 h-5 text-primary" />
+                            </div>
+                            <div>
+                              <p className="font-mono font-bold">{order.orderNumber}</p>
+                              <p className="text-xs text-muted-foreground">
+                                {order.customerName || 'Guest'} • Table {order.tableNumber}
+                              </p>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-3">
+                            <Badge className={
+                              order.status === 'completed' ? 'bg-success/10 text-success border-success/20' :
+                              order.status === 'cancelled' ? 'bg-destructive/10 text-destructive border-destructive/20' :
+                              order.status === 'ready' ? 'bg-secondary/10 text-secondary border-secondary/20' :
+                              'bg-primary/10 text-primary border-primary/20'
+                            }>
+                              {order.status.replace('_', ' ').toUpperCase()}
+                            </Badge>
+                            <span className="text-sm font-bold">${order.totalAmount.toFixed(2)}</span>
+                          </div>
+                        </div>
+                        <div className="p-4">
+                          <div className="flex flex-wrap gap-2 mb-3">
+                            {order.items.map((item, idx) => (
+                              <Badge key={idx} variant="outline" className="font-normal">
+                                {item.quantity}x {item.name}
+                              </Badge>
+                            ))}
+                          </div>
+                          <div className="flex items-center justify-between text-xs text-muted-foreground">
+                            <div className="flex items-center gap-1">
+                              <Clock className="w-3 h-3" />
+                              {formatDistanceToNow(new Date(order.createdAt), { addSuffix: true })}
+                            </div>
+                            {order.paymentMethod && (
+                              <div className="flex items-center gap-1">
+                                <DollarSign className="w-3 h-3" />
+                                {order.paymentMethod.toUpperCase()}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Menu Tab */}
           {activeTab === 'menu' && (
             <div className="animate-fade-in">
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between">
-                  <CardTitle>Menu Items ({menuItemsList.length})</CardTitle>
+                  <CardTitle>Menu Items ({filteredMenuItems.length})</CardTitle>
                   <Button 
                     className="bg-gradient-primary"
                     onClick={() => {
@@ -686,11 +800,16 @@ export default function ManagerPage() {
                 <CardContent>
                   <ScrollArea className="h-[600px]">
                     <div className="space-y-3">
-                      {menuItemsList.map(item => (
-                        <div
-                          key={item.id}
-                          className="flex items-center gap-4 p-4 bg-muted/30 rounded-lg hover:bg-muted/50 transition-colors"
-                        >
+                      {filteredMenuItems.length === 0 ? (
+                        <div className="text-center py-12 text-muted-foreground">
+                          No menu items found
+                        </div>
+                      ) : (
+                        filteredMenuItems.map(item => (
+                          <div
+                            key={item.id}
+                            className="flex items-center gap-4 p-4 bg-muted/30 rounded-lg hover:bg-muted/50 transition-colors"
+                          >
                           <img
                             src={item.image}
                             alt={item.name}
@@ -726,7 +845,8 @@ export default function ManagerPage() {
                             Delete
                           </Button>
                         </div>
-                      ))}
+                      ))
+                    )}
                     </div>
                   </ScrollArea>
                 </CardContent>
@@ -742,16 +862,18 @@ export default function ManagerPage() {
           {/* Feedback Tab */}
           {activeTab === 'feedback' && (
             <div className="space-y-4 animate-fade-in">
-              {feedbackList.length === 0 ? (
+              {filteredFeedback.length === 0 ? (
                 <Card>
                   <CardContent className="py-12 text-center">
                     <MessageSquare className="w-12 h-12 text-muted-foreground/30 mx-auto mb-4" />
-                    <p className="text-lg font-medium">No feedback yet</p>
-                    <p className="text-muted-foreground">Customer feedback will appear here</p>
+                    <p className="text-lg font-medium">No feedback found</p>
+                    <p className="text-muted-foreground">
+                      {searchQuery ? `No feedback matching "${searchQuery}"` : 'Customer feedback will appear here'}
+                    </p>
                   </CardContent>
                 </Card>
               ) : (
-                feedbackList.map(feedback => (
+                filteredFeedback.map(feedback => (
                 <Card key={feedback.id}>
                   <CardContent className="p-6">
                     <div className="flex items-center justify-between mb-4">

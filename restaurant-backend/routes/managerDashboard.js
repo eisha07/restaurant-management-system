@@ -31,9 +31,10 @@ router.get('/orders/pending', async (req, res) => {
         console.log('   DB state:', db.sequelize?.connectionManager?.connections ? 'READY' : 'NOT READY');
         const query = `
             SELECT 
-                o.order_id as id, o.order_number, c.customer_id, rt.table_number, 
+                o.order_id as id, o.order_number, c.customer_id, c.name as customer_name, rt.table_number, 
                 os.name as status, pm.name as payment_method, ps.name as payment_status,
-                ks.name as kitchen_status, o.special_instructions, o.created_at
+                ks.name as kitchen_status, o.special_instructions, 
+                TO_CHAR(o.created_at, 'YYYY-MM-DD"T"HH24:MI:SS"Z"') as created_at
             FROM orders o
             LEFT JOIN customers c ON o.customer_id = c.customer_id
             LEFT JOIN restaurant_tables rt ON o.table_id = rt.table_id
@@ -123,9 +124,11 @@ router.get('/orders/all', async (req, res) => {
         console.log('📋 Fetching all orders...');
         const query = `
             SELECT 
-                o.order_id as id, o.order_number, c.customer_id, rt.table_number, 
+                o.order_id as id, o.order_number, c.customer_id, c.name as customer_name, rt.table_number, 
                 os.name as status, pm.name as payment_method, ps.name as payment_status,
-                ks.name as kitchen_status, o.special_instructions, o.created_at, o.expected_completion
+                ks.name as kitchen_status, o.special_instructions, 
+                TO_CHAR(o.created_at, 'YYYY-MM-DD"T"HH24:MI:SS"Z"') as created_at, 
+                o.expected_completion
             FROM orders o
             LEFT JOIN customers c ON o.customer_id = c.customer_id
             LEFT JOIN restaurant_tables rt ON o.table_id = rt.table_id
@@ -136,10 +139,10 @@ router.get('/orders/all', async (req, res) => {
             WHERE os.name IN ('Approved', 'In Progress', 'Ready', 'Completed')
             ORDER BY 
                 CASE os.name
-                    WHEN 'in_progress' THEN 1
-                    WHEN 'approved' THEN 2
-                    WHEN 'ready' THEN 3
-                    WHEN 'completed' THEN 4
+                    WHEN 'In Progress' THEN 1
+                    WHEN 'Approved' THEN 2
+                    WHEN 'Ready' THEN 3
+                    WHEN 'Completed' THEN 4
                     ELSE 5
                 END,
                 o.created_at DESC
@@ -290,36 +293,47 @@ router.put('/orders/:id/approve', authenticateManager, authorizeManager, async (
         
         console.log('✅ Order approved in database:', id);
         
+        // Get order number for broadcasting
+        const orderInfo = await db.sequelize.query(
+            'SELECT order_number FROM orders WHERE order_id = $1',
+            { bind: [id], type: db.sequelize.QueryTypes.SELECT }
+        );
+        const orderNumber = orderInfo.length > 0 ? orderInfo[0].order_number : `ORD-${id}`;
+        
         // 📡 Broadcast order approval via Socket.IO
         if (global.io) {
-            console.log('📡 Broadcasting order approval to Socket.IO:', id);
+            console.log('📡 Broadcasting order approval to Socket.IO:', id, orderNumber);
+            
+            const broadcastData = {
+                orderId: parseInt(id),
+                orderNumber: orderNumber,
+                status: 'approved',
+                timestamp: new Date().toISOString()
+            };
             
             // Notify customer
             global.io.to('order_' + id).emit('order-approved', {
-                orderId: id,
-                status: 'approved',
-                message: '✅ Your order has been approved and is being prepared!',
-                timestamp: new Date().toISOString()
+                ...broadcastData,
+                message: '✅ Your order has been approved and is being prepared!'
             });
             
             // Notify kitchen
             global.io.to('kitchen').emit('order-approved', {
-                orderId: id,
-                message: `Order #${id} approved by manager`,
-                timestamp: new Date().toISOString()
+                ...broadcastData,
+                message: `Order ${orderNumber} approved by manager`
             });
             
             // Notify other managers
             global.io.to('managers').emit('order-approved', {
-                orderId: id,
-                message: `Order #${id} has been approved`,
-                timestamp: new Date().toISOString()
+                ...broadcastData,
+                message: `Order ${orderNumber} has been approved`
             });
             
             // Notify managers that pending orders list has changed
             global.io.to('managers').emit('pending-orders-updated', {
                 type: 'ORDER_APPROVED',
-                orderId: id,
+                orderId: parseInt(id),
+                orderNumber: orderNumber,
                 timestamp: new Date().toISOString()
             });
         } else {
@@ -568,36 +582,47 @@ router.patch('/orders/:id/approve', authenticateManager, authorizeManager, async
 
         console.log('✅ Order approved (PATCH):', id);
         
+        // Get order number for broadcasting
+        const orderInfo = await db.sequelize.query(
+            'SELECT order_number FROM orders WHERE order_id = $1',
+            { bind: [id], type: db.sequelize.QueryTypes.SELECT }
+        );
+        const orderNumber = orderInfo.length > 0 ? orderInfo[0].order_number : `ORD-${id}`;
+        
         // 📡 Broadcast order approval via Socket.IO
         if (global.io) {
-            console.log('📡 Broadcasting order approval (PATCH):', id);
+            console.log('📡 Broadcasting order approval (PATCH):', id, orderNumber);
+            
+            const broadcastData = {
+                orderId: parseInt(id),
+                orderNumber: orderNumber,
+                status: 'approved',
+                timestamp: new Date().toISOString()
+            };
             
             // Notify customer
             global.io.to('order_' + id).emit('order-approved', {
-                orderId: id,
-                status: 'approved',
-                message: '✅ Your order has been approved and is being prepared!',
-                timestamp: new Date().toISOString()
+                ...broadcastData,
+                message: '✅ Your order has been approved and is being prepared!'
             });
             
             // Notify kitchen
             global.io.to('kitchen').emit('order-approved', {
-                orderId: id,
-                message: `Order #${id} approved by manager`,
-                timestamp: new Date().toISOString()
+                ...broadcastData,
+                message: `Order ${orderNumber} approved by manager`
             });
             
             // Notify other managers
             global.io.to('managers').emit('order-approved', {
-                orderId: id,
-                message: `Order #${id} has been approved`,
-                timestamp: new Date().toISOString()
+                ...broadcastData,
+                message: `Order ${orderNumber} has been approved`
             });
             
             // Notify managers that pending orders list has changed
             global.io.to('managers').emit('pending-orders-updated', {
                 type: 'ORDER_APPROVED',
-                orderId: id,
+                orderId: parseInt(id),
+                orderNumber: orderNumber,
                 timestamp: new Date().toISOString()
             });
         }

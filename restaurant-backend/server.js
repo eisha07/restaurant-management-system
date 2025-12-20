@@ -214,22 +214,50 @@ io.on('connection', (socket) => {
     console.log('   📊 Total managers in room:', io.sockets.adapter.rooms.get('managers')?.size || 0);
   });
 
+  socket.on('leave-manager', () => {
+    socket.leave('managers');
+    console.log('   ❌ Manager left room:', socket.id);
+  });
+
   // Join kitchen room if they're in kitchen
   socket.on('join-kitchen', () => {
     socket.join('kitchen');
-    console.log('   Kitchen joined room:', socket.id);
+    console.log('   ✅ Kitchen joined room:', socket.id);
+  });
+
+  socket.on('leave-kitchen', () => {
+    socket.leave('kitchen');
+    console.log('   ❌ Kitchen left room:', socket.id);
   });
 
   // Join customer room for order updates
   socket.on('join-customer', (data) => {
     const { orderId, sessionId } = data;
     if (orderId) {
-      socket.join('order_' + orderId);
-      console.log('   👤 Customer joined order room:', orderId);
+      const room = 'order_' + orderId;
+      socket.join(room);
+      console.log(`   👤 Customer ${socket.id} joined order room: ${room}`);
+      console.log(`   📊 Total clients in room ${room}:`, io.sockets.adapter.rooms.get(room)?.size || 0);
     }
     if (sessionId) {
+      const room = 'session_' + sessionId;
+      socket.join(room);
+      console.log(`   📱 Customer ${socket.id} joined session room: ${room}`);
+    }
+  });
+
+  // Legacy/Alternative join events
+  socket.on('join-order', (orderId) => {
+    if (orderId) {
+      socket.join('order_' + orderId);
+      console.log('   👤 Customer joined order room (legacy):', orderId);
+    }
+  });
+
+  socket.on('join-session', (sessionId) => {
+    if (sessionId) {
       socket.join('session_' + sessionId);
-      console.log('   📱 Customer session joined:', sessionId);
+      console.log('   📱 Customer session joined (legacy):', sessionId);
     }
   });
 

@@ -13,9 +13,18 @@ import {
   Timer,
   UtensilsCrossed,
   CheckCircle2,
-  AlertCircle
+  AlertCircle,
+  Check
 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
+import { 
+  DropdownMenu, 
+  DropdownMenuContent, 
+  DropdownMenuItem, 
+  DropdownMenuTrigger,
+  DropdownMenuLabel,
+  DropdownMenuSeparator
+} from '@/components/ui/dropdown-menu';
 import { formatDistanceToNow } from 'date-fns';
 import { kitchenApi } from '@/services/api';
 import { usePersistentState } from '@/hooks/usePersistentState';
@@ -154,23 +163,33 @@ export default function KitchenPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
   const [hasFetched, setHasFetched] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [notifications, setNotifications] = useState<{id: string, message: string, time: Date}[]>([]);
 
   // Fetch orders from API
   const fetchOrders = useCallback(async () => {
     try {
       setLoading(true);
       const activeOrders = await kitchenApi.getActiveOrders();
-      setOrders(activeOrders.length > 0 ? activeOrders : mockOrders);
+      // Only use mock data if we are in development and have no real orders
+      const isDev = import.meta.env.DEV;
+      if (activeOrders.length === 0 && isDev && !hasFetched) {
+        setOrders(mockOrders);
+      } else {
+        setOrders(activeOrders);
+      }
       console.log('✅ Kitchen orders loaded:', activeOrders.length, 'orders');
     } catch (error) {
       console.error('Failed to load kitchen orders:', error);
-      // Fall back to mock data if fetch fails
-      setOrders(mockOrders);
+      // Fall back to mock data only if we have nothing else
+      if (orders.length === 0) {
+        setOrders(mockOrders);
+      }
     } finally {
       setLoading(false);
       setHasFetched(true);
     }
-  }, [setOrders]);
+  }, [setOrders, hasFetched, orders.length]);
 
   // Initialize socket and fetch orders
   useEffect(() => {
@@ -195,7 +214,20 @@ export default function KitchenPage() {
     // Listen for new approved orders
     const handleOrderApproved = (data: any) => {
       console.log('📡 Kitchen: Order approved received:', data);
-      toast.success(`New order #${data.orderId} received!`);
+      const orderNum = data.orderNumber || data.order_number || `ORD-${data.orderId}`;
+      toast.success(`New order ${orderNum} received!`, {
+        icon: '🔔',
+        duration: 5000
+      });
+      setUnreadCount(prev => prev + 1);
+      setNotifications(prev => [
+        {
+          id: Math.random().toString(36).substr(2, 9),
+          message: `New Order: ${orderNum}`,
+          time: new Date()
+        },
+        ...prev
+      ].slice(0, 10));
       // Refetch orders to get the new approved order
       fetchOrders();
     };
@@ -203,6 +235,18 @@ export default function KitchenPage() {
     // Listen for order updates
     const handleOrderUpdate = (data: any) => {
       console.log('📡 Kitchen: Order update received:', data);
+      if (data.status === 'cancelled') {
+        const orderNum = data.orderNumber || data.order_number || `ORD-${data.orderId}`;
+        toast.error(`Order ${orderNum} was cancelled`);
+        setNotifications(prev => [
+          {
+            id: Math.random().toString(36).substr(2, 9),
+            message: `Cancelled: ${orderNum}`,
+            time: new Date()
+          },
+          ...prev
+        ].slice(0, 10));
+      }
       setOrders(prev => 
         prev.map(order => 
           order.id === data.orderId 
@@ -309,9 +353,58 @@ export default function KitchenPage() {
                   className="pl-9 w-64 bg-white/10 border-white/20 text-white placeholder:text-white/50"
                 />
               </div>
-              <Button variant="ghost" size="icon" className="text-white hover:bg-white/10">
-                <Bell className="w-5 h-5" />
-              </Button>
+              
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    className="text-white hover:bg-white/10 relative"
+                    onClick={() => setUnreadCount(0)}
+                  >
+                    <Bell className="w-5 h-5" />
+                    {unreadCount > 0 && (
+                      <span className="absolute -top-1 -right-1 w-4 h-4 bg-destructive text-white text-[10px] flex items-center justify-center rounded-full animate-bounce">
+                        {unreadCount}
+                      </span>
+                    )}
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-80">
+                  <DropdownMenuLabel className="flex items-center justify-between">
+                    Notifications
+                    {notifications.length > 0 && (
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className="text-[10px] h-6 px-2"
+                        onClick={() => setNotifications([])}
+                      >
+                        Clear all
+                      </Button>
+                    )}
+                  </DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <ScrollArea className="h-[300px]">
+                    {notifications.length === 0 ? (
+                      <div className="py-8 text-center text-muted-foreground text-sm">
+                        No new notifications
+                      </div>
+                    ) : (
+                      notifications.map((notif) => (
+                        <DropdownMenuItem key={notif.id} className="flex flex-col items-start p-3 focus:bg-muted">
+                          <div className="flex items-center justify-between w-full mb-1">
+                            <span className="font-medium text-sm">{notif.message}</span>
+                            <span className="text-[10px] text-muted-foreground">
+                              {formatDistanceToNow(notif.time, { addSuffix: true })}
+                            </span>
+                          </div>
+                        </DropdownMenuItem>
+                      ))
+                    )}
+                  </ScrollArea>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
           </div>
 

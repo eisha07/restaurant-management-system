@@ -82,6 +82,8 @@ export const transformFeedback = (feedback: any): Feedback => {
 
 // Helper to transform backend order to frontend format
 export const transformOrder = (order: any): Order => {
+  if (!order) return {} as Order;
+
   // Map backend status names to frontend status codes
   const statusMap: Record<string, OrderStatus> = {
     'Pending Approval': 'pending_approval',
@@ -93,6 +95,7 @@ export const transformOrder = (order: any): Order => {
     'pending_approval': 'pending_approval',
     'approved': 'approved',
     'in_progress': 'in_progress',
+    'preparing': 'in_progress', // Map kitchen 'preparing' to frontend 'in_progress'
     'ready': 'ready',
     'completed': 'completed',
     'cancelled': 'cancelled'
@@ -107,27 +110,68 @@ export const transformOrder = (order: any): Order => {
     'ready': 'ready'
   };
 
-  return {
-    id: order.id || order.order_id,
-    orderNumber: order.order_number || `ORD-${order.id}`,
-    status: statusMap[order.status] || order.status || 'pending_approval',
-    kitchenStatus: kitchenStatusMap[order.kitchen_status] || order.kitchen_status || 'pending',
-    paymentMethod: (order.payment_method?.toLowerCase() as PaymentMethod) || 'cash',
-    tableNumber: order.table_number?.toString(),
-    items: (order.items || []).map((item: any) => ({
-      menuItemId: item.menu_item_id,
-      name: item.name || item.item_name,
-      price: parseFloat(item.price || item.item_price || 0),
+  const rawId = order.id || order.order_id || order.orderId;
+  const id = typeof rawId === 'string' ? parseInt(rawId, 10) : rawId;
+  
+  // Create the transformed object with only available fields
+  const transformed: any = { id };
+  
+  const orderNumber = order.order_number || order.orderNumber;
+  if (orderNumber) transformed.orderNumber = orderNumber;
+  else if (id) transformed.orderNumber = `ORD-${id}`;
+  
+  const status = order.status || order.order_status;
+  if (status) transformed.status = statusMap[status] || status;
+  
+  const kitchenStatus = order.kitchen_status || order.kitchenStatus;
+  if (kitchenStatus) transformed.kitchenStatus = kitchenStatusMap[kitchenStatus] || kitchenStatus;
+  
+  const paymentMethod = order.payment_method || order.paymentMethod;
+  if (paymentMethod) transformed.paymentMethod = paymentMethod.toLowerCase();
+  
+  const tableNumber = order.table_number || order.tableNumber;
+  if (tableNumber) transformed.tableNumber = tableNumber.toString();
+  
+  const customerName = order.customer_name || order.customerName;
+  if (customerName) transformed.customerName = customerName;
+  
+  const expectedCompletion = order.expected_completion || order.expectedCompletion;
+  if (expectedCompletion) transformed.expectedCompletion = expectedCompletion;
+  
+  const completedAt = order.completed_at || order.completedAt;
+  if (completedAt) transformed.completedAt = completedAt;
+  
+  const customerSessionId = order.customer_id || order.customerSessionId;
+  if (customerSessionId) transformed.customerSessionId = customerSessionId.toString();
+
+  // Only include items if they exist in the source
+  if (order.items && Array.isArray(order.items)) {
+    transformed.items = order.items.map((item: any) => ({
+      menuItemId: item.menu_item_id || item.menuItemId,
+      name: item.name || item.item_name || item.itemName,
+      price: parseFloat(item.price || item.item_price || item.itemPrice || 0),
       quantity: item.quantity,
-      specialInstructions: item.special_instructions,
-      status: item.status || item.item_status
-    })),
-    totalAmount: parseFloat(order.total || order.total_amount || 0),
-    createdAt: order.created_at || new Date().toISOString(),
-    expectedCompletion: order.expected_completion,
-    completedAt: order.completed_at,
-    customerSessionId: order.customer_id?.toString() || ''
-  };
+      specialInstructions: item.special_instructions || item.specialInstructions,
+      status: item.status || item.item_status || item.itemStatus
+    }));
+  }
+
+  // Only include totalAmount if it exists
+  const total = order.total || order.total_amount || order.totalAmount;
+  if (total !== undefined) {
+    transformed.totalAmount = parseFloat(total);
+  }
+
+  // Only include createdAt if it exists
+  const created = order.created_at || order.createdAt;
+  if (created) {
+    transformed.createdAt = created;
+  } else if (!order.id && !order.order_id) {
+    // Only default for brand new objects
+    transformed.createdAt = new Date().toISOString();
+  }
+
+  return transformed as Order;
 };
 
 // ==================== MENU API ====================

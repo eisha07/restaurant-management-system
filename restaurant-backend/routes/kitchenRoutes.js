@@ -9,12 +9,17 @@ router.get('/orders/active', authenticateKitchen, async (req, res) => {
     try {
         // Get orders from database with kitchen status
         const ordersQuery = `
-            SELECT o.order_id, o.order_number, rt.table_number, ks.name as kitchen_status, 
-                   ks.code as kitchen_status_code, o.special_instructions, o.created_at, o.expected_completion
+            SELECT o.order_id, o.order_number, rt.table_number, c.name as customer_name,
+                   ks.name as kitchen_status, ks.code as kitchen_status_code, 
+                   os.name as order_status, os.code as order_status_code,
+                   o.special_instructions, o.created_at, o.expected_completion
             FROM orders o
             LEFT JOIN kitchen_statuses ks ON o.kitchen_status_id = ks.status_id
+            LEFT JOIN order_statuses os ON o.order_status_id = os.status_id
             LEFT JOIN restaurant_tables rt ON o.table_id = rt.table_id
-            WHERE ks.code IN ('pending', 'preparing', 'ready')
+            LEFT JOIN customers c ON o.customer_id = c.customer_id
+            WHERE (ks.code IN ('pending', 'preparing', 'ready') OR ks.code IS NULL)
+            AND os.code IN ('approved', 'in_progress', 'ready')
             ORDER BY o.created_at ASC
         `;
         
@@ -62,8 +67,11 @@ router.get('/orders/active', authenticateKitchen, async (req, res) => {
             id: order.order_id,
             order_number: order.order_number,
             table_number: order.table_number,
-            status: order.kitchen_status_code,
-            kitchen_status: order.kitchen_status,
+            customer_name: order.customer_name,
+            status: order.order_status_code, // Use main order status code
+            order_status: order.order_status,
+            kitchen_status: order.kitchen_status || 'Pending',
+            kitchen_status_code: order.kitchen_status_code || 'pending',
             special_instructions: order.special_instructions,
             created_at: order.created_at,
             expected_completion: order.expected_completion,
@@ -72,9 +80,9 @@ router.get('/orders/active', authenticateKitchen, async (req, res) => {
         
         // Group by status - map to Kanban columns
         const groupedOrders = {
-            pending: ordersWithItems.filter(o => o.status === 'pending'),
-            preparing: ordersWithItems.filter(o => o.status === 'preparing'),
-            ready: ordersWithItems.filter(o => o.status === 'ready')
+            pending: ordersWithItems.filter(o => o.kitchen_status_code === 'pending'),
+            preparing: ordersWithItems.filter(o => o.kitchen_status_code === 'preparing'),
+            ready: ordersWithItems.filter(o => o.kitchen_status_code === 'ready')
         };
 
         res.json({
@@ -133,6 +141,59 @@ router.put('/orders/:id/status', authenticateKitchen, async (req, res) => {
             replacements,
             type: db.sequelize.QueryTypes.UPDATE 
         });
+
+        // 📡 Broadcast order update via Socket.IO IMMEDIATELY for better UX
+        if (global.io) {
+            console.log('📡 Broadcasting order status update:', id, status_code);
+            
+            const broadcastData = {
+                orderId: parseInt(id),
+                status: status_code,
+                statusDisplay: status_code.replace(/_/g, ' ').toUpperCase(),
+                message: `Your order is now ${status_code.replace(/_/g, ' ').toUpperCase()}`,
+                timestamp: new Date().toISOString()
+            };
+
+            global.io.to('managers').emit('order-update', broadcastData);
+            global.io.to('kitchen').emit('order-update', broadcastData);
+            global.io.to('order_' + id).emit('order-update', broadcastData);
+        }
+
+        // Sync main order status if it's a terminal or ready status
+        // 'preparing' in kitchen maps to 'in_progress' in main status
+        const syncStatusMap = {
+            'preparing': 'in_progress',
+            'ready': 'ready',
+            'completed': 'completed',
+            'cancelled': 'cancelled'
+        };
+
+        if (syncStatusMap[status_code]) {
+            try {
+                const mainStatusCode = syncStatusMap[status_code];
+                const mainStatusQuery = `SELECT status_id FROM order_statuses WHERE code = ?`;
+                const mainStatusResult = await db.sequelize.query(mainStatusQuery, {
+                    replacements: [mainStatusCode],
+                    type: db.sequelize.QueryTypes.SELECT
+                });
+
+                if (mainStatusResult.length > 0) {
+                    const mainStatusId = mainStatusResult[0].status_id;
+                    await db.sequelize.query(`
+                        UPDATE orders 
+                        SET order_status_id = ?, 
+                            updated_at = NOW() 
+                        WHERE order_id = ?
+                    `, {
+                        replacements: [mainStatusId, id],
+                        type: db.sequelize.QueryTypes.UPDATE
+                    });
+                    console.log(`✅ Synced main order status to ${mainStatusCode} for order ${id}`);
+                }
+            } catch (syncError) {
+                console.warn('Failed to sync main order status:', syncError.message);
+            }
+        }
         
         // Create kitchen log (optional, ignore if fails)
         try {
@@ -148,32 +209,6 @@ router.put('/orders/:id/status', authenticateKitchen, async (req, res) => {
             });
         } catch (logError) {
             console.warn('Failed to create kitchen log:', logError.message);
-        }
-        
-        // 📡 Broadcast order update via Socket.IO
-        if (global.io) {
-            console.log('📡 Broadcasting order status update:', id, status_code);
-            global.io.to('managers').emit('order-update', {
-                orderId: id,
-                status: status_code,
-                message: `Order #${id} status changed to ${status_code}`,
-                timestamp: new Date().toISOString()
-            });
-            
-            global.io.to('kitchen').emit('order-update', {
-                orderId: id,
-                status: status_code,
-                timestamp: new Date().toISOString()
-            });
-            
-            // Notify customer
-            global.io.to('order_' + id).emit('order-update', {
-                orderId: id,
-                status: status_code,
-                statusDisplay: status_code.replace(/_/g, ' ').toUpperCase(),
-                message: `Your order is now ${status_code.replace(/_/g, ' ').toUpperCase()}`,
-                timestamp: new Date().toISOString()
-            });
         }
         
         res.json({

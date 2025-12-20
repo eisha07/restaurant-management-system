@@ -7,6 +7,14 @@ const SOCKET_URL = import.meta.env.VITE_SOCKET_URL ||
 
 let socket: Socket | null = null;
 
+// Track rooms to rejoin on reconnection
+const activeRooms = {
+  manager: false,
+  kitchen: false,
+  orders: new Set<number>(),
+  sessions: new Set<string>()
+};
+
 /**
  * Initialize Socket.IO connection
  */
@@ -20,16 +28,34 @@ export const initializeSocket = (): Socket => {
     reconnection: true,
     reconnectionDelay: 1000,
     reconnectionDelayMax: 5000,
-    reconnectionAttempts: 5,
+    reconnectionAttempts: 10, // Increased attempts
     transports: ['websocket', 'polling'],
   });
 
   socket.on('connect', () => {
     console.log('🔗 Socket connected:', socket!.id);
+    
+    // Rejoin rooms on reconnection
+    if (activeRooms.manager) {
+      socket!.emit('join-manager');
+      console.log('📡 Rejoined manager room');
+    }
+    if (activeRooms.kitchen) {
+      socket!.emit('join-kitchen');
+      console.log('📡 Rejoined kitchen room');
+    }
+    activeRooms.orders.forEach(orderId => {
+      socket!.emit('join-customer', { orderId });
+      console.log(`📡 Rejoined order room: order_${orderId}`);
+    });
+    activeRooms.sessions.forEach(sessionId => {
+      socket!.emit('join-customer', { sessionId });
+      console.log(`📡 Rejoined session room: session_${sessionId}`);
+    });
   });
 
-  socket.on('disconnect', () => {
-    console.log('🔌 Socket disconnected');
+  socket.on('disconnect', (reason) => {
+    console.log('🔌 Socket disconnected:', reason);
   });
 
   socket.on('connect_error', (error) => {
@@ -101,8 +127,9 @@ export const onOrderStatusUpdate = (
     // Backend sends orderId and status, construct a partial order update
     const orderUpdate = {
       id: data.orderId || data.id || data.order_id,
+      order_id: data.orderId || data.id || data.order_id,
       status: data.status,
-      kitchenStatus: data.status,
+      kitchen_status: data.status || data.kitchen_status,
       ...data
     };
     callback(transformOrder(orderUpdate));
@@ -125,12 +152,20 @@ export const onOrderApprovalUpdate = (
   callback: (data: { orderId: number; approved: boolean; reason?: string }) => void
 ): (() => void) => {
   const socketInstance = getSocket();
-  socketInstance.on('order_approved', (data) => callback({ ...data, approved: true }));
-  socketInstance.on('order_rejected', (data) => callback({ ...data, approved: false }));
+  
+  const handleApproved = (data: any) => callback({ ...data, approved: true });
+  const handleRejected = (data: any) => callback({ ...data, approved: false });
+
+  socketInstance.on('order_approved', handleApproved);
+  socketInstance.on('order-approved', handleApproved);
+  socketInstance.on('order_rejected', handleRejected);
+  socketInstance.on('order-rejected', handleRejected);
   
   return () => {
-    socketInstance.off('order_approved');
-    socketInstance.off('order_rejected');
+    socketInstance.off('order_approved', handleApproved);
+    socketInstance.off('order-approved', handleApproved);
+    socketInstance.off('order_rejected', handleRejected);
+    socketInstance.off('order-rejected', handleRejected);
   };
 };
 
@@ -173,10 +208,32 @@ export const onOrderComplete = (
   callback: (order: Order) => void
 ): (() => void) => {
   const socketInstance = getSocket();
+  
+  const handler = (data: any) => {
+    const order = transformOrder(data);
+    if (order.status === 'completed') {
+      callback(order);
+    }
+  };
+
   socketInstance.on('order_completed', callback);
+  socketInstance.on('order-update', handler);
   
   return () => {
     socketInstance.off('order_completed', callback);
+    socketInstance.off('order-update', handler);
+  };
+};
+
+/**
+ * Listen for order creation (for customer)
+ */
+export const onOrderCreated = (callback: (data: any) => void): (() => void) => {
+  const socketInstance = getSocket();
+  socketInstance.on('order-created', callback);
+  
+  return () => {
+    socketInstance.off('order-created', callback);
   };
 };
 
@@ -247,8 +304,19 @@ export const onKitchenStatsUpdate = (
  */
 export const joinOrderRoom = (orderId: number): void => {
   const socketInstance = getSocket();
+  activeRooms.orders.add(orderId);
   socketInstance.emit('join-customer', { orderId });
   console.log(`📡 Joined order room: order_${orderId}`);
+};
+
+/**
+ * Join customer session room
+ */
+export const joinSessionRoom = (sessionId: string): void => {
+  const socketInstance = getSocket();
+  activeRooms.sessions.add(sessionId);
+  socketInstance.emit('join-customer', { sessionId });
+  console.log(`📡 Joined session room: session_${sessionId}`);
 };
 
 /**
@@ -256,6 +324,7 @@ export const joinOrderRoom = (orderId: number): void => {
  */
 export const leaveOrderRoom = (orderId: number): void => {
   const socketInstance = getSocket();
+  activeRooms.orders.delete(orderId);
   socketInstance.emit('leave-customer', { orderId });
   console.log(`📡 Left order room: order_${orderId}`);
 };
@@ -265,6 +334,7 @@ export const leaveOrderRoom = (orderId: number): void => {
  */
 export const subscribeToManagerDashboard = (): void => {
   const socketInstance = getSocket();
+  activeRooms.manager = true;
   // Join the managers room to receive real-time updates
   socketInstance.emit('join-manager');
   console.log('📡 Subscribed to manager dashboard - joined managers room');
@@ -275,7 +345,8 @@ export const subscribeToManagerDashboard = (): void => {
  */
 export const unsubscribeFromManagerDashboard = (): void => {
   const socketInstance = getSocket();
-  socketInstance.emit('unsubscribe_manager_dashboard');
+  activeRooms.manager = false;
+  socketInstance.emit('leave-manager');
   console.log('📡 Unsubscribed from manager dashboard');
 };
 
@@ -284,8 +355,9 @@ export const unsubscribeFromManagerDashboard = (): void => {
  */
 export const subscribeToKitchenDisplay = (): void => {
   const socketInstance = getSocket();
-  socketInstance.emit('subscribe_kitchen_display');
-  console.log('📡 Subscribed to kitchen display');
+  activeRooms.kitchen = true;
+  socketInstance.emit('join-kitchen');
+  console.log('📡 Subscribed to kitchen display - joined kitchen room');
 };
 
 /**
@@ -293,7 +365,8 @@ export const subscribeToKitchenDisplay = (): void => {
  */
 export const unsubscribeFromKitchenDisplay = (): void => {
   const socketInstance = getSocket();
-  socketInstance.emit('unsubscribe_kitchen_display');
+  activeRooms.kitchen = false;
+  socketInstance.emit('leave-kitchen');
   console.log('📡 Unsubscribed from kitchen display');
 };
 
@@ -307,10 +380,12 @@ export default {
   onKitchenOrderUpdate,
   onItemStatusUpdate,
   onOrderComplete,
+  onOrderCreated,
   onNotification,
   onStatsUpdate,
   onKitchenStatsUpdate,
   joinOrderRoom,
+  joinSessionRoom,
   leaveOrderRoom,
   subscribeToManagerDashboard,
   unsubscribeFromManagerDashboard,

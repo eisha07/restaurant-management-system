@@ -1,12 +1,12 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { authApi } from '@/services/api';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
-import { Lock, User } from 'lucide-react';
+import { Lock, User, ArrowLeft } from 'lucide-react';
 
 export default function ManagerLogin() {
   const navigate = useNavigate();
@@ -46,7 +46,13 @@ export default function ManagerLogin() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-orange-50 to-red-50 p-4">
+    <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-orange-50 to-red-50 p-4">
+      <div className="mb-8">
+        <Link to="/" className="flex items-center gap-2 text-primary hover:underline">
+          <ArrowLeft className="w-4 h-4" />
+          Back to Menu
+        </Link>
+      </div>
       <Card className="w-full max-w-md">
         <CardHeader className="space-y-1">
           <CardTitle className="text-2xl font-bold text-center">Manager Login</CardTitle>
