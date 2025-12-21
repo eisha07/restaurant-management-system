@@ -1,0 +1,69 @@
+// Auth context for managing authentication state
+// client/src/contexts/AuthContext.jsx
+import React, { createContext, useState, useContext, useEffect } from 'react';
+
+const AuthContext = createContext();
+
+export const useAuth = () => useContext(AuthContext);
+
+export const AuthProvider = ({ children }) => {
+    const [manager, setManager] = useState(null);
+    const [token, setToken] = useState(localStorage.getItem('manager_token'));
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        const verifyToken = async () => {
+            const storedToken = localStorage.getItem('manager_token');
+            if (storedToken) {
+                try {
+                    const response = await fetch('/api/auth/verify', {
+                        headers: { 'Authorization': `Bearer ${storedToken}` }
+                    });
+                    const data = await response.json();
+                    
+                    if (data.success) {
+                        setManager(data.manager);
+                        setToken(storedToken);
+                    } else {
+                        localStorage.removeItem('manager_token');
+                        setToken(null);
+                        setManager(null);
+                    }
+                } catch (error) {
+                    localStorage.removeItem('manager_token');
+                    setToken(null);
+                    setManager(null);
+                }
+            }
+            setLoading(false);
+        };
+
+        verifyToken();
+    }, []);
+
+    const login = (newToken, managerData) => {
+        localStorage.setItem('manager_token', newToken);
+        setToken(newToken);
+        setManager(managerData);
+    };
+
+    const logout = () => {
+        localStorage.removeItem('manager_token');
+        setToken(null);
+        setManager(null);
+    };
+
+    const value = {
+        token,
+        manager,
+        login,
+        logout,
+        isAuthenticated: !!token
+    };
+
+    return (
+        <AuthContext.Provider value={value}>
+            {!loading && children}
+        </AuthContext.Provider>
+    );
+};

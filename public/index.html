@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <link rel="icon" href="%PUBLIC_URL%/favicon.ico" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#000000" />
+    <meta
+      name="description"
+      content="Restaurant Management System - Digital ordering and management platform"
+    />
+    <link rel="apple-touch-icon" href="%PUBLIC_URL%/logo192.png" />
+    <link rel="manifest" href="%PUBLIC_URL%/manifest.json" />
+    <title>Restaurant Management System</title>
+    
+    <!-- QR Code fonts and icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    
+    <!-- PWA theme color -->
+    <meta name="theme-color" content="#d32f2f">
+</head>
+<body>
+    <noscript>
+        <div style="
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+            padding: 20px;
+            text-align: center;
+        ">
+            <div>
+                <h2 style="color: #d32f2f; margin-bottom: 20px;">
+                    JavaScript Required
+                </h2>
+                <p style="margin-bottom: 20px;">
+                    The Restaurant Management System requires JavaScript to function properly.
+                    Please enable JavaScript in your browser settings.
+                </p>
+                <p style="color: #666; font-size: 0.9rem;">
+                    For assistance, contact restaurant staff or scan the QR code again.
+                </p>
+            </div>
+        </div>
+    </noscript>
+    <div id="root"></div>
+    
+    <!-- Fallback for older browsers -->
+    <script>
+        if (!window.Promise || !window.fetch || !window.Symbol) {
+            document.getElementById('root').innerHTML = 
+                '<div style="padding: 40px; text-align: center; font-family: sans-serif;">' +
+                '<h2 style="color: #d32f2f;">Browser Update Required</h2>' +
+                '<p>Please update your browser to use this application.</p>' +
+                '<p>Recommended: Chrome, Firefox, Safari, or Edge (latest versions)</p>' +
+                '</div>';
+        }
+    </script>
+</body>
+</html>
