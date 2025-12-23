@@ -1,0 +1,25 @@
+{
+    "keep": {
+        "days": true,
+        "amount": 14
+    },
+    "auditLog": "C:\\Users\\acer\\Desktop\\SE Project Final\\restaurant-backend\\logs\\.47db2006c199c7cfb367eceb9b513a0a01004dfb-audit.json",
+    "files": [
+        {
+            "date": 1766300519865,
+            "name": "C:\\Users\\acer\\Desktop\\SE Project Final\\restaurant-backend\\logs\\combined-2025-12-21.log",
+            "hash": "1f740e9a53ff310c2b05dc61c534f98b73e7921c8355cba748a00e701ba66134"
+        },
+        {
+            "date": 1766387089758,
+            "name": "C:\\Users\\acer\\Desktop\\SE Project Final\\restaurant-backend\\logs\\combined-2025-12-22.log",
+            "hash": "94f087fbac19c1d15ea41350e9df90db858f27d8c5fbb2e39fd88a4011d83ee2"
+        },
+        {
+            "date": 1766462920939,
+            "name": "C:\\Users\\acer\\Desktop\\SE Project Final\\restaurant-backend\\logs\\combined-2025-12-23.log",
+            "hash": "e5e0f2e2741910ca0918122c118e93b66b07508a5a36359b7081e2ce64d57375"
+        }
+    ],
+    "hashType": "sha256"
+}

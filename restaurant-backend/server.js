@@ -4,11 +4,16 @@ const http = require('http');
 const net = require('net');
 const socketIO = require('socket.io');
 const path = require('path');
+const morgan = require('morgan');
 
 // Only load .env in development
 if (process.env.NODE_ENV !== 'production') {
   require('dotenv').config();
 }
+
+// Import logger configuration
+const { logger, createModuleLogger, initializeDatabaseTransport, morganStream } = require('./config/logger');
+const serverLogger = createModuleLogger('server');
 
 const app = express();
 const server = http.createServer(app);
@@ -40,6 +45,12 @@ const corsOptions = {
 // Apply CORS to all routes
 app.use(cors(corsOptions));
 
+// Morgan HTTP request logging
+// 'combined' format: :remote-addr - :remote-user [:date[clf]] ":method :url HTTP/:http-version" :status :res[content-length] ":referrer" ":user-agent"
+// 'dev' format: :method :url :status :response-time ms - :res[content-length]
+const morganFormat = process.env.NODE_ENV === 'production' ? 'combined' : 'dev';
+app.use(morgan(morganFormat, { stream: morganStream }));
+
 // Middleware
 app.use(express.json());
 
@@ -67,21 +78,21 @@ app.options('/', (req, res) => {
 });
 
 // Routes - with error handling
-console.log('📦 Loading routes...');
+serverLogger.info('Loading routes...');
 
 const mountRoute = (path, modulePath) => {
   try {
     app.use(path, require(modulePath));
-    console.log(`   ✓ ${path} loaded`);
+    serverLogger.info(`Route ${path} loaded successfully`);
   } catch (err) {
-    console.error(`   × Failed to load ${path}:`, err.message);
+    serverLogger.error(`Failed to load route ${path}: ${err.message}`);
   }
 };
 
 mountRoute('/api/menu', './routes/menuRoutes');
 mountRoute('/api/orders', './routes/orderRoutes');
 mountRoute('/api/feedback', './routes/feedbackRoutes');
-mountRoute('/api/qr', './routes/qrRoutes');
+mountRoute('/api/qr', './routes/dynamicQrRoutes');
 mountRoute('/api/auth', './routes/authRoutes');
 mountRoute('/api/manager', './routes/managerDashboard');
 mountRoute('/api/kitchen', './routes/kitchenRoutes');
@@ -89,17 +100,49 @@ mountRoute('/api/kitchen', './routes/kitchenRoutes');
 // Try both possible names for database routes
 try {
   app.use('/api/db', require('./routes/databaseRoutes'));
-  console.log('   ✓ /api/db loaded');
+  serverLogger.info('Route /api/db loaded successfully');
 } catch (e) {
   try {
     app.use('/api/db', require('./routes/databaseRoutes-simple'));
-    console.log('   ✓ /api/db loaded (simple)');
+    serverLogger.info('Route /api/db loaded successfully (simple)');
   } catch (e2) {
-    console.error('   × Failed to load /api/db');
+    serverLogger.error('Failed to load route /api/db');
   }
 }
 
-console.log('✅ Route loading sequence complete');
+serverLogger.info('Route loading sequence complete');
+
+// Initialize database logging transport
+const { sequelize } = require('./config/database');
+initializeDatabaseTransport(sequelize);
+
+// On system start, generate a unique customer session QR code and log it
+const qrRoutes = require('./routes/qrRoutes');
+if (typeof qrRoutes === 'function' || (qrRoutes && qrRoutes.stack)) {
+  // Use the same QRCode logic as in the route
+  let QRCode;
+  try {
+    QRCode = require('qrcode');
+  } catch (error) {
+    QRCode = null;
+  }
+  if (QRCode) {
+    (async () => {
+      const sessionId = `customer-${Date.now()}-${Math.random().toString(36).slice(2, 11)}`;
+        const url = `/customer?sessionId=${sessionId}`;
+      try {
+        const qrCode = await QRCode.toDataURL(url);
+        serverLogger.info('--- Unique Customer Session QR Code ---');
+        serverLogger.info(`Scan this QR to start a new session: ${url}`);
+        serverLogger.info(`(Base64 QR image available via /api/qr/session)`);
+      } catch (e) {
+        serverLogger.warn('Failed to generate startup QR code:', e.message);
+      }
+    })();
+  } else {
+    serverLogger.warn('QRCode module not installed. Startup QR code not generated.');
+  }
+}
 
 
 // Health check
@@ -348,20 +391,20 @@ const findAvailablePort = (startPort, bindAddress, maxAttempts = 5) => {
 const startServer = async () => {
   try {
     // Test database connection first
-    console.log('🔗 Testing database connection...');
+    serverLogger.info('Testing database connection...');
     const dbConnected = await testConnection();
     
     if (!dbConnected) {
-      console.warn('⚠️  WARNING: Database connection failed, but server will continue with mock data.');
+      serverLogger.warn('Database connection failed, but server will continue with mock data.');
     } else {
-      console.log('✅ Database connection verified successfully.');
+      serverLogger.info('Database connection verified successfully.');
     }
     
     // Now start listening with port fallback if needed
     const portToUse = await findAvailablePort(PORT, BIND_ADDRESS);
 
     if (portToUse !== PORT) {
-      console.warn(`⚠️  Requested port ${PORT} unavailable. Server will start on ${portToUse} instead.`);
+      serverLogger.warn(`Requested port ${PORT} unavailable. Server will start on ${portToUse} instead.`);
     }
 
     currentPort = portToUse;
@@ -372,6 +415,11 @@ const startServer = async () => {
         if (err) {
           reject(err);
         } else {
+          serverLogger.info(`Server running on port ${portToUse}`, {
+            port: portToUse,
+            bindAddress: BIND_ADDRESS,
+            environment: process.env.NODE_ENV || 'development'
+          });
           console.log(`
   🚀 Server running on port ${portToUse} (bound to ${BIND_ADDRESS})
   📍 Environment: ${process.env.NODE_ENV || 'development'}
@@ -386,8 +434,8 @@ const startServer = async () => {
       });
     });
   } catch (error) {
+    serverLogger.error('Fatal error during startup', { error: error.message, stack: error.stack });
     console.error('❌ Fatal error during startup:', error.message);
-    console.error('Stack:', error.stack);
     console.warn('⚠️  Server may not be fully functional');
   }
 };

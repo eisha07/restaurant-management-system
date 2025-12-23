@@ -40,6 +40,15 @@ export default function CustomerPage() {
   const [customerOrders, setCustomerOrders] = useState<Order[]>([]);
   const [feedbackDueOrders, setFeedbackDueOrders] = useState<Set<number>>(new Set());
 
+  // Accept sessionId from URL and store as customerSessionId if present
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const urlSessionId = params.get('sessionId');
+    if (urlSessionId) {
+      localStorage.setItem('customerSessionId', urlSessionId);
+    }
+  }, []);
+
   // Get customer session ID
   const getSessionId = useCallback(() => {
     let sessionId = localStorage.getItem('customerSessionId');

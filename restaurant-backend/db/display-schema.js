@@ -1,4 +1,4 @@
-#!/usr/bin/env node
+
 
 /**
  * Display Database Tables and Attributes

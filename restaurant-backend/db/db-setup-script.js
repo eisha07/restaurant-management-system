@@ -47,7 +47,7 @@ console.log();
 // Function to execute SQL file
 const executeSQLFile = (filePath, description) => {
     return new Promise((resolve, reject) => {
-        console.log(`⏳ ${description}...`);
+        console.log(`${description}...`);
 
         // Build psql command
         const cmd = `psql -h ${dbConfig.host} -p ${dbConfig.port} -U ${dbConfig.username} -d ${dbConfig.database} -f "${filePath}"`;
@@ -56,11 +56,11 @@ const executeSQLFile = (filePath, description) => {
             env: { ...process.env, PGPASSWORD: dbConfig.password }
         }, (error, stdout, stderr) => {
             if (error) {
-                console.error(`   ❌ Error: ${error.message}`);
+                console.error(`Error: ${error.message}`);
                 if (stderr) console.error(`   ${stderr}`);
                 reject(error);
             } else {
-                console.log(`   ✅ Complete`);
+                console.log(`Complete`);
                 if (stdout && stdout.includes('DATA POPULATION')) {
                     console.log(stdout);
                 }
@@ -83,11 +83,11 @@ const testConnection = () => {
             env: { ...process.env, PGPASSWORD: dbConfig.password }
         }, (error, stdout, stderr) => {
             if (error) {
-                console.error('   ❌ Connection failed');
+                console.error('Connection failed');
                 console.error(`   Error: ${error.message}`);
                 reject(error);
             } else {
-                console.log('   ✅ Connection successful');
+                console.log('Connection successful');
                 resolve();
             }
         });
@@ -134,28 +134,28 @@ const getStatistics = () => {
         console.log();
 
         // Create schema
-        await executeSQLFile(schemaPath, '📚 Creating database schema (3NF)');
+        await executeSQLFile(schemaPath, 'Creating database schema (3NF)');
         console.log();
 
         // Seed data
-        await executeSQLFile(seedPath, '🌱 Populating sample data');
+        await executeSQLFile(seedPath, 'Populating sample data');
         console.log();
 
         // Get statistics
-        console.log('📊 Database Statistics:');
+        console.log('Database Statistics:');
         const stats = await getStatistics();
         console.log(stats);
 
         console.log('\n╔════════════════════════════════════════════════════════════╗');
-        console.log('║                   ✅ Setup Complete!                        ║');
+        console.log('║                   Setup Complete!                        ║');
         console.log('║                                                            ║');
         console.log('║  The normalized schema is now ready to use.                ║');
-        console.log('║  Start your backend server with: npm run dev              ║');
+        console.log('║  Start your backend server with: npm test              ║');
         console.log('╚════════════════════════════════════════════════════════════╝\n');
 
         process.exit(0);
     } catch (error) {
-        console.error('\n❌ Setup failed. Please check the error above.');
+        console.error('\nSetup failed. Please check the error above.');
         console.error('   Make sure PostgreSQL is running and credentials are correct.');
         process.exit(1);
     }

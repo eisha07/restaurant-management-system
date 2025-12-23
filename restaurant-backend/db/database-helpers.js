@@ -1,7 +1,5 @@
 /**
  * Database Helper Functions - Normalized Schema (3NF)
- * These functions provide clean abstractions over the normalized schema
- * Usage: Import these functions in your route handlers
  */
 
 const { sequelize } = require('../config/database');

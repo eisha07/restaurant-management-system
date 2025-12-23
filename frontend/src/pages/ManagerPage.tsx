@@ -182,7 +182,7 @@ export default function ManagerPage() {
 
     // Listen for new orders
     const unsubscribeNewOrder = onNewOrder((newOrder: Order) => {
-      console.log('📬 New order received via Socket.IO:', newOrder);
+      console.log('New order received via Socket.IO:', newOrder);
       // Add new order to the list if it doesn't already exist
       setOrders(prevOrders => {
         const exists = prevOrders.find(o => o.id === newOrder.id || o.orderNumber === newOrder.orderNumber);
@@ -194,14 +194,14 @@ export default function ManagerPage() {
         return [newOrder, ...prevOrders];
       });
       toast({
-        title: 'New Order! 🔔',
+        title: 'New Order!',
         description: `Order #${newOrder.orderNumber || newOrder.id} received`,
       });
     });
 
     // Listen for pending orders updates (approvals, rejections, etc.)
     const handleOrdersUpdate = (data: any) => {
-      console.log('🔄 Pending orders updated via Socket.IO:', data);
+      console.log('Pending orders updated via Socket.IO:', data);
       // Refetch pending orders to get the latest state
       managerApi.getPendingOrders().then(data => {
         if (data && Array.isArray(data)) {
@@ -212,7 +212,7 @@ export default function ManagerPage() {
 
     // Listen for order status updates
     const handleOrderStatusUpdate = (data: any) => {
-      console.log('📊 Order status updated via Socket.IO:', data);
+      console.log('Order status updated via Socket.IO:', data);
       const updatedOrder = transformOrder(data);
       setOrders(prevOrders =>
         prevOrders.map(order =>
@@ -229,11 +229,11 @@ export default function ManagerPage() {
 
     // Log socket connection status
     if (socket.connected) {
-      console.log('✅ Socket.IO connected for manager dashboard');
+      console.log('Socket.IO connected for manager dashboard');
     } else {
-      console.warn('⚠️ Socket.IO not connected, waiting for connection...');
+      console.warn('Socket.IO not connected, waiting for connection...');
       socket.on('connect', () => {
-        console.log('✅ Socket.IO connected, resubscribing to manager dashboard');
+        console.log('Socket.IO connected, resubscribing to manager dashboard');
         subscribeToManagerDashboard();
       });
     }

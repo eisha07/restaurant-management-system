@@ -1,6 +1,4 @@
--- Restaurant Management System Database Schema & Data
--- This file creates all tables and inserts sample data
--- Wrapped in transaction for atomicity
+
 
 BEGIN;
 

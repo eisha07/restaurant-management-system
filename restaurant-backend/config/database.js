@@ -1,7 +1,7 @@
-// config/database.js - CORRECTED VERSION
+
 const { Sequelize } = require('sequelize');
 
-// Only load .env in development
+
 if (process.env.NODE_ENV !== 'production') {
   require('dotenv').config();
 }
@@ -22,8 +22,7 @@ try {
     console.log('Attempting to connect using DATABASE_URL...');
     let dbUrl = String(rawUrl).trim();
     
-    // Fix for Sequelize "Cannot read properties of null (reading 'replace')"
-    // This happens if the URL is missing a trailing slash or database name
+    
     if (dbUrl.includes('://') && !dbUrl.split('://')[1].includes('/')) {
       console.log('Adding missing trailing slash to DATABASE_URL');
       dbUrl += '/';
@@ -77,9 +76,9 @@ try {
     );
   }
   
-  console.log('✅ Sequelize instance created successfully');
+  console.log('Sequelize instance created successfully');
 } catch (error) {
-  console.error('❌ Error creating Sequelize instance:', error.message);
+  console.error('Error creating Sequelize instance:', error.message);
   throw error;
 }
 
@@ -93,10 +92,10 @@ const testConnection = async () => {
     
     // Race between the connection attempt and timeout
     await Promise.race([sequelize.authenticate(), timeoutPromise]);
-    console.log('✅ Database connection established successfully.');
+    console.log('Database connection established successfully.');
     return true;
   } catch (error) {
-    console.error('❌ Unable to connect to the database:', error.message);
+    console.error('Unable to connect to the database:', error.message);
     return false;
   }
 };

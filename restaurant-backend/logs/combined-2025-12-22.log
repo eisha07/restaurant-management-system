@@ -1,0 +1,602 @@
+{"level":"info","message":"Loading routes...","module":"server","service":"restaurant-backend","timestamp":"2025-12-22T07:04:49.778Z"}
+{"level":"info","message":"Route /api/menu loaded successfully","module":"server","service":"restaurant-backend","timestamp":"2025-12-22T07:04:50.562Z"}
+{"level":"info","message":"Route /api/orders loaded successfully","module":"server","service":"restaurant-backend","timestamp":"2025-12-22T07:04:50.566Z"}
+{"level":"info","message":"Route /api/feedback loaded successfully","module":"server","service":"restaurant-backend","timestamp":"2025-12-22T07:04:50.569Z"}
+{"level":"info","message":"Route /api/qr loaded successfully","module":"server","service":"restaurant-backend","timestamp":"2025-12-22T07:04:50.715Z"}
+{"level":"info","message":"Route /api/auth loaded successfully","module":"server","service":"restaurant-backend","timestamp":"2025-12-22T07:04:50.719Z"}
+{"level":"info","message":"Route /api/manager loaded successfully","module":"server","service":"restaurant-backend","timestamp":"2025-12-22T07:04:50.724Z"}
+{"level":"info","message":"Route /api/kitchen loaded successfully","module":"server","service":"restaurant-backend","timestamp":"2025-12-22T07:04:50.730Z"}
+{"level":"info","message":"Route /api/db loaded successfully","module":"server","service":"restaurant-backend","timestamp":"2025-12-22T07:04:50.736Z"}
+{"level":"info","message":"Route loading sequence complete","module":"server","service":"restaurant-backend","timestamp":"2025-12-22T07:04:50.737Z"}
+{"level":"info","message":"Database logging transport initialized","module":"logger","service":"restaurant-backend","timestamp":"2025-12-22T07:04:50.738Z"}
+{"level":"info","message":"Testing database connection...","module":"server","service":"restaurant-backend","timestamp":"2025-12-22T07:04:50.765Z"}
+{"level":"info","message":"--- Unique Customer Session QR Code ---","module":"server","service":"restaurant-backend","timestamp":"2025-12-22T07:04:50.802Z"}
+{"level":"info","message":"Scan this QR to start a new session: /customer?sessionId=customer-1766387090742-q7yaclkbd","module":"server","service":"restaurant-backend","timestamp":"2025-12-22T07:04:50.802Z"}
+{"level":"info","message":"(Base64 QR image available via /api/qr/session)","module":"server","service":"restaurant-backend","timestamp":"2025-12-22T07:04:50.803Z"}
+{"level":"info","message":"Database connection verified successfully.","module":"server","service":"restaurant-backend","timestamp":"2025-12-22T07:04:51.068Z"}
+{"bindAddress":"127.0.0.1","environment":"development","level":"info","message":"Server running on port 5000","module":"server","port":5000,"service":"restaurant-backend","timestamp":"2025-12-22T07:04:51.075Z"}
+{"level":"info","message":"\u001b[0mGET /api/menu \u001b[36m304\u001b[0m 289.433 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T07:15:49.334Z"}
+{"level":"info","message":"\u001b[0mGET /api/orders/session/customer-1766208851844-db9tohfel \u001b[32m200\u001b[0m 362.762 ms - 2607\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T07:15:49.380Z"}
+{"level":"info","message":"\u001b[0mGET /images/chicken%20biryani.jpg \u001b[36m304\u001b[0m 13.865 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T07:15:49.749Z"}
+{"level":"info","message":"\u001b[0mGET /images/chicken%20karahi.jpg \u001b[36m304\u001b[0m 15.712 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T07:15:49.751Z"}
+{"level":"info","message":"\u001b[0mGET /images/chicken%20tikka.jpg \u001b[36m304\u001b[0m 16.348 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T07:15:49.753Z"}
+{"level":"info","message":"\u001b[0mGET /images/beef%20nihari.jpg \u001b[36m304\u001b[0m 18.086 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T07:15:49.756Z"}
+{"level":"info","message":"\u001b[0mGET /images/chana%20masala.jpg \u001b[36m304\u001b[0m 17.434 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T07:15:49.758Z"}
+{"level":"info","message":"\u001b[0mGET /images/beef%20burger.jpg \u001b[36m304\u001b[0m 17.964 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T07:15:49.759Z"}
+{"level":"info","message":"\u001b[0mGET /images/pizza%20margherita.jpg \u001b[36m304\u001b[0m 8.145 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T07:15:49.771Z"}
+{"level":"info","message":"\u001b[0mGET /images/french%20fries.jpg \u001b[36m304\u001b[0m 14.427 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T07:15:49.779Z"}
+{"level":"info","message":"\u001b[0mGET /images/chicken%20wings.jpg \u001b[36m304\u001b[0m 17.148 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T07:15:49.782Z"}
+{"level":"info","message":"\u001b[0mGET /images/pasta%20carbonara.jpg \u001b[36m304\u001b[0m 17.618 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T07:15:49.784Z"}
+{"level":"info","message":"\u001b[0mGET /images/club%20sandwich.jpg \u001b[36m304\u001b[0m 18.068 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T07:15:49.785Z"}
+{"level":"info","message":"\u001b[0mGET /images/grilled%20salmon.jpg \u001b[36m304\u001b[0m 19.044 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T07:15:49.787Z"}
+{"level":"info","message":"\u001b[0mGET /images/beef%20steak.jpg \u001b[36m304\u001b[0m 7.183 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T07:15:49.798Z"}
+{"level":"info","message":"\u001b[0mGET /images/caesar%20salad.jpg \u001b[36m304\u001b[0m 10.125 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T07:15:49.805Z"}
+{"level":"info","message":"\u001b[0mGET /images/coca%20cola.jpg \u001b[36m304\u001b[0m 13.627 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T07:15:49.809Z"}
+{"level":"info","message":"\u001b[0mGET /images/mushroom%20risotto.jpg \u001b[36m304\u001b[0m 16.748 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T07:15:49.813Z"}
+{"level":"info","message":"\u001b[0mGET /images/fresh%20lime%20soda.jpg \u001b[36m304\u001b[0m 18.985 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T07:15:49.817Z"}
+{"level":"info","message":"\u001b[0mGET /images/mango%20lassi.jpg \u001b[36m304\u001b[0m 21.968 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T07:15:49.819Z"}
+{"level":"info","message":"\u001b[0mGET /images/mineral%20water.jpg \u001b[36m304\u001b[0m 8.578 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T07:15:49.833Z"}
+{"level":"info","message":"\u001b[0mGET /images/chocolate%20brownie.jpg \u001b[36m304\u001b[0m 7.264 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T07:15:49.837Z"}
+{"level":"info","message":"\u001b[0mGET /images/cheesecake.jpg \u001b[36m304\u001b[0m 7.979 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T07:15:49.838Z"}
+{"level":"info","message":"\u001b[0mGET /images/gulab%20jamun.jpg \u001b[36m304\u001b[0m 9.287 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T07:15:49.842Z"}
+{"level":"info","message":"\u001b[0mGET /api/menu \u001b[36m304\u001b[0m 315.575 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T07:23:22.084Z"}
+{"level":"info","message":"\u001b[0mGET /api/orders/session/customer-1766208851844-db9tohfel \u001b[36m304\u001b[0m 386.288 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T07:23:22.128Z"}
+{"level":"info","message":"\u001b[0mGET /images/chicken%20biryani.jpg \u001b[36m304\u001b[0m 11.586 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T07:23:22.506Z"}
+{"level":"info","message":"\u001b[0mGET /images/chicken%20karahi.jpg \u001b[36m304\u001b[0m 13.831 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T07:23:22.509Z"}
+{"level":"info","message":"\u001b[0mGET /images/chicken%20tikka.jpg \u001b[36m304\u001b[0m 20.852 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T07:23:22.517Z"}
+{"level":"info","message":"\u001b[0mGET /images/beef%20nihari.jpg \u001b[36m304\u001b[0m 23.114 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T07:23:22.520Z"}
+{"level":"info","message":"\u001b[0mGET /images/chana%20masala.jpg \u001b[36m304\u001b[0m 27.804 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T07:23:22.525Z"}
+{"level":"info","message":"\u001b[0mGET /images/beef%20burger.jpg \u001b[36m304\u001b[0m 29.072 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T07:23:22.527Z"}
+{"level":"info","message":"\u001b[0mGET /images/french%20fries.jpg \u001b[36m304\u001b[0m 16.498 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T07:23:22.546Z"}
+{"level":"info","message":"\u001b[0mGET /images/pizza%20margherita.jpg \u001b[36m304\u001b[0m 12.351 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T07:23:22.551Z"}
+{"level":"info","message":"\u001b[0mGET /images/chicken%20wings.jpg \u001b[36m304\u001b[0m 13.438 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T07:23:22.553Z"}
+{"level":"info","message":"\u001b[0mGET /images/club%20sandwich.jpg \u001b[36m304\u001b[0m 15.561 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T07:23:22.555Z"}
+{"level":"info","message":"\u001b[0mGET /images/pasta%20carbonara.jpg \u001b[36m304\u001b[0m 14.768 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T07:23:22.558Z"}
+{"level":"info","message":"\u001b[0mGET /images/grilled%20salmon.jpg \u001b[36m304\u001b[0m 21.466 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T07:23:22.567Z"}
+{"level":"info","message":"\u001b[0mGET /images/beef%20steak.jpg \u001b[36m304\u001b[0m 19.001 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T07:23:22.581Z"}
+{"level":"info","message":"\u001b[0mGET /images/caesar%20salad.jpg \u001b[36m304\u001b[0m 14.805 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T07:23:22.592Z"}
+{"level":"info","message":"\u001b[0mGET /images/coca%20cola.jpg \u001b[36m304\u001b[0m 16.129 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T07:23:22.594Z"}
+{"level":"info","message":"\u001b[0mGET /images/mushroom%20risotto.jpg \u001b[36m304\u001b[0m 16.894 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T07:23:22.596Z"}
+{"level":"info","message":"\u001b[0mGET /images/fresh%20lime%20soda.jpg \u001b[36m304\u001b[0m 17.739 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T07:23:22.600Z"}
+{"level":"info","message":"\u001b[0mGET /images/mango%20lassi.jpg \u001b[36m304\u001b[0m 14.266 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T07:23:22.605Z"}
+{"level":"info","message":"\u001b[0mGET /images/mineral%20water.jpg \u001b[36m304\u001b[0m 8.176 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T07:23:22.611Z"}
+{"level":"info","message":"\u001b[0mGET /images/chocolate%20brownie.jpg \u001b[36m304\u001b[0m 5.608 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T07:23:22.615Z"}
+{"level":"info","message":"\u001b[0mGET /images/cheesecake.jpg \u001b[36m304\u001b[0m 8.437 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T07:23:22.618Z"}
+{"level":"info","message":"\u001b[0mGET /images/gulab%20jamun.jpg \u001b[36m304\u001b[0m 9.433 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T07:23:22.619Z"}
+{"level":"info","message":"\u001b[0mGET /api/menu \u001b[32m200\u001b[0m 16.874 ms - 5936\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T07:23:26.384Z"}
+{"level":"info","message":"\u001b[0mGET /api/orders/session/customer-1766208851844-db9tohfel \u001b[32m200\u001b[0m 39.087 ms - 2607\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T07:23:26.405Z"}
+{"level":"info","message":"\u001b[0mGET /images/chicken%20biryani.jpg \u001b[32m200\u001b[0m 22.895 ms - 75717\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T07:23:26.468Z"}
+{"level":"info","message":"\u001b[0mGET /images/chicken%20karahi.jpg \u001b[32m200\u001b[0m 21.250 ms - 61334\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T07:23:26.472Z"}
+{"level":"info","message":"\u001b[0mGET /images/chicken%20tikka.jpg \u001b[32m200\u001b[0m 22.994 ms - 62811\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T07:23:26.475Z"}
+{"level":"info","message":"\u001b[0mGET /images/beef%20burger.jpg \u001b[32m200\u001b[0m 25.879 ms - 57532\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T07:23:26.479Z"}
+{"level":"info","message":"\u001b[0mGET /images/beef%20nihari.jpg \u001b[32m200\u001b[0m 29.632 ms - 42091\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T07:23:26.483Z"}
+{"level":"info","message":"\u001b[0mGET /images/chana%20masala.jpg \u001b[32m200\u001b[0m 34.070 ms - 52655\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T07:23:26.488Z"}
+{"level":"info","message":"\u001b[0mGET /images/french%20fries.jpg \u001b[32m200\u001b[0m 27.428 ms - 59981\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T07:23:26.505Z"}
+{"level":"info","message":"\u001b[0mGET /images/pizza%20margherita.jpg \u001b[32m200\u001b[0m 17.096 ms - 70682\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T07:23:26.509Z"}
+{"level":"info","message":"\u001b[0mGET /images/club%20sandwich.jpg \u001b[32m200\u001b[0m 19.549 ms - 58897\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T07:23:26.514Z"}
+{"level":"info","message":"\u001b[0mGET /images/pasta%20carbonara.jpg \u001b[32m200\u001b[0m 21.795 ms - 54858\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T07:23:26.517Z"}
+{"level":"info","message":"\u001b[0mGET /images/chicken%20wings.jpg \u001b[32m200\u001b[0m 18.470 ms - 76970\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T07:23:26.518Z"}
+{"level":"info","message":"\u001b[0mGET /images/grilled%20salmon.jpg \u001b[32m200\u001b[0m 24.920 ms - 60275\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T07:23:26.524Z"}
+{"level":"info","message":"\u001b[0mGET /images/caesar%20salad.jpg \u001b[32m200\u001b[0m 13.504 ms - 55744\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T07:23:26.537Z"}
+{"level":"info","message":"\u001b[0mGET /images/beef%20steak.jpg \u001b[32m200\u001b[0m 15.905 ms - 74860\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T07:23:26.541Z"}
+{"level":"info","message":"\u001b[0mGET /images/fresh%20lime%20soda.jpg \u001b[32m200\u001b[0m 11.619 ms - 36720\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T07:23:26.542Z"}
+{"level":"info","message":"\u001b[0mGET /images/mushroom%20risotto.jpg \u001b[32m200\u001b[0m 11.926 ms - 67139\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T07:23:26.544Z"}
+{"level":"info","message":"\u001b[0mGET /images/coca%20cola.jpg \u001b[32m200\u001b[0m 15.602 ms - 65152\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T07:23:26.546Z"}
+{"level":"info","message":"\u001b[0mGET /images/mango%20lassi.jpg \u001b[32m200\u001b[0m 20.808 ms - 49296\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T07:23:26.557Z"}
+{"level":"info","message":"\u001b[0mGET /images/mineral%20water.jpg \u001b[32m200\u001b[0m 11.415 ms - 22317\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T07:23:26.564Z"}
+{"level":"info","message":"\u001b[0mGET /images/chocolate%20brownie.jpg \u001b[32m200\u001b[0m 13.687 ms - 75955\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T07:23:26.568Z"}
+{"level":"info","message":"\u001b[0mGET /images/cheesecake.jpg \u001b[32m200\u001b[0m 16.762 ms - 27247\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T07:23:26.573Z"}
+{"level":"info","message":"\u001b[0mGET /images/gulab%20jamun.jpg \u001b[32m200\u001b[0m 19.691 ms - 46582\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T07:23:26.576Z"}
+{"level":"info","message":"Loading routes...","module":"server","service":"restaurant-backend","timestamp":"2025-12-22T07:37:25.365Z"}
+{"level":"info","message":"Route /api/menu loaded successfully","module":"server","service":"restaurant-backend","timestamp":"2025-12-22T07:37:26.193Z"}
+{"level":"info","message":"Route /api/orders loaded successfully","module":"server","service":"restaurant-backend","timestamp":"2025-12-22T07:37:26.200Z"}
+{"level":"info","message":"Route /api/feedback loaded successfully","module":"server","service":"restaurant-backend","timestamp":"2025-12-22T07:37:26.203Z"}
+{"level":"info","message":"Route /api/qr loaded successfully","module":"server","service":"restaurant-backend","timestamp":"2025-12-22T07:37:26.334Z"}
+{"level":"info","message":"Route /api/auth loaded successfully","module":"server","service":"restaurant-backend","timestamp":"2025-12-22T07:37:26.337Z"}
+{"level":"info","message":"Route /api/manager loaded successfully","module":"server","service":"restaurant-backend","timestamp":"2025-12-22T07:37:26.341Z"}
+{"level":"info","message":"Route /api/kitchen loaded successfully","module":"server","service":"restaurant-backend","timestamp":"2025-12-22T07:37:26.348Z"}
+{"level":"info","message":"Route /api/db loaded successfully","module":"server","service":"restaurant-backend","timestamp":"2025-12-22T07:37:26.351Z"}
+{"level":"info","message":"Route loading sequence complete","module":"server","service":"restaurant-backend","timestamp":"2025-12-22T07:37:26.352Z"}
+{"level":"info","message":"Database logging transport initialized","module":"logger","service":"restaurant-backend","timestamp":"2025-12-22T07:37:26.354Z"}
+{"level":"info","message":"Testing database connection...","module":"server","service":"restaurant-backend","timestamp":"2025-12-22T07:37:26.395Z"}
+{"level":"info","message":"--- Unique Customer Session QR Code ---","module":"server","service":"restaurant-backend","timestamp":"2025-12-22T07:37:26.444Z"}
+{"level":"info","message":"Scan this QR to start a new session: /customer?sessionId=customer-1766389046358-h6hwmqnk8","module":"server","service":"restaurant-backend","timestamp":"2025-12-22T07:37:26.445Z"}
+{"level":"info","message":"(Base64 QR image available via /api/qr/session)","module":"server","service":"restaurant-backend","timestamp":"2025-12-22T07:37:26.446Z"}
+{"level":"info","message":"Database connection verified successfully.","module":"server","service":"restaurant-backend","timestamp":"2025-12-22T07:37:26.710Z"}
+{"level":"warn","message":"Requested port 5000 unavailable. Server will start on 5001 instead.","module":"server","service":"restaurant-backend","timestamp":"2025-12-22T07:37:26.877Z"}
+{"bindAddress":"127.0.0.1","environment":"development","level":"info","message":"Server running on port 5001","module":"server","port":5001,"service":"restaurant-backend","timestamp":"2025-12-22T07:37:26.883Z"}
+{"level":"info","message":"Loading routes...","module":"server","service":"restaurant-backend","timestamp":"2025-12-22T08:06:32.280Z"}
+{"level":"info","message":"Route /api/menu loaded successfully","module":"server","service":"restaurant-backend","timestamp":"2025-12-22T08:06:33.143Z"}
+{"level":"info","message":"Route /api/orders loaded successfully","module":"server","service":"restaurant-backend","timestamp":"2025-12-22T08:06:33.147Z"}
+{"level":"info","message":"Route /api/feedback loaded successfully","module":"server","service":"restaurant-backend","timestamp":"2025-12-22T08:06:33.151Z"}
+{"level":"info","message":"Route /api/qr loaded successfully","module":"server","service":"restaurant-backend","timestamp":"2025-12-22T08:06:33.327Z"}
+{"level":"info","message":"Route /api/auth loaded successfully","module":"server","service":"restaurant-backend","timestamp":"2025-12-22T08:06:33.331Z"}
+{"level":"info","message":"Route /api/manager loaded successfully","module":"server","service":"restaurant-backend","timestamp":"2025-12-22T08:06:33.337Z"}
+{"level":"info","message":"Route /api/kitchen loaded successfully","module":"server","service":"restaurant-backend","timestamp":"2025-12-22T08:06:33.345Z"}
+{"level":"info","message":"Route /api/db loaded successfully","module":"server","service":"restaurant-backend","timestamp":"2025-12-22T08:06:33.355Z"}
+{"level":"info","message":"Route loading sequence complete","module":"server","service":"restaurant-backend","timestamp":"2025-12-22T08:06:33.357Z"}
+{"level":"info","message":"Database logging transport initialized","module":"logger","service":"restaurant-backend","timestamp":"2025-12-22T08:06:33.360Z"}
+{"level":"info","message":"Testing database connection...","module":"server","service":"restaurant-backend","timestamp":"2025-12-22T08:06:33.399Z"}
+{"level":"info","message":"--- Unique Customer Session QR Code ---","module":"server","service":"restaurant-backend","timestamp":"2025-12-22T08:06:33.438Z"}
+{"level":"info","message":"Scan this QR to start a new session: /customer?sessionId=customer-1766390793367-5nsor43mf","module":"server","service":"restaurant-backend","timestamp":"2025-12-22T08:06:33.439Z"}
+{"level":"info","message":"(Base64 QR image available via /api/qr/session)","module":"server","service":"restaurant-backend","timestamp":"2025-12-22T08:06:33.440Z"}
+{"level":"info","message":"Database connection verified successfully.","module":"server","service":"restaurant-backend","timestamp":"2025-12-22T08:06:33.846Z"}
+{"level":"warn","message":"Requested port 5000 unavailable. Server will start on 5001 instead.","module":"server","service":"restaurant-backend","timestamp":"2025-12-22T08:06:34.018Z"}
+{"bindAddress":"127.0.0.1","environment":"development","level":"info","message":"Server running on port 5001","module":"server","port":5001,"service":"restaurant-backend","timestamp":"2025-12-22T08:06:34.024Z"}
+{"level":"info","message":"\u001b[0mGET /api/menu \u001b[36m304\u001b[0m 556.069 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T08:07:47.746Z"}
+{"level":"info","message":"\u001b[0mGET /api/orders/session/customer-1766248021357-tzwuwirrk \u001b[36m304\u001b[0m 657.690 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T08:07:47.794Z"}
+{"level":"info","message":"\u001b[0mGET /images/chicken%20biryani.jpg \u001b[36m304\u001b[0m 22.411 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T08:07:48.282Z"}
+{"level":"info","message":"\u001b[0mGET /images/chicken%20karahi.jpg \u001b[36m304\u001b[0m 25.068 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T08:07:48.285Z"}
+{"level":"info","message":"\u001b[0mGET /images/chicken%20tikka.jpg \u001b[36m304\u001b[0m 24.584 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T08:07:48.287Z"}
+{"level":"info","message":"\u001b[0mGET /images/beef%20nihari.jpg \u001b[36m304\u001b[0m 23.008 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T08:07:48.292Z"}
+{"level":"info","message":"\u001b[0mGET /images/chana%20masala.jpg \u001b[36m304\u001b[0m 25.101 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T08:07:48.295Z"}
+{"level":"info","message":"\u001b[0mGET /images/beef%20burger.jpg \u001b[36m304\u001b[0m 25.677 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T08:07:48.335Z"}
+{"level":"info","message":"\u001b[0mGET /images/french%20fries.jpg \u001b[36m304\u001b[0m 39.181 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T08:07:48.352Z"}
+{"level":"info","message":"\u001b[0mGET /images/pizza%20margherita.jpg \u001b[36m304\u001b[0m 29.048 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T08:07:48.356Z"}
+{"level":"info","message":"\u001b[0mGET /images/chicken%20wings.jpg \u001b[36m304\u001b[0m 34.358 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T08:07:48.368Z"}
+{"level":"info","message":"\u001b[0mGET /images/club%20sandwich.jpg \u001b[36m304\u001b[0m 45.014 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T08:07:48.375Z"}
+{"level":"info","message":"\u001b[0mGET /images/pasta%20carbonara.jpg \u001b[36m304\u001b[0m 28.943 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T08:07:48.407Z"}
+{"level":"info","message":"\u001b[0mGET /images/grilled%20salmon.jpg \u001b[36m304\u001b[0m 31.732 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T08:07:48.428Z"}
+{"level":"info","message":"\u001b[0mGET /images/beef%20steak.jpg \u001b[36m304\u001b[0m 29.663 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T08:07:48.432Z"}
+{"level":"info","message":"\u001b[0mGET /images/caesar%20salad.jpg \u001b[36m304\u001b[0m 34.392 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T08:07:48.436Z"}
+{"level":"info","message":"\u001b[0mGET /images/mushroom%20risotto.jpg \u001b[36m304\u001b[0m 34.397 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T08:07:48.439Z"}
+{"level":"info","message":"\u001b[0mGET /images/coca%20cola.jpg \u001b[36m304\u001b[0m 13.048 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T08:07:48.454Z"}
+{"level":"info","message":"\u001b[0mGET /images/fresh%20lime%20soda.jpg \u001b[36m304\u001b[0m 16.447 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T08:07:48.463Z"}
+{"level":"info","message":"\u001b[0mGET /images/mango%20lassi.jpg \u001b[36m304\u001b[0m 25.477 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T08:07:48.474Z"}
+{"level":"info","message":"\u001b[0mGET /images/mineral%20water.jpg \u001b[36m304\u001b[0m 25.193 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T08:07:48.478Z"}
+{"level":"info","message":"\u001b[0mGET /images/chocolate%20brownie.jpg \u001b[36m304\u001b[0m 29.220 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T08:07:48.487Z"}
+{"level":"info","message":"\u001b[0mGET /images/cheesecake.jpg \u001b[36m304\u001b[0m 10.469 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T08:07:48.502Z"}
+{"level":"info","message":"\u001b[0mGET /images/gulab%20jamun.jpg \u001b[36m304\u001b[0m 10.730 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T08:07:48.510Z"}
+{"level":"info","message":"Loading routes...","module":"server","service":"restaurant-backend","timestamp":"2025-12-22T08:11:25.484Z"}
+{"level":"info","message":"Route /api/menu loaded successfully","module":"server","service":"restaurant-backend","timestamp":"2025-12-22T08:11:26.657Z"}
+{"level":"info","message":"Route /api/orders loaded successfully","module":"server","service":"restaurant-backend","timestamp":"2025-12-22T08:11:26.663Z"}
+{"level":"info","message":"Route /api/feedback loaded successfully","module":"server","service":"restaurant-backend","timestamp":"2025-12-22T08:11:26.671Z"}
+{"level":"info","message":"Route /api/qr loaded successfully","module":"server","service":"restaurant-backend","timestamp":"2025-12-22T08:11:26.913Z"}
+{"level":"info","message":"Route /api/auth loaded successfully","module":"server","service":"restaurant-backend","timestamp":"2025-12-22T08:11:26.917Z"}
+{"level":"info","message":"Route /api/manager loaded successfully","module":"server","service":"restaurant-backend","timestamp":"2025-12-22T08:11:26.927Z"}
+{"level":"info","message":"Route /api/kitchen loaded successfully","module":"server","service":"restaurant-backend","timestamp":"2025-12-22T08:11:26.933Z"}
+{"level":"info","message":"Route /api/db loaded successfully","module":"server","service":"restaurant-backend","timestamp":"2025-12-22T08:11:26.938Z"}
+{"level":"info","message":"Route loading sequence complete","module":"server","service":"restaurant-backend","timestamp":"2025-12-22T08:11:26.940Z"}
+{"level":"info","message":"Database logging transport initialized","module":"logger","service":"restaurant-backend","timestamp":"2025-12-22T08:11:26.949Z"}
+{"level":"info","message":"Testing database connection...","module":"server","service":"restaurant-backend","timestamp":"2025-12-22T08:11:27.010Z"}
+{"level":"info","message":"Loading routes...","module":"server","service":"restaurant-backend","timestamp":"2025-12-22T08:11:25.484Z"}
+{"level":"info","message":"Route /api/menu loaded successfully","module":"server","service":"restaurant-backend","timestamp":"2025-12-22T08:11:26.657Z"}
+{"level":"info","message":"Route /api/orders loaded successfully","module":"server","service":"restaurant-backend","timestamp":"2025-12-22T08:11:26.663Z"}
+{"level":"info","message":"Route /api/feedback loaded successfully","module":"server","service":"restaurant-backend","timestamp":"2025-12-22T08:11:26.670Z"}
+{"level":"info","message":"Route /api/qr loaded successfully","module":"server","service":"restaurant-backend","timestamp":"2025-12-22T08:11:26.913Z"}
+{"level":"info","message":"Route /api/auth loaded successfully","module":"server","service":"restaurant-backend","timestamp":"2025-12-22T08:11:26.918Z"}
+{"level":"info","message":"Route /api/manager loaded successfully","module":"server","service":"restaurant-backend","timestamp":"2025-12-22T08:11:26.927Z"}
+{"level":"info","message":"Route /api/kitchen loaded successfully","module":"server","service":"restaurant-backend","timestamp":"2025-12-22T08:11:26.934Z"}
+{"level":"info","message":"Route /api/db loaded successfully","module":"server","service":"restaurant-backend","timestamp":"2025-12-22T08:11:26.938Z"}
+{"level":"info","message":"Route loading sequence complete","module":"server","service":"restaurant-backend","timestamp":"2025-12-22T08:11:26.942Z"}
+{"level":"info","message":"Database logging transport initialized","module":"logger","service":"restaurant-backend","timestamp":"2025-12-22T08:11:26.945Z"}
+{"level":"info","message":"Testing database connection...","module":"server","service":"restaurant-backend","timestamp":"2025-12-22T08:11:27.006Z"}
+{"level":"info","message":"--- Unique Customer Session QR Code ---","module":"server","service":"restaurant-backend","timestamp":"2025-12-22T08:11:27.071Z"}
+{"level":"info","message":"--- Unique Customer Session QR Code ---","module":"server","service":"restaurant-backend","timestamp":"2025-12-22T08:11:27.071Z"}
+{"level":"info","message":"Scan this QR to start a new session: /customer?sessionId=customer-1766391086956-mwodoejad","module":"server","service":"restaurant-backend","timestamp":"2025-12-22T08:11:27.074Z"}
+{"level":"info","message":"Scan this QR to start a new session: /customer?sessionId=customer-1766391086953-fv5teeylm","module":"server","service":"restaurant-backend","timestamp":"2025-12-22T08:11:27.074Z"}
+{"level":"info","message":"(Base64 QR image available via /api/qr/session)","module":"server","service":"restaurant-backend","timestamp":"2025-12-22T08:11:27.076Z"}
+{"level":"info","message":"(Base64 QR image available via /api/qr/session)","module":"server","service":"restaurant-backend","timestamp":"2025-12-22T08:11:27.076Z"}
+{"level":"info","message":"Database connection verified successfully.","module":"server","service":"restaurant-backend","timestamp":"2025-12-22T08:11:27.505Z"}
+{"level":"info","message":"Database connection verified successfully.","module":"server","service":"restaurant-backend","timestamp":"2025-12-22T08:11:27.509Z"}
+{"bindAddress":"127.0.0.1","environment":"development","level":"info","message":"Server running on port 5000","module":"server","port":5000,"service":"restaurant-backend","timestamp":"2025-12-22T08:11:27.522Z"}
+{"level":"warn","message":"Requested port 5000 unavailable. Server will start on 5001 instead.","module":"server","service":"restaurant-backend","timestamp":"2025-12-22T08:11:27.677Z"}
+{"bindAddress":"127.0.0.1","environment":"development","level":"info","message":"Server running on port 5001","module":"server","port":5001,"service":"restaurant-backend","timestamp":"2025-12-22T08:11:27.688Z"}
+{"level":"info","message":"Loading routes...","module":"server","service":"restaurant-backend","timestamp":"2025-12-22T08:27:14.437Z"}
+{"level":"info","message":"Route /api/menu loaded successfully","module":"server","service":"restaurant-backend","timestamp":"2025-12-22T08:27:15.132Z"}
+{"level":"info","message":"Route /api/orders loaded successfully","module":"server","service":"restaurant-backend","timestamp":"2025-12-22T08:27:15.137Z"}
+{"level":"info","message":"Route /api/feedback loaded successfully","module":"server","service":"restaurant-backend","timestamp":"2025-12-22T08:27:15.139Z"}
+{"level":"info","message":"Route /api/qr loaded successfully","module":"server","service":"restaurant-backend","timestamp":"2025-12-22T08:27:15.243Z"}
+{"level":"info","message":"Route /api/auth loaded successfully","module":"server","service":"restaurant-backend","timestamp":"2025-12-22T08:27:15.245Z"}
+{"level":"info","message":"Route /api/manager loaded successfully","module":"server","service":"restaurant-backend","timestamp":"2025-12-22T08:27:15.248Z"}
+{"level":"info","message":"Route /api/kitchen loaded successfully","module":"server","service":"restaurant-backend","timestamp":"2025-12-22T08:27:15.257Z"}
+{"level":"info","message":"Route /api/db loaded successfully","module":"server","service":"restaurant-backend","timestamp":"2025-12-22T08:27:15.259Z"}
+{"level":"info","message":"Route loading sequence complete","module":"server","service":"restaurant-backend","timestamp":"2025-12-22T08:27:15.260Z"}
+{"level":"info","message":"Database logging transport initialized","module":"logger","service":"restaurant-backend","timestamp":"2025-12-22T08:27:15.261Z"}
+{"level":"info","message":"Testing database connection...","module":"server","service":"restaurant-backend","timestamp":"2025-12-22T08:27:15.295Z"}
+{"level":"info","message":"--- Unique Customer Session QR Code ---","module":"server","service":"restaurant-backend","timestamp":"2025-12-22T08:27:15.331Z"}
+{"level":"info","message":"Scan this QR to start a new session: /customer?sessionId=customer-1766392035263-0cohtdh6f","module":"server","service":"restaurant-backend","timestamp":"2025-12-22T08:27:15.332Z"}
+{"level":"info","message":"(Base64 QR image available via /api/qr/session)","module":"server","service":"restaurant-backend","timestamp":"2025-12-22T08:27:15.333Z"}
+{"level":"info","message":"Database connection verified successfully.","module":"server","service":"restaurant-backend","timestamp":"2025-12-22T08:27:15.614Z"}
+{"level":"warn","message":"Requested port 5000 unavailable. Server will start on 5002 instead.","module":"server","service":"restaurant-backend","timestamp":"2025-12-22T08:27:15.943Z"}
+{"bindAddress":"127.0.0.1","environment":"development","level":"info","message":"Server running on port 5002","module":"server","port":5002,"service":"restaurant-backend","timestamp":"2025-12-22T08:27:15.950Z"}
+{"level":"info","message":"\u001b[0mGET /api/menu \u001b[36m304\u001b[0m 380.736 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T08:28:58.764Z"}
+{"level":"info","message":"\u001b[0mGET /api/orders/session/sess_1765799903705_wgpz80wng \u001b[32m200\u001b[0m 495.174 ms - 3599\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T08:28:58.831Z"}
+{"level":"info","message":"\u001b[0mGET /images/chana%20masala.jpg \u001b[36m304\u001b[0m 18.569 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T08:28:59.230Z"}
+{"level":"info","message":"\u001b[0mGET /images/chicken%20biryani.jpg \u001b[36m304\u001b[0m 20.127 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T08:28:59.233Z"}
+{"level":"info","message":"\u001b[0mGET /images/chicken%20tikka.jpg \u001b[36m304\u001b[0m 22.801 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T08:28:59.238Z"}
+{"level":"info","message":"\u001b[0mGET /images/chicken%20karahi.jpg \u001b[36m304\u001b[0m 21.396 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T08:28:59.241Z"}
+{"level":"info","message":"\u001b[0mGET /images/beef%20nihari.jpg \u001b[36m304\u001b[0m 21.593 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T08:28:59.245Z"}
+{"level":"info","message":"\u001b[0mGET /images/beef%20burger.jpg \u001b[36m304\u001b[0m 25.693 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T08:28:59.275Z"}
+{"level":"info","message":"\u001b[0mGET /images/french%20fries.jpg \u001b[36m304\u001b[0m 28.377 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T08:28:59.284Z"}
+{"level":"info","message":"\u001b[0mGET /images/pizza%20margherita.jpg \u001b[36m304\u001b[0m 30.128 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T08:28:59.288Z"}
+{"level":"info","message":"\u001b[0mGET /images/chicken%20wings.jpg \u001b[36m304\u001b[0m 25.799 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T08:28:59.294Z"}
+{"level":"info","message":"\u001b[0mGET /images/club%20sandwich.jpg \u001b[36m304\u001b[0m 27.967 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T08:28:59.300Z"}
+{"level":"info","message":"\u001b[0mGET /images/grilled%20salmon.jpg \u001b[36m304\u001b[0m 6.148 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T08:28:59.317Z"}
+{"level":"info","message":"\u001b[0mGET /images/pasta%20carbonara.jpg \u001b[36m304\u001b[0m 16.767 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T08:28:59.322Z"}
+{"level":"info","message":"\u001b[0mGET /images/beef%20steak.jpg \u001b[36m304\u001b[0m 15.222 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T08:28:59.329Z"}
+{"level":"info","message":"\u001b[0mGET /images/caesar%20salad.jpg \u001b[36m304\u001b[0m 16.253 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T08:28:59.331Z"}
+{"level":"info","message":"\u001b[0mGET /images/mushroom%20risotto.jpg \u001b[36m304\u001b[0m 17.348 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T08:28:59.333Z"}
+{"level":"info","message":"\u001b[0mGET /images/coca%20cola.jpg \u001b[36m304\u001b[0m 4.977 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T08:28:59.348Z"}
+{"level":"info","message":"\u001b[0mGET /images/fresh%20lime%20soda.jpg \u001b[36m304\u001b[0m 7.362 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T08:28:59.355Z"}
+{"level":"info","message":"\u001b[0mGET /images/mango%20lassi.jpg \u001b[36m304\u001b[0m 19.561 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T08:28:59.366Z"}
+{"level":"info","message":"\u001b[0mGET /images/chocolate%20brownie.jpg \u001b[36m304\u001b[0m 20.019 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T08:28:59.381Z"}
+{"level":"info","message":"\u001b[0mGET /images/mineral%20water.jpg \u001b[36m304\u001b[0m 36.701 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T08:28:59.386Z"}
+{"level":"info","message":"\u001b[0mGET /images/cheesecake.jpg \u001b[36m304\u001b[0m 11.128 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T08:28:59.406Z"}
+{"level":"info","message":"\u001b[0mGET /images/gulab%20jamun.jpg \u001b[36m304\u001b[0m 9.697 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T08:28:59.411Z"}
+{"level":"info","message":"\u001b[0mGET /api/menu \u001b[36m304\u001b[0m 132.234 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T08:29:11.606Z"}
+{"level":"info","message":"\u001b[0mGET /api/orders/session/sess_1765799903705_wgpz80wng \u001b[36m304\u001b[0m 158.301 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T08:29:11.630Z"}
+{"level":"info","message":"\u001b[0mGET /images/chicken%20biryani.jpg \u001b[36m304\u001b[0m 7.297 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T08:29:12.060Z"}
+{"level":"info","message":"\u001b[0mGET /images/chicken%20tikka.jpg \u001b[36m304\u001b[0m 13.328 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T08:29:12.067Z"}
+{"level":"info","message":"\u001b[0mGET /images/beef%20nihari.jpg \u001b[36m304\u001b[0m 33.118 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T08:29:12.087Z"}
+{"level":"info","message":"\u001b[0mGET /images/chana%20masala.jpg \u001b[36m304\u001b[0m 25.575 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T08:29:12.104Z"}
+{"level":"info","message":"\u001b[0mGET /images/beef%20burger.jpg \u001b[36m304\u001b[0m 32.111 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T08:29:12.112Z"}
+{"level":"info","message":"\u001b[0mGET /images/chicken%20karahi.jpg \u001b[36m304\u001b[0m 42.563 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T08:29:12.125Z"}
+{"level":"info","message":"\u001b[0mGET /images/french%20fries.jpg \u001b[36m304\u001b[0m 32.837 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T08:29:12.130Z"}
+{"level":"info","message":"\u001b[0mGET /images/pizza%20margherita.jpg \u001b[36m304\u001b[0m 35.617 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T08:29:12.137Z"}
+{"level":"info","message":"\u001b[0mGET /images/chicken%20wings.jpg \u001b[36m304\u001b[0m 32.456 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T08:29:12.162Z"}
+{"level":"info","message":"\u001b[0mGET /images/club%20sandwich.jpg \u001b[36m304\u001b[0m 42.593 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T08:29:12.191Z"}
+{"level":"info","message":"\u001b[0mGET /images/pasta%20carbonara.jpg \u001b[36m304\u001b[0m 41.696 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T08:29:12.196Z"}
+{"level":"info","message":"\u001b[0mGET /images/grilled%20salmon.jpg \u001b[36m304\u001b[0m 40.500 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T08:29:12.201Z"}
+{"level":"info","message":"\u001b[0mGET /images/beef%20steak.jpg \u001b[36m304\u001b[0m 26.479 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T08:29:12.208Z"}
+{"level":"info","message":"\u001b[0mGET /images/caesar%20salad.jpg \u001b[36m304\u001b[0m 34.321 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T08:29:12.217Z"}
+{"level":"info","message":"\u001b[0mGET /images/mushroom%20risotto.jpg \u001b[36m304\u001b[0m 18.435 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T08:29:12.223Z"}
+{"level":"info","message":"\u001b[0mGET /images/coca%20cola.jpg \u001b[36m304\u001b[0m 9.212 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T08:29:12.229Z"}
+{"level":"info","message":"\u001b[0mGET /images/fresh%20lime%20soda.jpg \u001b[36m304\u001b[0m 9.559 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T08:29:12.231Z"}
+{"level":"info","message":"\u001b[0mGET /images/mango%20lassi.jpg \u001b[36m304\u001b[0m 10.105 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T08:29:12.233Z"}
+{"level":"info","message":"\u001b[0mGET /images/mineral%20water.jpg \u001b[36m304\u001b[0m 10.074 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T08:29:12.237Z"}
+{"level":"info","message":"\u001b[0mGET /images/chocolate%20brownie.jpg \u001b[36m304\u001b[0m 10.006 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T08:29:12.239Z"}
+{"level":"info","message":"\u001b[0mGET /images/cheesecake.jpg \u001b[36m304\u001b[0m 13.890 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T08:29:12.250Z"}
+{"level":"info","message":"\u001b[0mGET /images/gulab%20jamun.jpg \u001b[36m304\u001b[0m 13.081 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T08:29:12.264Z"}
+{"level":"info","message":"\u001b[0mGET /api/menu \u001b[36m304\u001b[0m 342.252 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T08:43:54.275Z"}
+{"level":"info","message":"\u001b[0mGET /api/orders/session/sess_1765799903705_wgpz80wng \u001b[36m304\u001b[0m 426.326 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T08:43:54.335Z"}
+{"level":"info","message":"\u001b[0mGET /images/chicken%20tikka.jpg \u001b[36m304\u001b[0m 10.055 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T08:43:54.713Z"}
+{"level":"info","message":"\u001b[0mGET /images/chicken%20biryani.jpg \u001b[36m304\u001b[0m 11.960 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T08:43:54.719Z"}
+{"level":"info","message":"\u001b[0mGET /images/chicken%20karahi.jpg \u001b[36m304\u001b[0m 17.484 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T08:43:54.724Z"}
+{"level":"info","message":"\u001b[0mGET /images/beef%20nihari.jpg \u001b[36m304\u001b[0m 19.585 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T08:43:54.726Z"}
+{"level":"info","message":"\u001b[0mGET /images/chana%20masala.jpg \u001b[36m304\u001b[0m 21.077 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T08:43:54.728Z"}
+{"level":"info","message":"\u001b[0mGET /images/beef%20burger.jpg \u001b[36m304\u001b[0m 12.338 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T08:43:54.749Z"}
+{"level":"info","message":"\u001b[0mGET /images/french%20fries.jpg \u001b[36m304\u001b[0m 20.485 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T08:43:54.761Z"}
+{"level":"info","message":"\u001b[0mGET /images/pizza%20margherita.jpg \u001b[36m304\u001b[0m 20.669 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T08:43:54.763Z"}
+{"level":"info","message":"\u001b[0mGET /images/chicken%20wings.jpg \u001b[36m304\u001b[0m 20.401 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T08:43:54.766Z"}
+{"level":"info","message":"\u001b[0mGET /images/club%20sandwich.jpg \u001b[36m304\u001b[0m 20.428 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T08:43:54.767Z"}
+{"level":"info","message":"\u001b[0mGET /images/pasta%20carbonara.jpg \u001b[36m304\u001b[0m 7.502 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T08:43:54.782Z"}
+{"level":"info","message":"\u001b[0mGET /images/grilled%20salmon.jpg \u001b[36m304\u001b[0m 15.258 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T08:43:54.794Z"}
+{"level":"info","message":"\u001b[0mGET /images/beef%20steak.jpg \u001b[36m304\u001b[0m 16.447 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T08:43:54.798Z"}
+{"level":"info","message":"\u001b[0mGET /images/caesar%20salad.jpg \u001b[36m304\u001b[0m 13.702 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T08:43:54.800Z"}
+{"level":"info","message":"\u001b[0mGET /images/mushroom%20risotto.jpg \u001b[36m304\u001b[0m 9.216 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T08:43:54.802Z"}
+{"level":"info","message":"\u001b[0mGET /images/coca%20cola.jpg \u001b[36m304\u001b[0m 20.746 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T08:43:54.819Z"}
+{"level":"info","message":"\u001b[0mGET /images/fresh%20lime%20soda.jpg \u001b[36m304\u001b[0m 12.225 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T08:43:54.830Z"}
+{"level":"info","message":"\u001b[0mGET /images/mango%20lassi.jpg \u001b[36m304\u001b[0m 9.200 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T08:43:54.835Z"}
+{"level":"info","message":"\u001b[0mGET /images/mineral%20water.jpg \u001b[36m304\u001b[0m 9.623 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T08:43:54.838Z"}
+{"level":"info","message":"\u001b[0mGET /images/chocolate%20brownie.jpg \u001b[36m304\u001b[0m 14.671 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T08:43:54.842Z"}
+{"level":"info","message":"\u001b[0mGET /images/cheesecake.jpg \u001b[36m304\u001b[0m 15.388 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T08:43:54.849Z"}
+{"level":"info","message":"\u001b[0mGET /images/gulab%20jamun.jpg \u001b[36m304\u001b[0m 6.499 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T08:43:54.852Z"}
+{"level":"info","message":"\u001b[0mGET /api/manager/menu \u001b[36m304\u001b[0m 220.759 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T08:43:59.030Z"}
+{"level":"info","message":"\u001b[0mGET /api/manager/feedback?page=1&limit=50 \u001b[36m304\u001b[0m 66.373 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T08:43:59.059Z"}
+{"level":"info","message":"\u001b[0mGET /api/manager/orders/all \u001b[32m200\u001b[0m 310.795 ms - 21574\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T08:43:59.119Z"}
+{"level":"info","message":"\u001b[0mGET /api/manager/statistics \u001b[32m200\u001b[0m 325.259 ms - 340\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T08:43:59.132Z"}
+{"level":"info","message":"\u001b[0mGET /images/chicken%20karahi.jpg \u001b[36m304\u001b[0m 1.027 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T08:44:09.493Z"}
+{"level":"info","message":"\u001b[0mPOST /api/orders \u001b[32m201\u001b[0m 411.625 ms - 550\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T08:44:18.911Z"}
+{"level":"info","message":"\u001b[0mGET /api/orders/session/sess_1765799903705_wgpz80wng \u001b[32m200\u001b[0m 42.556 ms - 4140\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T08:44:18.972Z"}
+{"level":"info","message":"\u001b[0mGET /api/orders/session/sess_1765799903705_wgpz80wng \u001b[36m304\u001b[0m 23.263 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T08:44:19.008Z"}
+{"level":"info","message":"\u001b[0mGET /api/manager/orders/pending \u001b[32m200\u001b[0m 55.933 ms - 17542\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T08:44:19.076Z"}
+{"level":"info","message":"\u001b[0mGET /api/orders/session/sess_1765799903705_wgpz80wng \u001b[36m304\u001b[0m 46.520 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T08:44:19.099Z"}
+{"level":"info","message":"\u001b[0mGET /api/menu \u001b[36m304\u001b[0m 242.752 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T08:54:01.851Z"}
+{"level":"info","message":"\u001b[0mGET /api/orders/session/sess_1765799903705_wgpz80wng \u001b[36m304\u001b[0m 407.384 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T08:54:01.891Z"}
+{"level":"info","message":"\u001b[0mGET /images/chicken%20biryani.jpg \u001b[36m304\u001b[0m 20.933 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T08:54:02.251Z"}
+{"level":"info","message":"\u001b[0mGET /images/chicken%20karahi.jpg \u001b[36m304\u001b[0m 20.528 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T08:54:02.253Z"}
+{"level":"info","message":"\u001b[0mGET /images/chicken%20tikka.jpg \u001b[36m304\u001b[0m 20.244 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T08:54:02.256Z"}
+{"level":"info","message":"\u001b[0mGET /images/beef%20nihari.jpg \u001b[36m304\u001b[0m 20.387 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T08:54:02.259Z"}
+{"level":"info","message":"\u001b[0mGET /images/beef%20burger.jpg \u001b[36m304\u001b[0m 24.988 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T08:54:02.263Z"}
+{"level":"info","message":"\u001b[0mGET /images/chana%20masala.jpg \u001b[36m304\u001b[0m 23.758 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T08:54:02.265Z"}
+{"level":"info","message":"\u001b[0mGET /images/pizza%20margherita.jpg \u001b[36m304\u001b[0m 14.252 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T08:54:02.298Z"}
+{"level":"info","message":"\u001b[0mGET /images/french%20fries.jpg \u001b[36m304\u001b[0m 10.652 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T08:54:02.300Z"}
+{"level":"info","message":"\u001b[0mGET /images/chicken%20wings.jpg \u001b[36m304\u001b[0m 11.451 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T08:54:02.302Z"}
+{"level":"info","message":"\u001b[0mGET /images/club%20sandwich.jpg \u001b[36m304\u001b[0m 13.210 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T08:54:02.304Z"}
+{"level":"info","message":"\u001b[0mGET /images/pasta%20carbonara.jpg \u001b[36m304\u001b[0m 14.137 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T08:54:02.305Z"}
+{"level":"info","message":"\u001b[0mGET /images/grilled%20salmon.jpg \u001b[36m304\u001b[0m 15.231 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T08:54:02.307Z"}
+{"level":"info","message":"\u001b[0mGET /images/beef%20steak.jpg \u001b[36m304\u001b[0m 10.455 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T08:54:02.330Z"}
+{"level":"info","message":"\u001b[0mGET /images/caesar%20salad.jpg \u001b[36m304\u001b[0m 15.663 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T08:54:02.332Z"}
+{"level":"info","message":"\u001b[0mGET /images/mushroom%20risotto.jpg \u001b[36m304\u001b[0m 17.003 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T08:54:02.335Z"}
+{"level":"info","message":"\u001b[0mGET /images/coca%20cola.jpg \u001b[36m304\u001b[0m 18.819 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T08:54:02.339Z"}
+{"level":"info","message":"\u001b[0mGET /images/fresh%20lime%20soda.jpg \u001b[36m304\u001b[0m 21.214 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T08:54:02.340Z"}
+{"level":"info","message":"\u001b[0mGET /images/mango%20lassi.jpg \u001b[36m304\u001b[0m 21.909 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T08:54:02.343Z"}
+{"level":"info","message":"\u001b[0mGET /images/mineral%20water.jpg \u001b[36m304\u001b[0m 4.269 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T08:54:02.356Z"}
+{"level":"info","message":"\u001b[0mGET /images/chocolate%20brownie.jpg \u001b[36m304\u001b[0m 5.777 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T08:54:02.361Z"}
+{"level":"info","message":"\u001b[0mGET /images/cheesecake.jpg \u001b[36m304\u001b[0m 10.823 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T08:54:02.363Z"}
+{"level":"info","message":"\u001b[0mGET /images/gulab%20jamun.jpg \u001b[36m304\u001b[0m 11.644 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T08:54:02.366Z"}
+{"level":"info","message":"\u001b[0mGET /api/kitchen/orders/active \u001b[32m200\u001b[0m 78.703 ms - 95\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T08:54:03.290Z"}
+{"level":"info","message":"\u001b[0mGET /api/menu \u001b[36m304\u001b[0m 511.494 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T08:59:45.213Z"}
+{"level":"info","message":"\u001b[0mGET /api/kitchen/orders/active \u001b[36m304\u001b[0m 324.741 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T08:59:45.228Z"}
+{"level":"info","message":"\u001b[0mGET /api/orders/session/customer-1766248021357-tzwuwirrk \u001b[36m304\u001b[0m 337.077 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T08:59:45.243Z"}
+{"level":"info","message":"\u001b[0mGET /api/orders/session/sess_1765799903705_wgpz80wng \u001b[36m304\u001b[0m 366.127 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T08:59:45.266Z"}
+{"level":"info","message":"\u001b[0mGET /api/menu \u001b[36m304\u001b[0m 46.912 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T08:59:45.272Z"}
+{"level":"info","message":"\u001b[0mGET /images/chicken%20karahi.jpg \u001b[36m304\u001b[0m 6.131 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T08:59:45.741Z"}
+{"level":"info","message":"\u001b[0mGET /images/chicken%20biryani.jpg \u001b[36m304\u001b[0m 6.657 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T08:59:45.744Z"}
+{"level":"info","message":"\u001b[0mGET /images/chicken%20tikka.jpg \u001b[36m304\u001b[0m 1.840 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T08:59:45.821Z"}
+{"level":"info","message":"\u001b[0mGET /images/beef%20nihari.jpg \u001b[36m304\u001b[0m 1.618 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T08:59:45.826Z"}
+{"level":"info","message":"\u001b[0mGET /images/chana%20masala.jpg \u001b[36m304\u001b[0m 4.301 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T08:59:45.834Z"}
+{"level":"info","message":"\u001b[0mGET /images/beef%20burger.jpg \u001b[36m304\u001b[0m 1.621 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T08:59:45.838Z"}
+{"level":"info","message":"\u001b[0mGET /images/french%20fries.jpg \u001b[36m304\u001b[0m 2.347 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T08:59:45.845Z"}
+{"level":"info","message":"\u001b[0mGET /images/pizza%20margherita.jpg \u001b[36m304\u001b[0m 1.061 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T08:59:45.849Z"}
+{"level":"info","message":"\u001b[0mGET /images/chicken%20wings.jpg \u001b[36m304\u001b[0m 1.084 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T08:59:45.853Z"}
+{"level":"info","message":"\u001b[0mGET /images/club%20sandwich.jpg \u001b[36m304\u001b[0m 0.778 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T08:59:45.856Z"}
+{"level":"info","message":"\u001b[0mGET /images/pasta%20carbonara.jpg \u001b[36m304\u001b[0m 0.868 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T08:59:45.863Z"}
+{"level":"info","message":"\u001b[0mGET /images/grilled%20salmon.jpg \u001b[36m304\u001b[0m 3.271 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T08:59:45.869Z"}
+{"level":"info","message":"\u001b[0mGET /images/beef%20steak.jpg \u001b[36m304\u001b[0m 0.963 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T08:59:45.872Z"}
+{"level":"info","message":"\u001b[0mGET /images/caesar%20salad.jpg \u001b[36m304\u001b[0m 0.927 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T08:59:45.877Z"}
+{"level":"info","message":"\u001b[0mGET /images/mushroom%20risotto.jpg \u001b[36m304\u001b[0m 0.861 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T08:59:45.880Z"}
+{"level":"info","message":"\u001b[0mGET /images/coca%20cola.jpg \u001b[36m304\u001b[0m 0.966 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T08:59:45.884Z"}
+{"level":"info","message":"\u001b[0mGET /images/fresh%20lime%20soda.jpg \u001b[36m304\u001b[0m 0.844 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T08:59:45.890Z"}
+{"level":"info","message":"\u001b[0mGET /images/mango%20lassi.jpg \u001b[36m304\u001b[0m 1.064 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T08:59:45.894Z"}
+{"level":"info","message":"\u001b[0mGET /images/mineral%20water.jpg \u001b[36m304\u001b[0m 2.344 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T08:59:45.900Z"}
+{"level":"info","message":"\u001b[0mGET /images/chocolate%20brownie.jpg \u001b[36m304\u001b[0m 4.615 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T08:59:45.903Z"}
+{"level":"info","message":"\u001b[0mGET /images/cheesecake.jpg \u001b[36m304\u001b[0m 1.374 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T08:59:45.908Z"}
+{"level":"info","message":"\u001b[0mGET /images/gulab%20jamun.jpg \u001b[36m304\u001b[0m 3.028 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T08:59:45.911Z"}
+{"level":"info","message":"\u001b[0mGET /api/menu \u001b[36m304\u001b[0m 323.165 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T09:08:24.355Z"}
+{"level":"info","message":"\u001b[0mGET /api/orders/session/customer-1766248021357-tzwuwirrk \u001b[36m304\u001b[0m 357.988 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T09:08:24.388Z"}
+{"level":"info","message":"\u001b[0mGET /images/chicken%20biryani.jpg \u001b[36m304\u001b[0m 6.035 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T09:08:24.855Z"}
+{"level":"info","message":"\u001b[0mGET /images/chicken%20karahi.jpg \u001b[36m304\u001b[0m 7.914 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T09:08:24.859Z"}
+{"level":"info","message":"\u001b[0mGET /images/chicken%20tikka.jpg \u001b[36m304\u001b[0m 3.351 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T09:08:24.886Z"}
+{"level":"info","message":"\u001b[0mGET /images/beef%20nihari.jpg \u001b[36m304\u001b[0m 4.909 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T09:08:24.890Z"}
+{"level":"info","message":"\u001b[0mGET /images/chana%20masala.jpg \u001b[36m304\u001b[0m 0.834 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T09:08:24.895Z"}
+{"level":"info","message":"\u001b[0mGET /images/beef%20burger.jpg \u001b[36m304\u001b[0m 1.243 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T09:08:24.898Z"}
+{"level":"info","message":"\u001b[0mGET /images/french%20fries.jpg \u001b[36m304\u001b[0m 1.491 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T09:08:24.905Z"}
+{"level":"info","message":"\u001b[0mGET /images/pizza%20margherita.jpg \u001b[36m304\u001b[0m 1.726 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T09:08:24.911Z"}
+{"level":"info","message":"\u001b[0mGET /images/chicken%20wings.jpg \u001b[36m304\u001b[0m 2.336 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T09:08:24.917Z"}
+{"level":"info","message":"\u001b[0mGET /images/club%20sandwich.jpg \u001b[36m304\u001b[0m 10.841 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T09:08:24.927Z"}
+{"level":"info","message":"\u001b[0mGET /images/pasta%20carbonara.jpg \u001b[36m304\u001b[0m 1.529 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T09:08:24.932Z"}
+{"level":"info","message":"\u001b[0mGET /images/grilled%20salmon.jpg \u001b[36m304\u001b[0m 2.155 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T09:08:24.940Z"}
+{"level":"info","message":"\u001b[0mGET /images/beef%20steak.jpg \u001b[36m304\u001b[0m 1.406 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T09:08:24.946Z"}
+{"level":"info","message":"\u001b[0mGET /images/caesar%20salad.jpg \u001b[36m304\u001b[0m 1.056 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T09:08:24.953Z"}
+{"level":"info","message":"\u001b[0mGET /images/mushroom%20risotto.jpg \u001b[36m304\u001b[0m 1.197 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T09:08:24.958Z"}
+{"level":"info","message":"\u001b[0mGET /images/coca%20cola.jpg \u001b[36m304\u001b[0m 1.159 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T09:08:24.964Z"}
+{"level":"info","message":"\u001b[0mGET /images/fresh%20lime%20soda.jpg \u001b[36m304\u001b[0m 1.991 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T09:08:25.017Z"}
+{"level":"info","message":"\u001b[0mGET /images/mango%20lassi.jpg \u001b[36m304\u001b[0m 3.403 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T09:08:25.025Z"}
+{"level":"info","message":"\u001b[0mGET /images/mineral%20water.jpg \u001b[36m304\u001b[0m 5.488 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T09:08:25.029Z"}
+{"level":"info","message":"\u001b[0mGET /images/chocolate%20brownie.jpg \u001b[36m304\u001b[0m 1.530 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T09:08:25.035Z"}
+{"level":"info","message":"\u001b[0mGET /images/cheesecake.jpg \u001b[36m304\u001b[0m 1.987 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T09:08:25.041Z"}
+{"level":"info","message":"\u001b[0mGET /images/gulab%20jamun.jpg \u001b[36m304\u001b[0m 1.207 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T09:08:25.046Z"}
+{"level":"info","message":"\u001b[0mGET /api/menu \u001b[36m304\u001b[0m 645.852 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T09:26:03.678Z"}
+{"level":"info","message":"\u001b[0mGET /api/orders/session/customer-1766248021357-tzwuwirrk \u001b[36m304\u001b[0m 827.272 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T09:26:03.747Z"}
+{"level":"info","message":"\u001b[0mGET /images/chicken%20biryani.jpg \u001b[36m304\u001b[0m 33.645 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T09:26:04.404Z"}
+{"level":"info","message":"\u001b[0mGET /images/chicken%20karahi.jpg \u001b[36m304\u001b[0m 37.757 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T09:26:04.415Z"}
+{"level":"info","message":"\u001b[0mGET /images/chicken%20tikka.jpg \u001b[36m304\u001b[0m 4.015 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T09:26:04.860Z"}
+{"level":"info","message":"\u001b[0mGET /images/beef%20nihari.jpg \u001b[36m304\u001b[0m 6.038 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T09:26:04.865Z"}
+{"level":"info","message":"\u001b[0mGET /images/chana%20masala.jpg \u001b[36m304\u001b[0m 1.881 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T09:26:05.053Z"}
+{"level":"info","message":"\u001b[0mGET /images/beef%20burger.jpg \u001b[36m304\u001b[0m 6.741 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T09:26:05.078Z"}
+{"level":"info","message":"\u001b[0mGET /images/french%20fries.jpg \u001b[36m304\u001b[0m 11.099 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T09:26:05.085Z"}
+{"level":"info","message":"\u001b[0mGET /images/chicken%20wings.jpg \u001b[36m304\u001b[0m 3.407 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T09:26:05.126Z"}
+{"level":"info","message":"\u001b[0mGET /images/pizza%20margherita.jpg \u001b[36m304\u001b[0m 10.225 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T09:26:05.131Z"}
+{"level":"info","message":"\u001b[0mGET /images/club%20sandwich.jpg \u001b[36m304\u001b[0m 8.121 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T09:26:05.150Z"}
+{"level":"info","message":"\u001b[0mGET /images/pasta%20carbonara.jpg \u001b[36m304\u001b[0m 9.975 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T09:26:05.157Z"}
+{"level":"info","message":"\u001b[0mGET /images/beef%20steak.jpg \u001b[36m304\u001b[0m 3.705 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T09:26:05.173Z"}
+{"level":"info","message":"\u001b[0mGET /images/grilled%20salmon.jpg \u001b[36m304\u001b[0m 13.673 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T09:26:05.180Z"}
+{"level":"info","message":"\u001b[0mGET /images/caesar%20salad.jpg \u001b[36m304\u001b[0m 8.296 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T09:26:05.197Z"}
+{"level":"info","message":"\u001b[0mGET /images/mushroom%20risotto.jpg \u001b[36m304\u001b[0m 11.710 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T09:26:05.203Z"}
+{"level":"info","message":"\u001b[0mGET /images/coca%20cola.jpg \u001b[36m304\u001b[0m 1.042 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T09:26:05.212Z"}
+{"level":"info","message":"\u001b[0mGET /images/fresh%20lime%20soda.jpg \u001b[36m304\u001b[0m 2.913 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T09:26:05.217Z"}
+{"level":"info","message":"\u001b[0mGET /images/mango%20lassi.jpg \u001b[36m304\u001b[0m 2.893 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T09:26:05.224Z"}
+{"level":"info","message":"\u001b[0mGET /images/mineral%20water.jpg \u001b[36m304\u001b[0m 1.687 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T09:26:05.228Z"}
+{"level":"info","message":"\u001b[0mGET /images/chocolate%20brownie.jpg \u001b[36m304\u001b[0m 2.636 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T09:26:05.237Z"}
+{"level":"info","message":"\u001b[0mGET /images/cheesecake.jpg \u001b[36m304\u001b[0m 10.988 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T09:26:05.249Z"}
+{"level":"info","message":"\u001b[0mGET /images/gulab%20jamun.jpg \u001b[36m304\u001b[0m 1.297 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T09:26:05.254Z"}
+{"level":"info","message":"\u001b[0mGET /api/menu \u001b[36m304\u001b[0m 399.137 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T09:55:07.679Z"}
+{"level":"info","message":"\u001b[0mGET /api/orders/session/customer-1766248021357-tzwuwirrk \u001b[36m304\u001b[0m 626.538 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T09:55:07.702Z"}
+{"level":"info","message":"\u001b[0mGET /images/chicken%20karahi.jpg \u001b[36m304\u001b[0m 8.292 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T09:55:08.181Z"}
+{"level":"info","message":"\u001b[0mGET /images/chicken%20biryani.jpg \u001b[36m304\u001b[0m 9.107 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T09:55:08.184Z"}
+{"level":"info","message":"\u001b[0mGET /images/chicken%20tikka.jpg \u001b[36m304\u001b[0m 9.694 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T09:55:08.186Z"}
+{"level":"info","message":"\u001b[0mGET /images/beef%20nihari.jpg \u001b[36m304\u001b[0m 6.730 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T09:55:08.243Z"}
+{"level":"info","message":"\u001b[0mGET /images/chana%20masala.jpg \u001b[36m304\u001b[0m 8.653 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T09:55:08.248Z"}
+{"level":"info","message":"\u001b[0mGET /images/beef%20burger.jpg \u001b[36m304\u001b[0m 16.837 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T09:55:08.258Z"}
+{"level":"info","message":"\u001b[0mGET /images/french%20fries.jpg \u001b[36m304\u001b[0m 4.599 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T09:55:08.276Z"}
+{"level":"info","message":"\u001b[0mGET /images/pizza%20margherita.jpg \u001b[36m304\u001b[0m 6.446 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T09:55:08.279Z"}
+{"level":"info","message":"\u001b[0mGET /images/chicken%20wings.jpg \u001b[36m304\u001b[0m 7.993 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T09:55:08.283Z"}
+{"level":"info","message":"\u001b[0mGET /images/club%20sandwich.jpg \u001b[36m304\u001b[0m 2.310 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T09:55:08.290Z"}
+{"level":"info","message":"\u001b[0mGET /images/pasta%20carbonara.jpg \u001b[36m304\u001b[0m 1.400 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T09:55:08.295Z"}
+{"level":"info","message":"\u001b[0mGET /images/grilled%20salmon.jpg \u001b[36m304\u001b[0m 2.095 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T09:55:08.300Z"}
+{"level":"info","message":"\u001b[0mGET /images/beef%20steak.jpg \u001b[36m304\u001b[0m 4.452 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T09:55:08.304Z"}
+{"level":"info","message":"\u001b[0mGET /images/caesar%20salad.jpg \u001b[36m304\u001b[0m 4.724 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T09:55:08.316Z"}
+{"level":"info","message":"\u001b[0mGET /images/mushroom%20risotto.jpg \u001b[36m304\u001b[0m 4.940 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T09:55:08.319Z"}
+{"level":"info","message":"\u001b[0mGET /images/coca%20cola.jpg \u001b[36m304\u001b[0m 6.110 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T09:55:08.321Z"}
+{"level":"info","message":"\u001b[0mGET /images/fresh%20lime%20soda.jpg \u001b[36m304\u001b[0m 1.675 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T09:55:08.327Z"}
+{"level":"info","message":"\u001b[0mGET /images/mango%20lassi.jpg \u001b[36m304\u001b[0m 1.111 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T09:55:08.330Z"}
+{"level":"info","message":"\u001b[0mGET /images/mineral%20water.jpg \u001b[36m304\u001b[0m 2.225 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T09:55:08.336Z"}
+{"level":"info","message":"\u001b[0mGET /images/chocolate%20brownie.jpg \u001b[36m304\u001b[0m 4.176 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T09:55:08.340Z"}
+{"level":"info","message":"\u001b[0mGET /images/cheesecake.jpg \u001b[36m304\u001b[0m 6.041 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T09:55:08.345Z"}
+{"level":"info","message":"\u001b[0mGET /images/gulab%20jamun.jpg \u001b[36m304\u001b[0m 3.073 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T09:55:08.353Z"}
+{"level":"info","message":"\u001b[0mGET /api/menu \u001b[36m304\u001b[0m 167.005 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T10:27:11.973Z"}
+{"level":"info","message":"\u001b[0mGET /api/orders/session/customer-1766248021357-tzwuwirrk \u001b[36m304\u001b[0m 193.010 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T10:27:11.999Z"}
+{"level":"info","message":"\u001b[0mGET /api/menu \u001b[36m304\u001b[0m 7.273 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T10:27:15.242Z"}
+{"level":"info","message":"\u001b[0mGET /api/orders/session/customer-1766248021357-tzwuwirrk \u001b[36m304\u001b[0m 13.187 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T10:27:15.247Z"}
+{"level":"info","message":"\u001b[0mGET /images/chicken%20biryani.jpg \u001b[36m304\u001b[0m 6.551 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T10:27:15.466Z"}
+{"level":"info","message":"\u001b[0mGET /images/chicken%20karahi.jpg \u001b[36m304\u001b[0m 6.137 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T10:27:15.470Z"}
+{"level":"info","message":"\u001b[0mGET /images/chicken%20tikka.jpg \u001b[36m304\u001b[0m 13.373 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T10:27:15.477Z"}
+{"level":"info","message":"\u001b[0mGET /images/beef%20nihari.jpg \u001b[32m200\u001b[0m 64.078 ms - 42091\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T10:27:15.666Z"}
+{"level":"info","message":"\u001b[0mGET /images/beef%20burger.jpg \u001b[32m200\u001b[0m 64.156 ms - 57532\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T10:27:15.677Z"}
+{"level":"info","message":"\u001b[0mGET /images/chana%20masala.jpg \u001b[32m200\u001b[0m 73.889 ms - 52655\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T10:27:15.681Z"}
+{"level":"info","message":"\u001b[0mGET /images/french%20fries.jpg \u001b[36m304\u001b[0m 2.524 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T10:27:15.812Z"}
+{"level":"info","message":"\u001b[0mGET /images/pizza%20margherita.jpg \u001b[36m304\u001b[0m 4.920 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T10:27:15.815Z"}
+{"level":"info","message":"\u001b[0mGET /images/chicken%20wings.jpg \u001b[36m304\u001b[0m 7.215 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T10:27:15.818Z"}
+{"level":"info","message":"\u001b[0mGET /images/club%20sandwich.jpg \u001b[36m304\u001b[0m 0.884 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T10:27:15.824Z"}
+{"level":"info","message":"\u001b[0mGET /images/pasta%20carbonara.jpg \u001b[36m304\u001b[0m 2.213 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T10:27:15.828Z"}
+{"level":"info","message":"\u001b[0mGET /images/grilled%20salmon.jpg \u001b[36m304\u001b[0m 3.947 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T10:27:15.831Z"}
+{"level":"info","message":"\u001b[0mGET /images/beef%20steak.jpg \u001b[36m304\u001b[0m 1.146 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T10:27:15.835Z"}
+{"level":"info","message":"\u001b[0mGET /images/caesar%20salad.jpg \u001b[36m304\u001b[0m 0.863 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T10:27:15.840Z"}
+{"level":"info","message":"\u001b[0mGET /images/mushroom%20risotto.jpg \u001b[36m304\u001b[0m 0.893 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T10:27:15.848Z"}
+{"level":"info","message":"\u001b[0mGET /images/coca%20cola.jpg \u001b[36m304\u001b[0m 1.592 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T10:27:15.852Z"}
+{"level":"info","message":"\u001b[0mGET /images/fresh%20lime%20soda.jpg \u001b[36m304\u001b[0m 1.296 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T10:27:15.858Z"}
+{"level":"info","message":"\u001b[0mGET /images/mango%20lassi.jpg \u001b[36m304\u001b[0m 2.482 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T10:27:15.869Z"}
+{"level":"info","message":"\u001b[0mGET /images/mineral%20water.jpg \u001b[36m304\u001b[0m 6.266 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T10:27:15.873Z"}
+{"level":"info","message":"\u001b[0mGET /images/chocolate%20brownie.jpg \u001b[36m304\u001b[0m 2.446 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T10:27:15.880Z"}
+{"level":"info","message":"\u001b[0mGET /images/cheesecake.jpg \u001b[36m304\u001b[0m 0.817 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T10:27:15.885Z"}
+{"level":"info","message":"\u001b[0mGET /images/gulab%20jamun.jpg \u001b[36m304\u001b[0m 1.081 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T10:27:15.893Z"}
+{"level":"info","message":"Loading routes...","module":"server","service":"restaurant-backend","timestamp":"2025-12-22T10:34:26.909Z"}
+{"level":"info","message":"Route /api/menu loaded successfully","module":"server","service":"restaurant-backend","timestamp":"2025-12-22T10:34:27.536Z"}
+{"level":"info","message":"Route /api/orders loaded successfully","module":"server","service":"restaurant-backend","timestamp":"2025-12-22T10:34:27.539Z"}
+{"level":"info","message":"Route /api/feedback loaded successfully","module":"server","service":"restaurant-backend","timestamp":"2025-12-22T10:34:27.541Z"}
+{"level":"info","message":"Route /api/qr loaded successfully","module":"server","service":"restaurant-backend","timestamp":"2025-12-22T10:34:27.651Z"}
+{"level":"info","message":"Route /api/auth loaded successfully","module":"server","service":"restaurant-backend","timestamp":"2025-12-22T10:34:27.654Z"}
+{"level":"info","message":"Route /api/manager loaded successfully","module":"server","service":"restaurant-backend","timestamp":"2025-12-22T10:34:27.657Z"}
+{"level":"info","message":"Route /api/kitchen loaded successfully","module":"server","service":"restaurant-backend","timestamp":"2025-12-22T10:34:27.661Z"}
+{"level":"info","message":"Route /api/db loaded successfully","module":"server","service":"restaurant-backend","timestamp":"2025-12-22T10:34:27.664Z"}
+{"level":"info","message":"Route loading sequence complete","module":"server","service":"restaurant-backend","timestamp":"2025-12-22T10:34:27.665Z"}
+{"level":"info","message":"Database logging transport initialized","module":"logger","service":"restaurant-backend","timestamp":"2025-12-22T10:34:27.666Z"}
+{"level":"info","message":"Testing database connection...","module":"server","service":"restaurant-backend","timestamp":"2025-12-22T10:34:27.696Z"}
+{"level":"info","message":"--- Unique Customer Session QR Code ---","module":"server","service":"restaurant-backend","timestamp":"2025-12-22T10:34:27.735Z"}
+{"level":"info","message":"Scan this QR to start a new session: /customer?sessionId=customer-1766399667670-w7imj2b9d","module":"server","service":"restaurant-backend","timestamp":"2025-12-22T10:34:27.735Z"}
+{"level":"info","message":"(Base64 QR image available via /api/qr/session)","module":"server","service":"restaurant-backend","timestamp":"2025-12-22T10:34:27.736Z"}
+{"level":"info","message":"Database connection verified successfully.","module":"server","service":"restaurant-backend","timestamp":"2025-12-22T10:34:27.984Z"}
+{"bindAddress":"127.0.0.1","environment":"development","level":"info","message":"Server running on port 5000","module":"server","port":5000,"service":"restaurant-backend","timestamp":"2025-12-22T10:34:27.992Z"}
+{"level":"info","message":"\u001b[0mGET / \u001b[31m500\u001b[0m 5.029 ms - 170\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T10:35:03.440Z"}
+{"level":"info","message":"\u001b[0mGET /favicon.ico \u001b[31m500\u001b[0m 2.774 ms - 170\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T10:35:03.592Z"}
+{"level":"info","message":"\u001b[0mGET /api/health \u001b[32m200\u001b[0m 2.058 ms - 74\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T10:35:08.333Z"}
+{"level":"info","message":"Loading routes...","module":"server","service":"restaurant-backend","timestamp":"2025-12-22T10:35:48.917Z"}
+{"level":"info","message":"Route /api/menu loaded successfully","module":"server","service":"restaurant-backend","timestamp":"2025-12-22T10:35:49.549Z"}
+{"level":"info","message":"Route /api/orders loaded successfully","module":"server","service":"restaurant-backend","timestamp":"2025-12-22T10:35:49.553Z"}
+{"level":"info","message":"Route /api/feedback loaded successfully","module":"server","service":"restaurant-backend","timestamp":"2025-12-22T10:35:49.556Z"}
+{"level":"info","message":"Route /api/qr loaded successfully","module":"server","service":"restaurant-backend","timestamp":"2025-12-22T10:35:49.646Z"}
+{"level":"info","message":"Route /api/auth loaded successfully","module":"server","service":"restaurant-backend","timestamp":"2025-12-22T10:35:49.650Z"}
+{"level":"info","message":"Route /api/manager loaded successfully","module":"server","service":"restaurant-backend","timestamp":"2025-12-22T10:35:49.653Z"}
+{"level":"info","message":"Route /api/kitchen loaded successfully","module":"server","service":"restaurant-backend","timestamp":"2025-12-22T10:35:49.657Z"}
+{"level":"info","message":"Route /api/db loaded successfully","module":"server","service":"restaurant-backend","timestamp":"2025-12-22T10:35:49.659Z"}
+{"level":"info","message":"Route loading sequence complete","module":"server","service":"restaurant-backend","timestamp":"2025-12-22T10:35:49.660Z"}
+{"level":"info","message":"Database logging transport initialized","module":"logger","service":"restaurant-backend","timestamp":"2025-12-22T10:35:49.661Z"}
+{"level":"info","message":"Testing database connection...","module":"server","service":"restaurant-backend","timestamp":"2025-12-22T10:35:49.686Z"}
+{"level":"info","message":"--- Unique Customer Session QR Code ---","module":"server","service":"restaurant-backend","timestamp":"2025-12-22T10:35:49.722Z"}
+{"level":"info","message":"Scan this QR to start a new session: /customer?sessionId=customer-1766399749664-tlmrf4jz8","module":"server","service":"restaurant-backend","timestamp":"2025-12-22T10:35:49.723Z"}
+{"level":"info","message":"(Base64 QR image available via /api/qr/session)","module":"server","service":"restaurant-backend","timestamp":"2025-12-22T10:35:49.723Z"}
+{"level":"info","message":"Database connection verified successfully.","module":"server","service":"restaurant-backend","timestamp":"2025-12-22T10:35:49.930Z"}
+{"level":"warn","message":"Requested port 5000 unavailable. Server will start on 5001 instead.","module":"server","service":"restaurant-backend","timestamp":"2025-12-22T10:35:50.095Z"}
+{"bindAddress":"127.0.0.1","environment":"development","level":"info","message":"Server running on port 5001","module":"server","port":5001,"service":"restaurant-backend","timestamp":"2025-12-22T10:35:50.099Z"}
+{"level":"info","message":"\u001b[0mGET / \u001b[31m500\u001b[0m 25.863 ms - 170\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T10:36:15.056Z"}
+{"level":"info","message":"\u001b[0mGET /favicon.ico \u001b[31m500\u001b[0m 3.833 ms - 170\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T10:36:15.183Z"}
+{"level":"info","message":"\u001b[0mGET /api/menu \u001b[36m304\u001b[0m 184.433 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T10:37:44.030Z"}
+{"level":"info","message":"\u001b[0mGET /api/orders/session/customer-1766208851844-db9tohfel \u001b[36m304\u001b[0m 266.923 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T10:37:44.102Z"}
+{"level":"info","message":"\u001b[0mGET /images/chicken%20biryani.jpg \u001b[36m304\u001b[0m 12.782 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T10:37:44.484Z"}
+{"level":"info","message":"\u001b[0mGET /images/chicken%20karahi.jpg \u001b[36m304\u001b[0m 17.479 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T10:37:44.490Z"}
+{"level":"info","message":"\u001b[0mGET /images/chicken%20tikka.jpg \u001b[36m304\u001b[0m 18.192 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T10:37:44.491Z"}
+{"level":"info","message":"\u001b[0mGET /images/beef%20nihari.jpg \u001b[36m304\u001b[0m 19.377 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T10:37:44.494Z"}
+{"level":"info","message":"\u001b[0mGET /images/chana%20masala.jpg \u001b[36m304\u001b[0m 20.312 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T10:37:44.495Z"}
+{"level":"info","message":"\u001b[0mGET /images/beef%20burger.jpg \u001b[36m304\u001b[0m 14.784 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T10:37:44.514Z"}
+{"level":"info","message":"\u001b[0mGET /images/french%20fries.jpg \u001b[36m304\u001b[0m 9.506 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T10:37:44.517Z"}
+{"level":"info","message":"\u001b[0mGET /images/pizza%20margherita.jpg \u001b[36m304\u001b[0m 13.908 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T10:37:44.523Z"}
+{"level":"info","message":"\u001b[0mGET /images/chicken%20wings.jpg \u001b[36m304\u001b[0m 15.420 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T10:37:44.526Z"}
+{"level":"info","message":"\u001b[0mGET /images/club%20sandwich.jpg \u001b[36m304\u001b[0m 24.259 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T10:37:44.538Z"}
+{"level":"info","message":"\u001b[0mGET /images/pasta%20carbonara.jpg \u001b[36m304\u001b[0m 19.617 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T10:37:44.548Z"}
+{"level":"info","message":"\u001b[0mGET /images/grilled%20salmon.jpg \u001b[36m304\u001b[0m 14.403 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T10:37:44.560Z"}
+{"level":"info","message":"\u001b[0mGET /images/beef%20steak.jpg \u001b[36m304\u001b[0m 15.866 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T10:37:44.562Z"}
+{"level":"info","message":"\u001b[0mGET /images/caesar%20salad.jpg \u001b[36m304\u001b[0m 16.626 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T10:37:44.563Z"}
+{"level":"info","message":"\u001b[0mGET /images/mushroom%20risotto.jpg \u001b[36m304\u001b[0m 21.543 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T10:37:44.573Z"}
+{"level":"info","message":"\u001b[0mGET /images/coca%20cola.jpg \u001b[36m304\u001b[0m 13.050 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T10:37:44.580Z"}
+{"level":"info","message":"\u001b[0mGET /images/fresh%20lime%20soda.jpg \u001b[36m304\u001b[0m 8.330 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T10:37:44.586Z"}
+{"level":"info","message":"\u001b[0mGET /images/mango%20lassi.jpg \u001b[36m304\u001b[0m 11.327 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T10:37:44.591Z"}
+{"level":"info","message":"\u001b[0mGET /images/mineral%20water.jpg \u001b[36m304\u001b[0m 14.625 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T10:37:44.593Z"}
+{"level":"info","message":"\u001b[0mGET /images/chocolate%20brownie.jpg \u001b[36m304\u001b[0m 16.315 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T10:37:44.600Z"}
+{"level":"info","message":"\u001b[0mGET /images/cheesecake.jpg \u001b[36m304\u001b[0m 11.749 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T10:37:44.611Z"}
+{"level":"info","message":"\u001b[0mGET /images/gulab%20jamun.jpg \u001b[36m304\u001b[0m 8.910 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T10:37:44.614Z"}
+{"level":"info","message":"\u001b[0mGET /api/manager/menu \u001b[36m304\u001b[0m 213.707 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T10:38:05.541Z"}
+{"level":"info","message":"\u001b[0mGET /api/manager/feedback?page=1&limit=50 \u001b[36m304\u001b[0m 234.363 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T10:38:05.566Z"}
+{"level":"info","message":"\u001b[0mGET /api/manager/orders/all \u001b[36m304\u001b[0m 286.490 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T10:38:05.612Z"}
+{"level":"info","message":"\u001b[0mGET /api/manager/statistics \u001b[32m200\u001b[0m 303.065 ms - 343\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T10:38:05.631Z"}
+{"level":"info","message":"\u001b[0mGET /api/kitchen/orders/active \u001b[36m304\u001b[0m 33.556 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T10:38:15.591Z"}
+{"level":"info","message":"\u001b[0mPOST /api/orders \u001b[32m201\u001b[0m 387.956 ms - 551\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T10:39:19.987Z"}
+{"level":"info","message":"\u001b[0mGET /api/orders/session/customer-1766208851844-db9tohfel \u001b[32m200\u001b[0m 40.806 ms - 3148\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T10:39:20.040Z"}
+{"level":"info","message":"\u001b[0mGET /api/orders/session/customer-1766208851844-db9tohfel \u001b[36m304\u001b[0m 30.262 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T10:39:20.081Z"}
+{"level":"info","message":"\u001b[0mGET /api/manager/orders/pending \u001b[32m200\u001b[0m 58.708 ms - 18064\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T10:39:20.179Z"}
+{"level":"info","message":"\u001b[0mPUT /api/manager/orders/98/approve \u001b[32m200\u001b[0m 153.068 ms - 71\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T10:40:02.552Z"}
+{"level":"info","message":"\u001b[0mGET /api/manager/orders/pending \u001b[32m200\u001b[0m 102.130 ms - 17542\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T10:40:02.663Z"}
+{"level":"info","message":"\u001b[0mGET /api/orders/session/customer-1766208851844-db9tohfel \u001b[32m200\u001b[0m 22.554 ms - 3176\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T10:40:02.684Z"}
+{"level":"info","message":"\u001b[0mGET /api/kitchen/orders/active \u001b[32m200\u001b[0m 22.134 ms - 1055\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T10:40:02.689Z"}
+{"level":"info","message":"\u001b[0mDELETE /api/manager/menu/16 \u001b[33m400\u001b[0m 282.019 ms - 84\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T10:43:34.019Z"}
+{"level":"info","message":"\u001b[0mPUT /api/kitchen/orders/98/status \u001b[32m200\u001b[0m 171.552 ms - 77\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T10:43:45.839Z"}
+{"level":"info","message":"\u001b[0mPUT /api/kitchen/orders/98/status \u001b[32m200\u001b[0m 22.664 ms - 73\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T10:43:53.188Z"}
+{"level":"info","message":"\u001b[0mPUT /api/kitchen/orders/98/status \u001b[32m200\u001b[0m 20.849 ms - 77\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T10:43:54.118Z"}
+{"level":"info","message":"\u001b[0mGET /api/manager/menu \u001b[36m304\u001b[0m 148.881 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T10:44:24.665Z"}
+{"level":"info","message":"\u001b[0mGET /api/menu \u001b[36m304\u001b[0m 143.104 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T10:44:24.670Z"}
+{"level":"info","message":"\u001b[0mGET /api/manager/feedback?page=1&limit=50 \u001b[36m304\u001b[0m 152.344 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T10:44:24.673Z"}
+{"level":"info","message":"\u001b[0mGET /api/manager/orders/all \u001b[32m200\u001b[0m 220.273 ms - 22140\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T10:44:24.728Z"}
+{"level":"info","message":"\u001b[0mGET /api/orders/session/customer-1766208851844-db9tohfel \u001b[32m200\u001b[0m 209.937 ms - 3180\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T10:44:24.735Z"}
+{"level":"info","message":"\u001b[0mGET /api/kitchen/orders/active \u001b[32m200\u001b[0m 63.014 ms - 95\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T10:44:24.739Z"}
+{"level":"info","message":"\u001b[0mGET /api/manager/statistics \u001b[32m200\u001b[0m 239.084 ms - 344\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T10:44:24.748Z"}
+{"level":"info","message":"\u001b[0mGET /images/chicken%20biryani.jpg \u001b[36m304\u001b[0m 1.865 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T10:44:25.139Z"}
+{"level":"info","message":"\u001b[0mGET /images/chicken%20karahi.jpg \u001b[36m304\u001b[0m 3.553 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T10:44:25.142Z"}
+{"level":"info","message":"\u001b[0mGET /images/chicken%20tikka.jpg \u001b[36m304\u001b[0m 3.052 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T10:44:25.359Z"}
+{"level":"info","message":"\u001b[0mGET /images/beef%20nihari.jpg \u001b[36m304\u001b[0m 4.621 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T10:44:25.362Z"}
+{"level":"info","message":"\u001b[0mGET /images/chana%20masala.jpg \u001b[36m304\u001b[0m 0.986 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T10:44:25.368Z"}
+{"level":"info","message":"\u001b[0mGET /images/beef%20burger.jpg \u001b[36m304\u001b[0m 1.120 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T10:44:25.372Z"}
+{"level":"info","message":"\u001b[0mGET /images/french%20fries.jpg \u001b[36m304\u001b[0m 1.552 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T10:44:25.376Z"}
+{"level":"info","message":"\u001b[0mGET /images/pizza%20margherita.jpg \u001b[36m304\u001b[0m 1.527 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T10:44:25.381Z"}
+{"level":"info","message":"\u001b[0mGET /images/chicken%20wings.jpg \u001b[36m304\u001b[0m 1.469 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T10:44:25.386Z"}
+{"level":"info","message":"\u001b[0mGET /images/club%20sandwich.jpg \u001b[36m304\u001b[0m 1.690 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T10:44:25.391Z"}
+{"level":"info","message":"\u001b[0mGET /images/pasta%20carbonara.jpg \u001b[36m304\u001b[0m 1.870 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T10:44:25.396Z"}
+{"level":"info","message":"\u001b[0mGET /images/grilled%20salmon.jpg \u001b[36m304\u001b[0m 0.874 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T10:44:25.401Z"}
+{"level":"info","message":"\u001b[0mGET /images/beef%20steak.jpg \u001b[36m304\u001b[0m 1.506 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T10:44:25.406Z"}
+{"level":"info","message":"\u001b[0mGET /images/caesar%20salad.jpg \u001b[36m304\u001b[0m 1.161 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T10:44:25.409Z"}
+{"level":"info","message":"\u001b[0mGET /images/mushroom%20risotto.jpg \u001b[36m304\u001b[0m 1.433 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T10:44:25.414Z"}
+{"level":"info","message":"\u001b[0mGET /images/coca%20cola.jpg \u001b[36m304\u001b[0m 1.562 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T10:44:25.419Z"}
+{"level":"info","message":"\u001b[0mGET /images/fresh%20lime%20soda.jpg \u001b[36m304\u001b[0m 1.117 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T10:44:25.423Z"}
+{"level":"info","message":"\u001b[0mGET /images/mango%20lassi.jpg \u001b[36m304\u001b[0m 1.424 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T10:44:25.428Z"}
+{"level":"info","message":"\u001b[0mGET /images/mineral%20water.jpg \u001b[36m304\u001b[0m 1.526 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T10:44:25.434Z"}
+{"level":"info","message":"\u001b[0mGET /images/chocolate%20brownie.jpg \u001b[36m304\u001b[0m 1.324 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T10:44:25.439Z"}
+{"level":"info","message":"\u001b[0mGET /images/cheesecake.jpg \u001b[36m304\u001b[0m 1.466 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T10:44:25.443Z"}
+{"level":"info","message":"\u001b[0mGET /images/gulab%20jamun.jpg \u001b[36m304\u001b[0m 1.052 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T10:44:25.448Z"}
+{"level":"info","message":"\u001b[0mGET /api/kitchen/orders/active \u001b[36m304\u001b[0m 133.460 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T11:07:44.852Z"}
+{"level":"info","message":"\u001b[0mGET /api/manager/menu \u001b[36m304\u001b[0m 137.765 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T11:07:44.856Z"}
+{"level":"info","message":"\u001b[0mGET /api/manager/feedback?page=1&limit=50 \u001b[36m304\u001b[0m 135.418 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T11:07:44.864Z"}
+{"level":"info","message":"\u001b[0mGET /api/manager/orders/all \u001b[36m304\u001b[0m 173.319 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T11:07:44.888Z"}
+{"level":"info","message":"\u001b[0mGET /api/menu \u001b[36m304\u001b[0m 41.683 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T11:07:44.901Z"}
+{"level":"info","message":"\u001b[0mGET /api/orders/session/customer-1766208851844-db9tohfel \u001b[36m304\u001b[0m 116.726 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T11:07:44.911Z"}
+{"level":"info","message":"\u001b[0mGET /api/manager/statistics \u001b[36m304\u001b[0m 197.305 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T11:07:44.913Z"}
+{"level":"info","message":"\u001b[0mGET /images/chicken%20biryani.jpg \u001b[36m304\u001b[0m 1.872 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T11:07:45.280Z"}
+{"level":"info","message":"\u001b[0mGET /images/chicken%20karahi.jpg \u001b[36m304\u001b[0m 3.356 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T11:07:45.282Z"}
+{"level":"info","message":"\u001b[0mGET /images/chicken%20tikka.jpg \u001b[36m304\u001b[0m 2.200 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T11:07:45.289Z"}
+{"level":"info","message":"\u001b[0mGET /images/beef%20nihari.jpg \u001b[36m304\u001b[0m 2.607 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T11:07:45.292Z"}
+{"level":"info","message":"\u001b[0mGET /images/chana%20masala.jpg \u001b[36m304\u001b[0m 0.892 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T11:07:45.295Z"}
+{"level":"info","message":"\u001b[0mGET /images/beef%20burger.jpg \u001b[36m304\u001b[0m 0.794 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T11:07:45.298Z"}
+{"level":"info","message":"\u001b[0mGET /images/french%20fries.jpg \u001b[36m304\u001b[0m 2.061 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T11:07:45.302Z"}
+{"level":"info","message":"\u001b[0mGET /images/pizza%20margherita.jpg \u001b[36m304\u001b[0m 2.862 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T11:07:45.305Z"}
+{"level":"info","message":"\u001b[0mGET /images/chicken%20wings.jpg \u001b[36m304\u001b[0m 1.073 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T11:07:45.309Z"}
+{"level":"info","message":"\u001b[0mGET /images/club%20sandwich.jpg \u001b[36m304\u001b[0m 1.034 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T11:07:45.312Z"}
+{"level":"info","message":"\u001b[0mGET /images/pasta%20carbonara.jpg \u001b[36m304\u001b[0m 1.734 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T11:07:45.316Z"}
+{"level":"info","message":"\u001b[0mGET /images/grilled%20salmon.jpg \u001b[36m304\u001b[0m 1.027 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T11:07:45.320Z"}
+{"level":"info","message":"\u001b[0mGET /images/beef%20steak.jpg \u001b[36m304\u001b[0m 1.034 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T11:07:45.324Z"}
+{"level":"info","message":"\u001b[0mGET /images/caesar%20salad.jpg \u001b[36m304\u001b[0m 0.967 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T11:07:45.327Z"}
+{"level":"info","message":"\u001b[0mGET /images/mushroom%20risotto.jpg \u001b[36m304\u001b[0m 0.709 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T11:07:45.329Z"}
+{"level":"info","message":"\u001b[0mGET /images/coca%20cola.jpg \u001b[36m304\u001b[0m 1.819 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T11:07:45.334Z"}
+{"level":"info","message":"\u001b[0mGET /images/fresh%20lime%20soda.jpg \u001b[36m304\u001b[0m 1.134 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T11:07:45.337Z"}
+{"level":"info","message":"\u001b[0mGET /images/mango%20lassi.jpg \u001b[36m304\u001b[0m 0.984 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T11:07:45.341Z"}
+{"level":"info","message":"\u001b[0mGET /images/mineral%20water.jpg \u001b[36m304\u001b[0m 1.008 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T11:07:45.344Z"}
+{"level":"info","message":"\u001b[0mGET /images/chocolate%20brownie.jpg \u001b[36m304\u001b[0m 0.813 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T11:07:45.346Z"}
+{"level":"info","message":"\u001b[0mGET /images/cheesecake.jpg \u001b[36m304\u001b[0m 1.259 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T11:07:45.350Z"}
+{"level":"info","message":"\u001b[0mGET /images/gulab%20jamun.jpg \u001b[36m304\u001b[0m 1.140 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T11:07:45.355Z"}
+{"level":"info","message":"\u001b[0mGET /api/manager/menu \u001b[36m304\u001b[0m 126.756 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T11:39:50.920Z"}
+{"level":"info","message":"\u001b[0mGET /api/manager/feedback?page=1&limit=50 \u001b[36m304\u001b[0m 139.201 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T11:39:50.934Z"}
+{"level":"info","message":"\u001b[0mGET /api/manager/orders/all \u001b[36m304\u001b[0m 201.776 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T11:39:50.985Z"}
+{"level":"info","message":"\u001b[0mGET /api/menu \u001b[36m304\u001b[0m 59.430 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T11:39:51.007Z"}
+{"level":"info","message":"\u001b[0mGET /api/manager/statistics \u001b[36m304\u001b[0m 229.019 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T11:39:51.016Z"}
+{"level":"info","message":"\u001b[0mGET /api/orders/session/customer-1766208851844-db9tohfel \u001b[36m304\u001b[0m 101.536 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T11:39:51.027Z"}
+{"level":"info","message":"\u001b[0mGET /api/kitchen/orders/active \u001b[36m304\u001b[0m 33.134 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T11:39:51.033Z"}
+{"level":"info","message":"\u001b[0mGET /images/chicken%20biryani.jpg \u001b[36m304\u001b[0m 3.801 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T11:39:51.537Z"}
+{"level":"info","message":"\u001b[0mGET /images/chicken%20karahi.jpg \u001b[36m304\u001b[0m 6.372 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T11:39:51.541Z"}
+{"level":"info","message":"\u001b[0mGET /images/chicken%20tikka.jpg \u001b[36m304\u001b[0m 10.647 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T11:39:51.548Z"}
+{"level":"info","message":"\u001b[0mGET /images/beef%20nihari.jpg \u001b[36m304\u001b[0m 5.094 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T11:39:51.679Z"}
+{"level":"info","message":"\u001b[0mGET /images/chana%20masala.jpg \u001b[36m304\u001b[0m 9.522 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T11:39:51.685Z"}
+{"level":"info","message":"\u001b[0mGET /images/beef%20burger.jpg \u001b[36m304\u001b[0m 14.968 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T11:39:51.692Z"}
+{"level":"info","message":"\u001b[0mGET /images/french%20fries.jpg \u001b[36m304\u001b[0m 5.602 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T11:39:51.705Z"}
+{"level":"info","message":"\u001b[0mGET /images/pizza%20margherita.jpg \u001b[36m304\u001b[0m 16.051 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T11:39:51.720Z"}
+{"level":"info","message":"\u001b[0mGET /images/chicken%20wings.jpg \u001b[36m304\u001b[0m 16.654 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T11:39:51.731Z"}
+{"level":"info","message":"\u001b[0mGET /images/club%20sandwich.jpg \u001b[36m304\u001b[0m 11.150 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T11:39:51.740Z"}
+{"level":"info","message":"\u001b[0mGET /images/pasta%20carbonara.jpg \u001b[36m304\u001b[0m 8.717 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T11:39:51.746Z"}
+{"level":"info","message":"\u001b[0mGET /images/grilled%20salmon.jpg \u001b[36m304\u001b[0m 4.913 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T11:39:51.750Z"}
+{"level":"info","message":"\u001b[0mGET /images/beef%20steak.jpg \u001b[36m304\u001b[0m 3.934 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T11:39:51.757Z"}
+{"level":"info","message":"\u001b[0mGET /images/caesar%20salad.jpg \u001b[36m304\u001b[0m 7.206 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T11:39:51.763Z"}
+{"level":"info","message":"\u001b[0mGET /images/mushroom%20risotto.jpg \u001b[36m304\u001b[0m 7.332 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T11:39:51.769Z"}
+{"level":"info","message":"\u001b[0mGET /images/coca%20cola.jpg \u001b[36m304\u001b[0m 6.592 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T11:39:51.775Z"}
+{"level":"info","message":"\u001b[0mGET /images/fresh%20lime%20soda.jpg \u001b[36m304\u001b[0m 1.300 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T11:39:51.790Z"}
+{"level":"info","message":"\u001b[0mGET /images/mango%20lassi.jpg \u001b[36m304\u001b[0m 3.503 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T11:39:51.797Z"}
+{"level":"info","message":"\u001b[0mGET /images/mineral%20water.jpg \u001b[36m304\u001b[0m 5.273 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T11:39:51.802Z"}
+{"level":"info","message":"\u001b[0mGET /images/chocolate%20brownie.jpg \u001b[36m304\u001b[0m 10.376 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T11:39:51.808Z"}
+{"level":"info","message":"\u001b[0mGET /images/cheesecake.jpg \u001b[36m304\u001b[0m 4.102 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T11:39:51.815Z"}
+{"level":"info","message":"\u001b[0mGET /images/gulab%20jamun.jpg \u001b[36m304\u001b[0m 8.419 ms - -\u001b[0m","module":"http","service":"restaurant-backend","timestamp":"2025-12-22T11:39:51.822Z"}
